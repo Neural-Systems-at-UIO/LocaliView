@@ -1,7 +1,16 @@
 import React from 'react';
-import { Box, Typography, List, ListItem, ListItemText, Card, CardContent, Button, LinearProgress, Skeleton } from '@mui/material';
+import {
+    Box, Typography, List, ListItem, ListItemText, Card, CardContent, Button, LinearProgress, Skeleton, FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    ListSubheader,
+} from '@mui/material';
 import { useState, useEffect } from 'react';
 import { callDeepZoom } from '../actions/handleCollabs';
+
+// Importing deepzoom here 
+const DEEPZOOM_URL = import.meta.env.VITE_APP_DEEPZOOM_URL;
 
 const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
@@ -11,33 +20,73 @@ const formatFileSize = (bytes) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-const AdditionalInfo = ({ braininfo, stats, isLoading }) => {
+const AdditionalInfo = ({ braininfo, stats, isLoading, token }) => {
     let pyramidCount = stats[1]?.zip.length || 0;
     const [user, setUser] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [bucketName, setBucketName] = useState(null);
 
     useEffect(() => {
         try {
             const userInfo = JSON.parse(localStorage.getItem('userInfo'));
             setUser(userInfo.username);
+            setBucketName(`${user}-rwb`);
+
         } catch (error) {
             console.error('Error parsing userInfo:', error);
         }
     }, []);
 
-    const processFiles = async (files, target) => {
-        setIsProcessing(true);
-        const bucketName = `${user}-rwb/`;
-        let pyramidCount = 0;
+    const processImage = async (imageFile, bucket, targetPath, token) => {
         try {
-            for (const file of files) {
-                const result = await callDeepZoom(bucketName + file, bucketName + target);
-                if (result.status === 200) {
-                    pyramidCount++;
-                }
+            const response = await fetch(DEEPZOOM_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    path: `${bucket}/${imageFile.path}`,
+                    target_path: `${bucket}/${targetPath}`,
+                    token: token
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+
+            return await response.json();
         } catch (error) {
-            console.error('Error processing files:', error);
+            console.error(`Error processing file ${imageFile.name}:`, error);
+            throw error;
+        }
+    };
+
+    const processTiffFiles = async () => {
+        if (!braininfo || !stats[0]?.tiffs?.length) {
+            alert("No TIFF files found to process");
+            return;
+        }
+
+        setIsProcessing(true);
+        const sourceBrain = braininfo.path; // e.g. "project/brain1/"
+        const imageFiles = stats[0].tiffs.map(tiffPath => ({
+            path: tiffPath,
+            name: tiffPath.split('/').pop()
+        }));
+
+        try {
+            const promises = imageFiles.map(imageFile => {
+                const targetPath = `${sourceBrain}zipped_images/`;
+                return processImage(imageFile, bucketName, targetPath, token);
+            });
+
+            await Promise.all(promises);
+            alert("All TIFF files submitted for processing");
+        } catch (error) {
+            console.error("Error processing TIFF files:", error);
+            alert("Some files failed to process. Check the console for details.");
         } finally {
             setIsProcessing(false);
         }
@@ -77,6 +126,8 @@ const AdditionalInfo = ({ braininfo, stats, isLoading }) => {
             </Box>
         );
     }
+
+    const pyramidComplete = pyramidCount === brainStats.files;
 
     return (
         <Box sx={{ overflow: 'auto', p: 2 }}>
@@ -124,8 +175,8 @@ const AdditionalInfo = ({ braininfo, stats, isLoading }) => {
                             </Typography>
                             <Button
                                 variant="outlined"
-                                disabled={isProcessing}
-                                onClick={() => processFiles(brainStats.tiffs, stats[1]?.name)}
+                                disabled={isProcessing || pyramidComplete}
+                                onClick={() => processTiffFiles()}
                                 sx={{
                                     borderColor: 'black',
                                     color: 'black',
@@ -135,7 +186,7 @@ const AdditionalInfo = ({ braininfo, stats, isLoading }) => {
                                     }
                                 }}
                             >
-                                {isProcessing ? 'Processing...' : 'Process Files'}
+                                {pyramidComplete ? 'Complete' : isProcessing ? 'Processing...' : 'Process Files'}
                             </Button>
                         </Box>
                         <Box sx={{ mt: 2 }}>
@@ -151,6 +202,45 @@ const AdditionalInfo = ({ braininfo, stats, isLoading }) => {
                                 }}
                             />
                         </Box>
+                    </CardContent>
+                </Card>
+                <Card sx={{ boxShadow: 'none', mb: 2, border: '1px solid #e0e0e0', maxWidth: '48%' }}>
+                    <CardContent>
+                        <Typography gutterBottom sx={{ color: 'text.secondary', fontSize: 14 }}>
+                            Generate atlas referenced alignment
+                        </Typography>
+                        <FormControl
+                            fullWidth
+                            variant="outlined"
+                            sx={{ marginBottom: '20px' }}
+                        >
+                            <InputLabel htmlFor="grouped-select">Atlas reference</InputLabel>
+                            <Select defaultValue="" id="grouped-select" label="Atlas Reference">
+                                <MenuItem value="">
+                                    <em>None</em>
+                                </MenuItem>
+                                <ListSubheader>Rat Brain Atlases</ListSubheader>
+                                <MenuItem value={1}>Waxholm Space Atlas of the Sprague Dawley rat v2</MenuItem>
+                                <MenuItem value={2}>Waxholm Space Atlas of the Sprague Dawley rat v3</MenuItem>
+                                <MenuItem value={3}>Waxholm Space Atlas of the Sprague Dawley rat v4</MenuItem>
+                                <ListSubheader>Mouse Brain Atlases</ListSubheader>
+                                <MenuItem value={4}>Allen Mouse Brain Atlas version 3 2015</MenuItem>
+                                <MenuItem value={5}>Allen Mouse Brain Atlas version 3 2017</MenuItem>
+                            </Select>
+                        </FormControl>
+                        <Button
+                            variant="outlined"
+                            sx={{
+                                borderColor: 'black',
+                                color: 'black',
+                                '&:hover': {
+                                    borderColor: 'black',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                                }
+                            }}
+                        >
+                            Generate
+                        </Button>
                     </CardContent>
                 </Card>
             </Box>

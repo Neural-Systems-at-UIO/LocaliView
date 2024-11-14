@@ -1,6 +1,6 @@
 
 const BUCKET_URL = 'https://data-proxy.ebrains.eu/api/v1/buckets/'
-const DEEPZOOM_URL = process.env.REACT_APP_DEEPZOOM_URL
+const DEEPZOOM_URL = import.meta.env.VITE_APP_DEEPZOOM_URL
 
 // Works fine
 export const fetchCollab = async (token, collabName) => {

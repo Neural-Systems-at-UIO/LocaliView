@@ -224,6 +224,7 @@ export default function QuintTable({ token }) {
                                         braininfo={selectedBrain}
                                         stats={selectedBrainStats}
                                         isLoading={isFetchingStats}
+                                        token={token}
                                     />
                                 </Box>
                             </>

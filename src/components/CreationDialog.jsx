@@ -97,26 +97,6 @@ export default function CreationDialog({ open, onClose, onSubmit, project, updat
                         sx={{ marginBottom: '20px' }}
                     />
 
-                    <FormControl
-                        fullWidth
-                        variant="outlined"
-                        sx={{ marginBottom: '20px' }}
-                    >
-                        <InputLabel htmlFor="grouped-select">Atlas reference</InputLabel>
-                        <Select defaultValue="" id="grouped-select" label="Atlas Reference">
-                            <MenuItem value="">
-                                <em>None</em>
-                            </MenuItem>
-                            <ListSubheader>Rat Brain Atlases</ListSubheader>
-                            <MenuItem value={1}>Waxholm Space Atlas of the Sprague Dawley rat v2</MenuItem>
-                            <MenuItem value={2}>Waxholm Space Atlas of the Sprague Dawley rat v3</MenuItem>
-                            <MenuItem value={3}>Waxholm Space Atlas of the Sprague Dawley rat v4</MenuItem>
-                            <ListSubheader>Mouse Brain Atlases</ListSubheader>
-                            <MenuItem value={4}>Allen Mouse Brain Atlas version 3 2015</MenuItem>
-                            <MenuItem value={5}>Allen Mouse Brain Atlas version 3 2017</MenuItem>
-                        </Select>
-                    </FormControl>
-
                     <UploadZone
                         onFilesSelected={handleFilesSelected}
                     />
