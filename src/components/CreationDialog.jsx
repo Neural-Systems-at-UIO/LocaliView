@@ -9,7 +9,8 @@ import {
     TextField,
     Snackbar,
     Chip,
-    Box
+    Box,
+    Alert
 } from '@mui/material';
 import { uploadToPath } from '../actions/handleCollabs';
 import UploadZone from './UploadZone';
@@ -153,9 +154,17 @@ export default function CreationDialog({ open, onClose, onSubmit, project, updat
                 open={snackbarOpen}
                 autoHideDuration={6000}
                 onClose={handleSnackbarClose}
-                message={snackbarMessage}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-            />
+            >
+                <Alert
+                    severity="success"
+                    sx={{ width: '100%' }}
+                    elevation={4}
+                    onClose={handleSnackbarClose}
+                >
+                    {snackbarMessage}
+                </Alert>
+            </Snackbar>
         </>
     );
 }

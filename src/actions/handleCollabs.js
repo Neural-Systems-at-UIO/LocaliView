@@ -25,6 +25,11 @@ export const fetchCollab = async (token, collabName) => {
 }
 
 export const fetchBucketDir = async (token, bucketName, prefix, delimiter, limit = 1000) => {
+
+    if (token === null) {
+        throw new Error('No token provided')
+    }
+
     try {
         let url = `${BUCKET_URL}${bucketName}?`
         const params = new URLSearchParams()

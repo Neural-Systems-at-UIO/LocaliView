@@ -104,7 +104,7 @@ export default function QuintTable({ token }) {
     const handleCloseDialog = () => setIsDialogOpen(false);
 
     return (
-        <Box sx={{ backgroundColor: '#f6f6f6', padding: '2%', display: 'flex', flexDirection: 'row', alignItems: 'stretch', height: '90%', borderRadius: '4px', gap: 2 }}>
+        <Box sx={{ backgroundColor: '#f6f6f6', padding: '2%', display: 'flex', flexDirection: 'row', alignItems: 'stretch', height: '95%', borderRadius: '4px', gap: 2 }}>
             <Box sx={{ display: 'flex', flexGrow: 1, minHeight: 0 }}>
                 {selectedProject === null ? (
                     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'row', gap: 2 }}>

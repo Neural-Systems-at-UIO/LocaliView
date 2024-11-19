@@ -12,7 +12,9 @@ import {
     Tab,
     Toolbar,
     Tooltip,
-    Typography
+    Typography,
+    Snackbar,
+    Alert
 } from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
@@ -77,6 +79,9 @@ const Header = () => {
     const [nativeSelection, setNativeSelection] = useState(true);
     const [tab, setTab] = useState(0);
 
+    // Login alert
+    const [loginAlert, setLoginAlert] = useState(true);
+
     const handleLogin = () => {
         window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://127.00.0.1:3000`
     }
@@ -121,6 +126,7 @@ const Header = () => {
                 .then(data => {
                     console.log(data);
                     setToken(data.token.access_token);
+                    setLoginAlert(false);
                 })
                 // clean the url
                 .then(
@@ -281,6 +287,19 @@ const Header = () => {
                 </Drawer>
             </AppBar>
             <Mainframe url={currentUrl} native={nativeSelection} token={token} />
+            <Snackbar
+                open={loginAlert}
+                autoHideDuration={5000}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Alert
+                    severity="info"
+                    sx={{ width: '100%' }}
+                    elevation={6}
+                >
+                    Please login to access the Rodent Workbench and the EBrains services
+                </Alert>
+            </Snackbar>
         </Box >
     );
 };
