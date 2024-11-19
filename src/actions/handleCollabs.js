@@ -55,7 +55,6 @@ export const fetchBucketDir = async (token, bucketName, prefix, delimiter, limit
             if (obj.subdir) {
                 // Placing the name
                 const dirName = obj.subdir.split('/').slice(-2, -1)[0] || obj.subdir
-                console.log('Directory:', dirName)
 
                 // Fetching the subEntries for the Brains
 
@@ -67,7 +66,7 @@ export const fetchBucketDir = async (token, bucketName, prefix, delimiter, limit
             }
             return null
         }))
-
+        console.log('All brains in project:', entries)
         return entries.filter(entry => entry !== null)
     } catch (error) {
         console.error('Error fetching bucket directory:', error)
@@ -106,13 +105,19 @@ export const fetchBrainStats = async (token, bucketName, brainPrefix) => {
                 "name": brainPrefix + workDir,
                 "files": data.objects.length,
                 "size": data.objects.reduce((acc, obj) => acc + obj.bytes, 0),
-                "tiffs": data.objects.filter(obj => obj.name.endsWith('.tif')).map(obj => obj.name),
-                "zip": data.objects.filter(obj => obj.name.endsWith('.dzip')).map(obj => obj.name),
                 "last_modified": data.objects.reduce((latest, obj) => {
                     const objDate = new Date(obj.last_modified);
                     return objDate > latest ? objDate : latest;
                 }, null)
             }
+            // Workdir relevant keys
+
+            if (workDir === 'raw_images') {
+                stats.tiffs = data.objects.filter(obj => obj.name.endsWith('.tif')).map(obj => obj.name)
+            } else if (workDir === 'zipped_images') {
+                stats.zips = data.objects.filter(obj => obj.name.endsWith('.dzip')).map(obj => obj.name)
+            }
+
             res.push(stats)
         }
 
@@ -153,30 +158,4 @@ export const uploadToPath = async (token, bucketName, projectName, brainName, fi
     }
 
     return { url: uploadUrl, status: uploadResponse.status === 204 };
-}
-
-export const callDeepZoom = async (token, sourceName, targetName) => {
-    try {
-        const response = await fetch(DEEPZOOM_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-            },
-            body: JSON.stringify({
-                "path": sourceName,
-                "bucketname": targetName,
-                "token": token
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`DeepZoom request failed: ${response.body}, ${response.status}`);
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.error('Error calling DeepZoom:', error);
-        throw error;
-    }
 }

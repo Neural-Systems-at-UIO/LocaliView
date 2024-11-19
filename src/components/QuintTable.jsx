@@ -17,7 +17,7 @@ export default function QuintTable({ token }) {
     const [selectedProject, setSelectedProject] = React.useState(null);
     const [selectedBrain, setSelectedBrain] = React.useState(null);
     const [selectedBrainStats, setSelectedBrainStats] = React.useState([]);
-
+    const [projectBrainEntries, setProjectBrainEntries] = React.useState([]);
     // Other stuff
     const [updateTrigger, setUpdateTrigger] = React.useState(0);
     const [rows, setRows] = React.useState([]);
@@ -75,6 +75,7 @@ export default function QuintTable({ token }) {
                 path: entry.path
             }));
             setRows(newRows);
+            setProjectBrainEntries(brainEntries);
             setUpdatingBrains(false);
         } catch (error) {
             console.error('Error fetching brain entries:', error);
@@ -103,7 +104,7 @@ export default function QuintTable({ token }) {
     const handleCloseDialog = () => setIsDialogOpen(false);
 
     return (
-        <Box sx={{ backgroundColor: '#f9f9f9', padding: '2%', display: 'flex', flexDirection: 'row', alignItems: 'stretch', height: '90%', borderRadius: '4px', gap: 2 }}>
+        <Box sx={{ backgroundColor: '#f6f6f6', padding: '2%', display: 'flex', flexDirection: 'row', alignItems: 'stretch', height: '90%', borderRadius: '4px', gap: 2 }}>
             <Box sx={{ display: 'flex', flexGrow: 1, minHeight: 0 }}>
                 {selectedProject === null ? (
                     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'row', gap: 2 }}>
@@ -132,12 +133,14 @@ export default function QuintTable({ token }) {
                                     <IconButton sx={{ alignSelf: 'flex-start' }}>
                                         <AddIcon />
                                     </IconButton>
-                                    <IconButton onClick={(e) => {
-                                        e.stopPropagation();
-                                        window.open(`https://data-proxy.ebrains.eu/${bucketName}`, '_blank');
-                                    }}>
-                                        <FolderRoundedIcon sx={{ cursor: 'pointer' }} />
-                                    </IconButton>
+                                    <Tooltip title="Open bucket directory">
+                                        <IconButton onClick={(e) => {
+                                            e.stopPropagation();
+                                            window.open(`https://data-proxy.ebrains.eu/${bucketName}`, '_blank');
+                                        }}>
+                                            <FolderRoundedIcon sx={{ cursor: 'pointer' }} color='primary' />
+                                        </IconButton>
+                                    </Tooltip>
                                 </Box>
                             </Box>
 
@@ -221,6 +224,7 @@ export default function QuintTable({ token }) {
                                 />
                                 <Box sx={{ width: '60%', ml: 2 }}>
                                     <AdditionalInfo
+
                                         braininfo={selectedBrain}
                                         stats={selectedBrainStats}
                                         isLoading={isFetchingStats}
@@ -239,6 +243,8 @@ export default function QuintTable({ token }) {
                 project={selectedProject}
                 updateProjects={fetchAndUpdateProjects}
                 token={token}
+                brainEntries={projectBrainEntries}
+
             />
         </Box>
     );

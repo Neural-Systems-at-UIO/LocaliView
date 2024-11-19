@@ -1,13 +1,27 @@
 import React from 'react';
 import {
-    Box, Typography, List, ListItem, ListItemText, Card, CardContent, Button, LinearProgress, Skeleton, FormControl,
+    Box,
+    Typography,
+    List,
+    ListItem,
+    ListItemText,
+    Card,
+    CardContent,
+    Button,
+    LinearProgress,
+    FormControl,
     InputLabel,
     Select,
     MenuItem,
     ListSubheader,
+    CircularProgress,
+    Tooltip,
+    ListItemIcon
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
+import InfoIcon from '@mui/icons-material/Info';
 import { useState, useEffect } from 'react';
-import { callDeepZoom } from '../actions/handleCollabs';
+import { Info } from '@mui/icons-material';
 
 // Importing deepzoom here 
 const DEEPZOOM_URL = import.meta.env.VITE_APP_DEEPZOOM_URL;
@@ -21,7 +35,7 @@ const formatFileSize = (bytes) => {
 };
 
 const AdditionalInfo = ({ braininfo, stats, isLoading, token }) => {
-    let pyramidCount = stats[1]?.zip.length || 0;
+    let pyramidCount = stats[1]?.zips.length || 0;
     const [user, setUser] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [bucketName, setBucketName] = useState(null);
@@ -103,26 +117,23 @@ const AdditionalInfo = ({ braininfo, stats, isLoading, token }) => {
     }
 
     const brainStats = stats[0] || {};
+    const brainPyramids = stats[1] || {};
 
     if (isLoading) {
         return (
-            <Box sx={{ p: 2 }}>
-                <Skeleton variant="text" width="60%" height={40} sx={{ mb: 2 }} />
-                <List>
-                    {[1, 2, 3].map((item) => (
-                        <ListItem key={item}>
-                            <ListItemText
-                                primary={<Skeleton width="40%" />}
-                                secondary={<Skeleton width="60%" />}
-                            />
-                        </ListItem>
-                    ))}
-                </List>
-                <Card sx={{ boxShadow: 'none', mb: 2, border: '1px solid #e0e0e0' }}>
-                    <CardContent>
-                        <Skeleton variant="rectangular" height={100} />
-                    </CardContent>
-                </Card>
+            <Box sx={{
+                p: 2,
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 2,
+                width: '100%'
+            }}>
+                <Typography variant="body2" color="textSecondary">
+                    Loading brain stats...
+                </Typography>
+                <CircularProgress size={15} />
             </Box>
         );
     }
@@ -131,119 +142,189 @@ const AdditionalInfo = ({ braininfo, stats, isLoading, token }) => {
 
     return (
         <Box sx={{ overflow: 'auto', p: 2 }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Grid container spacing={2}>
+                <Grid size={3}>
+                    <Card sx={{ boxShadow: 'none', border: '1px solid #e0e0e0' }}>
+                        <Typography
+                            variant="h5"
+                            color="primary"
+                            gutterBottom
 
-                <Card sx={{ boxShadow: 'none', mb: 2, border: '1px solid #e0e0e0' }}>
-                    <Typography
-                        variant="h5"
-                        color="primary"
-                        gutterBottom
-                        sx={{ fontWeight: 'bold' }}
-                        textAlign='left'
-                        padding={2}
-                    >
-                        {braininfo.name}
-                    </Typography>
-                    <List>
-                        <ListItem>
-                            <ListItemText
-                                primary="Total Entries"
-                                secondary={brainStats.files || 'N/A'}
-                            />
-                        </ListItem>
-                        <ListItem>
-                            <ListItemText
-                                primary="Size of Brain"
-                                secondary={brainStats.size ? formatFileSize(brainStats.size) : 'N/A'}
-                            />
-                        </ListItem>
-                        <ListItem>
-                            <ListItemText
-                                primary="Last uploaded"
-                                secondary={brainStats.last_modified ? brainStats.last_modified.toLocaleString() : 'N/A'}
-                            />
-                        </ListItem>
-                    </List>
-                </Card>
-                <Card sx={{ boxShadow: 'none', mb: 2, border: '1px solid #e0e0e0' }}>
-                    <CardContent>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography color="text.primary">
-                                Tiff Files to be Converted: {brainStats.files - stats[1]?.zip.length || 0}
-                                <br />
-                                Currently in Zipped Files: {stats[1]?.zip.length || 0}
-                            </Typography>
-                            <Button
-                                variant="outlined"
-                                disabled={isProcessing || pyramidComplete}
-                                onClick={() => processTiffFiles()}
-                                sx={{
-                                    borderColor: 'black',
-                                    color: 'black',
-                                    '&:hover': {
-                                        borderColor: 'black',
-                                        backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                                    }
-                                }}
-                            >
-                                {pyramidComplete ? 'Complete' : isProcessing ? 'Processing...' : 'Process Files'}
-                            </Button>
-                        </Box>
-                        <Box sx={{ mt: 2 }}>
-                            <Typography sx={{ mb: 1 }}>
-                                Progress: {pyramidCount} / {brainStats.files || 0} files processed
-                            </Typography>
-                            <LinearProgress
-                                variant="determinate"
-                                value={(pyramidCount / (brainStats.files || 1)) * 100}
-                                sx={{
-                                    height: 8,
-                                    borderRadius: 4
-                                }}
-                            />
-                        </Box>
-                    </CardContent>
-                </Card>
-                <Card sx={{ boxShadow: 'none', mb: 2, border: '1px solid #e0e0e0', maxWidth: '48%' }}>
-                    <CardContent>
-                        <Typography gutterBottom sx={{ color: 'text.secondary', fontSize: 14 }}>
-                            Generate atlas referenced alignment
-                        </Typography>
-                        <FormControl
-                            fullWidth
-                            variant="outlined"
-                            sx={{ marginBottom: '20px' }}
-                        >
-                            <InputLabel htmlFor="grouped-select">Atlas reference</InputLabel>
-                            <Select defaultValue="" id="grouped-select" label="Atlas Reference">
-                                <MenuItem value="">
-                                    <em>None</em>
-                                </MenuItem>
-                                <ListSubheader>Rat Brain Atlases</ListSubheader>
-                                <MenuItem value={1}>Waxholm Space Atlas of the Sprague Dawley rat v2</MenuItem>
-                                <MenuItem value={2}>Waxholm Space Atlas of the Sprague Dawley rat v3</MenuItem>
-                                <MenuItem value={3}>Waxholm Space Atlas of the Sprague Dawley rat v4</MenuItem>
-                                <ListSubheader>Mouse Brain Atlases</ListSubheader>
-                                <MenuItem value={4}>Allen Mouse Brain Atlas version 3 2015</MenuItem>
-                                <MenuItem value={5}>Allen Mouse Brain Atlas version 3 2017</MenuItem>
-                            </Select>
-                        </FormControl>
-                        <Button
-                            variant="outlined"
                             sx={{
-                                borderColor: 'black',
-                                color: 'black',
-                                '&:hover': {
-                                    borderColor: 'black',
-                                    backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                                }
+                                fontWeight: 'bold',
+                                textWrap: 'wrap',
                             }}
+                            textAlign='left'
+                            padding={2}
                         >
-                            Generate
-                        </Button>
-                    </CardContent>
-                </Card>
-            </Box>
+                            {braininfo.name}
+                        </Typography>
+                        <List>
+                            <ListItem>
+                                <ListItemText
+                                    primary="Total Images"
+                                    secondary={brainStats.files || 'N/A'}
+                                />
+                                <Tooltip title="You can add more images from the 'Add or Edit' button">
+                                    <InfoIcon fontSize="small" color="action" />
+                                </Tooltip>
+
+                            </ListItem>
+                            <ListItem>
+                                <ListItemText
+                                    primary="Size of Brain"
+                                    secondary={brainStats.size ? formatFileSize(brainStats.size) : 'N/A'}
+                                />
+                            </ListItem>
+                            <ListItem>
+                                <ListItemText
+                                    primary="Last updated on"
+                                    secondary={brainStats.last_modified ? brainStats.last_modified.toLocaleString() : 'N/A'}
+                                />
+                            </ListItem>
+                        </List>
+                    </Card>
+                </Grid>
+
+                <Grid size={9} container spacing={1}>
+                    <Grid size={12} >
+                        <Card sx={{ boxShadow: 'none', border: '1px solid #e0e0e0' }}>
+                            <CardContent>
+                                <Box sx={{
+                                    display: 'flex',
+                                    flexDirection: { xs: 'column', sm: 'row' },
+                                    justifyContent: 'space-between',
+                                    alignItems: { xs: 'flex-start', sm: 'center' },
+                                    mb: 2
+                                }}>
+                                    <Box sx={{ mb: { xs: 2, sm: 0 } }}>
+                                        <Typography
+                                            variant="body1"
+                                            color="text.primary"
+                                            sx={{ textAlign: 'left', mb: 0.5 }}
+                                        >
+                                            Tiff files to be converted: {brainStats.files - stats[1]?.zips.length || 0}
+                                        </Typography>
+                                        <Typography
+                                            variant="body1"
+                                            color="text.primary"
+                                            sx={{ textAlign: 'left' }}
+                                        >
+                                            Currently in processed files: {stats[1]?.zips.length || 0}
+                                        </Typography>
+                                    </Box>
+                                    <Button
+                                        variant="outlined"
+                                        disabled={isProcessing || pyramidComplete || brainStats.files === 0}
+                                        onClick={() => processTiffFiles()}
+                                        sx={{
+                                            minWidth: 120,
+                                            height: 40,
+                                            borderColor: (theme) => theme.palette.grey[800],
+                                            color: (theme) => theme.palette.grey[800],
+                                            '&:hover': {
+                                                borderColor: (theme) => theme.palette.grey[900],
+                                                backgroundColor: (theme) => theme.palette.action.hover
+                                            }
+                                        }}
+                                    >
+                                        {pyramidComplete ? 'Complete' : isProcessing ? 'Processing...' : 'Process Files'}
+                                    </Button>
+                                </Box>
+
+                                <Box sx={{ mt: 3 }}>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            mb: 1,
+                                            textAlign: 'left',
+                                            color: 'text.secondary'
+                                        }}
+                                    >
+                                        Progress: {pyramidCount} / {brainStats.files || 0} files processed
+                                    </Typography>
+                                    <LinearProgress
+                                        variant="determinate"
+                                        value={(pyramidCount / (brainStats.files || 1)) * 100}
+                                        sx={{
+                                            height: 8,
+                                            borderRadius: 4,
+                                            backgroundColor: (theme) => theme.palette.grey[200],
+                                            '& .MuiLinearProgress-bar': {
+                                                borderRadius: 4
+                                            }
+                                        }}
+                                    />
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                    <Grid size={12} >
+                        <Card sx={{ boxShadow: 'none', border: '1px solid #e0e0e0', alignItems: 'left' }}>
+                            <CardContent>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+
+                                    <Typography sx={{ color: 'text.secondary', fontSize: 14 }}>
+                                        {brainPyramids.zips.length || 'No'} Images are ready for alignment
+                                    </Typography>
+                                    <Typography sx={{ color: 'text.secondary', fontSize: 14 }}>
+                                        Generate atlas referenced alignment
+
+                                    </Typography>
+
+                                </Box>
+                                <Box sx={{
+                                    display: 'flex',
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    mb: 2
+                                }}>
+                                    <FormControl
+                                        fullWidth
+                                        variant="standard"
+                                        sx={{
+                                            margin: '1px',
+                                            width: '80%'
+                                        }}
+                                    >
+                                        <InputLabel htmlFor="grouped-select">Atlas reference</InputLabel>
+                                        <Select defaultValue="" id="grouped-select" label="Atlas Reference" dense='true'>
+                                            <MenuItem value="">
+                                                <em>None</em>
+                                            </MenuItem>
+                                            <ListSubheader>Rat Brain Atlases</ListSubheader>
+                                            <MenuItem value={1}>Waxholm Space Atlas of the Sprague Dawley rat v2</MenuItem>
+                                            <MenuItem value={2}>Waxholm Space Atlas of the Sprague Dawley rat v3</MenuItem>
+                                            <MenuItem value={3}>Waxholm Space Atlas of the Sprague Dawley rat v4</MenuItem>
+                                            <ListSubheader>Mouse Brain Atlases</ListSubheader>
+                                            <MenuItem value={4}>Allen Mouse Brain Atlas version 3 2015</MenuItem>
+                                            <MenuItem value={5}>Allen Mouse Brain Atlas version 3 2017</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                    <Button
+                                        variant="outlined"
+                                        disabled={!pyramidComplete || brainPyramids.zips.length === 0}
+                                        sx={{
+                                            borderColor: 'black',
+                                            color: 'black',
+
+                                            '&:hover': {
+                                                borderColor: 'black',
+                                                backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                                            }
+                                        }}
+                                    >
+                                        Generate
+                                    </Button>
+                                </Box>
+
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                </Grid>
+
+            </Grid>
         </Box>
     );
 };

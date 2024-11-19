@@ -19,7 +19,7 @@ const theme = createTheme({
       disabled: '#999999',
     },
     primary: {
-      main: '#8000FF',
+      main: '#00896f',
       light: '#94221b',
       dark: '#00a595',
       contrastText: '#ffffff',

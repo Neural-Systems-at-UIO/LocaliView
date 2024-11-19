@@ -9,7 +9,7 @@ const Mainframe = ({ url, native, token }) => {
         <Box
             sx={{
                 width: '100%',
-                height: '95.6vh',
+                height: '95vh',
                 backgroundColor: '#333333',
                 display: 'flex',
                 justifyContent: 'center',
@@ -23,7 +23,6 @@ const Mainframe = ({ url, native, token }) => {
                     width: '98%',
                     height: '98%',
                     border: 'none',
-
                     borderRadius: '4px',
                 }}>
                     <QuintTable token={token} />

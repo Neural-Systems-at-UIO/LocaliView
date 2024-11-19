@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Box, Typography, Paper, CircularProgress, List, ListItem, IconButton } from '@mui/material';
 import { CloudUpload, Delete, InsertDriveFile } from '@mui/icons-material';
@@ -88,8 +88,15 @@ const UploadZone = ({
     },
     isUploading = false
 }) => {
+    const [files, setFiles] = useState([]);
+
+    const handleRemove = useCallback((fileToRemove) => {
+        setFiles(prevFiles => prevFiles.filter(file => file.path !== fileToRemove.path));
+    }, []);
+
     const onDrop = useCallback((acceptedFiles) => {
         onFilesSelected(acceptedFiles);
+        setFiles(prevFiles => [...prevFiles, ...acceptedFiles]);
     }, [onFilesSelected]);
 
     const {
@@ -178,7 +185,7 @@ const UploadZone = ({
                             fontWeight: 600
                         }}
                     >
-                        Selected Files ({acceptedFiles.length})
+                        Selected Files ({files.length})
                     </Typography>
                     <Paper
                         elevation={0}
@@ -195,8 +202,8 @@ const UploadZone = ({
                         }}
                     >
                         <FileList
-                            files={acceptedFiles}
-                            onRemove={handleRemoveFile}
+                            files={files}
+                            onRemove={handleRemove}
                         />
                     </Paper>
                 </Box>

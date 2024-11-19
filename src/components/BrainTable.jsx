@@ -60,7 +60,7 @@ const BrainTable = ({ selectedProject, rows, onBackClick, onAddBrainClick, onBra
                         startIcon={<Add />}
                         onClick={onAddBrainClick}
                     >
-                        Add Brain
+                        Add or edit Brain
                     </Button>
                 </Box>
                 <Typography variant="h6" color="black" gutterBottom>

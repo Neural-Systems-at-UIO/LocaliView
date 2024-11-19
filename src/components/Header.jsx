@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
     AppBar,
+    Button,
     Box,
     Drawer,
     List,
@@ -44,6 +45,11 @@ const tabs = [
     },
     {
         label: 'WebWarp',
+        url: WEBWARP_URL,
+        disabled: false,
+    },
+    {
+        label: 'WebIlastik',
         url: WEBWARP_URL,
         disabled: false,
     },
@@ -144,7 +150,7 @@ const Header = () => {
     return (
         <Box sx={{ flexGrow: 1 }}>
             <AppBar position="static" sx={{
-                backgroundColor: '#F2F2F2',
+                backgroundColor: '#f0f0f0',
                 color: 'black',
                 boxShadow: '0px 3px 2px rgba(0, 0, 0, 0.12)',
                 fontFamily: 'Roboto, sans-serif',
@@ -216,17 +222,22 @@ const Header = () => {
                     </Box>
                     <Box>
                         <Tooltip title="Account, settings and FAQ">
-                            <ListItemText
+                            <Button
                                 onClick={user ? toggleDrawer : handleLogin}
-                                primary={user?.username || 'Login'}
-                                primaryTypographyProps={{
-                                    variant: 'body2',
-                                    color: 'text.primary',
-                                    align: 'right',
+                                sx={{
+                                    textAlign: 'right',
+                                    cursor: 'pointer',
                                     fontWeight: 'bold',
+                                    color: 'text.primary',
+                                    textTransform: 'none', // Prevents default button text uppercase
+                                    padding: 0,
+                                    '& .MuiTypography-root': {
+                                        variant: 'body2',
+                                    }
                                 }}
-                                sx={{ cursor: user ? 'pointer' : 'default' }}
-                            />
+                            >
+                                {user?.username || 'Login'}
+                            </Button>
                         </Tooltip>
                     </Box>
                 </Toolbar>
