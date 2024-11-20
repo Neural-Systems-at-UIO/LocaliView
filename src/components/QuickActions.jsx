@@ -16,7 +16,8 @@ import {
     ListSubheader,
     CircularProgress,
     Tooltip,
-    ListItemIcon
+    Alert,
+    Snackbar
 } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import InfoIcon from '@mui/icons-material/Info';
@@ -40,6 +41,13 @@ const AdditionalInfo = ({ braininfo, stats, isLoading, token }) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [bucketName, setBucketName] = useState(null);
 
+    // Info messages
+    const [infoMessage, setInfoMessage] = useState({
+        open: false,
+        message: '',
+        severity: 'info'
+    });
+
     useEffect(() => {
         try {
             const userInfo = JSON.parse(localStorage.getItem('userInfo'));
@@ -49,7 +57,7 @@ const AdditionalInfo = ({ braininfo, stats, isLoading, token }) => {
         } catch (error) {
             console.error('Error parsing userInfo:', error);
         }
-    }, []);
+    }, [token, stats]);
 
     const processImage = async (imageFile, bucket, targetPath, token) => {
         try {
@@ -97,10 +105,18 @@ const AdditionalInfo = ({ braininfo, stats, isLoading, token }) => {
             });
 
             await Promise.all(promises);
-            alert("All TIFF files submitted for processing");
+            setInfoMessage({
+                open: true,
+                message: 'All TIFF files submitted for processing',
+                severity: 'success'
+            });
         } catch (error) {
             console.error("Error processing TIFF files:", error);
-            alert("Some files failed to process. Check the console for details.");
+            setInfoMessage({
+                open: true,
+                message: 'Error processing TIFF files. Check the console for details.',
+                severity: 'error'
+            });
         } finally {
             setIsProcessing(false);
         }
@@ -142,6 +158,18 @@ const AdditionalInfo = ({ braininfo, stats, isLoading, token }) => {
 
     return (
         <Box sx={{ overflow: 'auto', p: 2 }}>
+            <Snackbar
+                open={infoMessage.open}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                autoHideDuration={5000}
+            >
+                <Alert
+                    onClose={() => setInfoMessage({ ...infoMessage, open: false })}
+                    severity={infoMessage.severity}
+                >
+                    {infoMessage.message}
+                </Alert>
+            </Snackbar>
             <Grid container spacing={2}>
                 <Grid size={3}>
                     <Card sx={{ boxShadow: 'none', border: '1px solid #e0e0e0' }}>
