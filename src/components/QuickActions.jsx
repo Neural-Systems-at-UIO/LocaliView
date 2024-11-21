@@ -17,12 +17,12 @@ import {
     CircularProgress,
     Tooltip,
     Alert,
-    Snackbar
+    Snackbar,
 } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import InfoIcon from '@mui/icons-material/Info';
 import { useState, useEffect } from 'react';
-import { Info } from '@mui/icons-material';
+import Atlas from './Atlas';
 
 // Importing deepzoom here 
 const DEEPZOOM_URL = import.meta.env.VITE_APP_DEEPZOOM_URL;
@@ -40,6 +40,9 @@ const AdditionalInfo = ({ braininfo, stats, isLoading, token }) => {
     const [user, setUser] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [bucketName, setBucketName] = useState(null);
+
+    // Alignment Json state
+    const [selectedJson, setSelectedJson] = useState('');
 
     // Info messages
     const [infoMessage, setInfoMessage] = useState({
@@ -87,7 +90,11 @@ const AdditionalInfo = ({ braininfo, stats, isLoading, token }) => {
 
     const processTiffFiles = async () => {
         if (!braininfo || !stats[0]?.tiffs?.length) {
-            alert("No TIFF files found to process");
+            setInfoMessage({
+                open: true,
+                message: 'No TIFF files found to process',
+                severity: 'warning'
+            });
             return;
         }
 
@@ -134,6 +141,7 @@ const AdditionalInfo = ({ braininfo, stats, isLoading, token }) => {
 
     const brainStats = stats[0] || {};
     const brainPyramids = stats[1] || {};
+    const walnJson = stats[2] || {};
 
     if (isLoading) {
         return (
@@ -162,6 +170,7 @@ const AdditionalInfo = ({ braininfo, stats, isLoading, token }) => {
                 open={infoMessage.open}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
                 autoHideDuration={5000}
+                elevation={6}
             >
                 <Alert
                     onClose={() => setInfoMessage({ ...infoMessage, open: false })}
@@ -288,71 +297,39 @@ const AdditionalInfo = ({ braininfo, stats, isLoading, token }) => {
                         </Card>
                     </Grid>
                     <Grid size={12} >
-                        <Card sx={{ boxShadow: 'none', border: '1px solid #e0e0e0', alignItems: 'left' }}>
-                            <CardContent>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-
-                                    <Typography sx={{ color: 'text.secondary', fontSize: 14 }}>
-                                        {brainPyramids.zips.length || 'No'} Images are ready for alignment
-                                    </Typography>
-                                    <Typography sx={{ color: 'text.secondary', fontSize: 14 }}>
-                                        Generate atlas referenced alignment
-
-                                    </Typography>
-
-                                </Box>
-                                <Box sx={{
-                                    display: 'flex',
-                                    flexDirection: 'row',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    mb: 2
-                                }}>
-                                    <FormControl
-                                        fullWidth
-                                        variant="standard"
-                                        sx={{
-                                            margin: '1px',
-                                            width: '80%'
-                                        }}
-                                    >
-                                        <InputLabel htmlFor="grouped-select">Atlas reference</InputLabel>
-                                        <Select defaultValue="" id="grouped-select" label="Atlas Reference" dense='true'>
-                                            <MenuItem value="">
-                                                <em>None</em>
-                                            </MenuItem>
-                                            <ListSubheader>Rat Brain Atlases</ListSubheader>
-                                            <MenuItem value={1}>Waxholm Space Atlas of the Sprague Dawley rat v2</MenuItem>
-                                            <MenuItem value={2}>Waxholm Space Atlas of the Sprague Dawley rat v3</MenuItem>
-                                            <MenuItem value={3}>Waxholm Space Atlas of the Sprague Dawley rat v4</MenuItem>
-                                            <ListSubheader>Mouse Brain Atlases</ListSubheader>
-                                            <MenuItem value={4}>Allen Mouse Brain Atlas version 3 2015</MenuItem>
-                                            <MenuItem value={5}>Allen Mouse Brain Atlas version 3 2017</MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                    <Button
-                                        variant="outlined"
-                                        disabled={!pyramidComplete || brainPyramids.zips.length === 0}
-                                        sx={{
-                                            borderColor: 'black',
-                                            color: 'black',
-
-                                            '&:hover': {
-                                                borderColor: 'black',
-                                                backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                                            }
-                                        }}
-                                    >
-                                        Generate
-                                    </Button>
-                                </Box>
-
-                            </CardContent>
-                        </Card>
+                        <Atlas
+                            token={token}
+                            bucketName={bucketName}
+                            dzips={brainPyramids.zips}
+                            updateInfo={setInfoMessage}
+                        />
                     </Grid>
                 </Grid>
-
             </Grid>
+            <Box sx={{ mt: 2, boxShadow: 'none', border: '1px solid #e0e0e0', backgroundColor: 'white', display: 'flex', justifyContent: 'space-between', }}>
+                <ListItem>
+                    <ListItemText
+                        primary="JSON Files"
+                        secondary={walnJson.jsons?.length || 'N/A'}
+                    />
+                </ListItem>
+                <Select
+                    value={selectedJson}
+                    onChange={(e) => setSelectedJson(e.target.value)}
+                    size='small'
+                    sx={{ m: 1 }}
+                    displayEmpty
+                >
+                    <MenuItem value="" disabled>
+                        Select a JSON file
+                    </MenuItem>
+                    {walnJson.jsons?.map((jsonPath, index) => (
+                        <MenuItem key={index} value={jsonPath}>
+                            {jsonPath.split('/').slice(-1)[0]}
+                        </MenuItem>
+                    ))}
+                </Select>
+            </Box>
         </Box>
     );
 };

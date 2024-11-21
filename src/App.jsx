@@ -6,7 +6,11 @@ import { ThemeProvider } from '@mui/material/styles';
 
 const theme = createTheme({
   typography: {
-    fontFamily: 'Open Sans, sans-serif',
+    fontFamily: [
+      'Open Sans, sans-serif',
+      'Roboto, sans-serif',
+      'Arial, sans-serif',
+    ].join(','),
     allVariants: {
       color: '#333333', // default text color for all variants
     },

@@ -2,6 +2,33 @@
 const BUCKET_URL = 'https://data-proxy.ebrains.eu/api/v1/buckets/'
 const DEEPZOOM_URL = import.meta.env.VITE_APP_DEEPZOOM_URL
 
+// dzi work functions
+function convertDziToSection(dziData, snr = 1) {
+    return {
+        filename: dziData.filename,
+        width: dziData.width,
+        height: dziData.height,
+        snr: snr,
+        format: dziData.format,
+        tilesize: dziData.tilesize,
+        overlap: dziData.overlap,
+    };
+}
+
+function dzisection(dzi, filename) {
+    return {
+        filename,
+        width: parseInt(dzi.match(/Width="(\d+)"/m)[1]),
+        height: parseInt(dzi.match(/Height="(\d+)"/m)[1]),
+        tilesize: parseInt(dzi.match(/TileSize="(\d+)"/m)[1]),
+        overlap: parseInt(dzi.match(/Overlap="(\d+)"/m)[1]),
+        format: dzi.match(/Format="([^"]+)"/m)[1]
+    };
+}
+
+
+
+
 // Works fine
 export const fetchCollab = async (token, collabName) => {
     try {
@@ -87,6 +114,7 @@ export const fetchBrainStats = async (token, bucketName, brainPrefix) => {
         const workDirs = [
             'raw_images',
             'zipped_images',
+            'jsons'
         ]
 
         for (const workDir of workDirs) {
@@ -121,6 +149,8 @@ export const fetchBrainStats = async (token, bucketName, brainPrefix) => {
                 stats.tiffs = data.objects.filter(obj => obj.name.endsWith('.tif')).map(obj => obj.name)
             } else if (workDir === 'zipped_images') {
                 stats.zips = data.objects.filter(obj => obj.name.endsWith('.dzip')).map(obj => obj.name)
+            } else if (workDir === 'jsons') {
+                stats.jsons = data.objects.filter(obj => obj.name.endsWith('.waln')).map(obj => obj.name)
             }
 
             res.push(stats)
@@ -163,4 +193,39 @@ export const uploadToPath = async (token, bucketName, projectName, brainName, fi
     }
 
     return { url: uploadUrl, status: uploadResponse.status === 204 };
+}
+
+export const uploadToJson = async (uploadObj, fileName, content) => {
+    const objectName = `${uploadObj.projectName}/${uploadObj.brainName}/jsons/${fileName}`.replace(/\/+/g, '/');
+    const getUrlEndpoint = `${BUCKET_URL}${uploadObj.bucketName}/${objectName}`;
+
+    // Step 1: Get upload URL
+    const urlResponse = await fetch(getUrlEndpoint, {
+        method: 'PUT',
+        headers: {
+            'Authorization': 'Bearer ' + uploadObj.token,
+            'Accept': 'application/json'
+        }
+    });
+
+    if (!urlResponse.ok) {
+        throw new Error(`Failed to get upload URL for ${fileName}`);
+    }
+
+    const { url: uploadUrl } = await urlResponse.json();
+
+    // Step 2: Upload JSON content
+    const uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(content)
+    });
+
+    if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload file ${fileName}`);
+    }
+
+    return { url: uploadResponse.json, status: uploadResponse.status === 204 };
 }
