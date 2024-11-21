@@ -170,11 +170,12 @@ const AdditionalInfo = ({ braininfo, stats, isLoading, token }) => {
                 open={infoMessage.open}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
                 autoHideDuration={5000}
-                elevation={6}
+
             >
                 <Alert
                     onClose={() => setInfoMessage({ ...infoMessage, open: false })}
                     severity={infoMessage.severity}
+                    elevation={6}
                 >
                     {infoMessage.message}
                 </Alert>
