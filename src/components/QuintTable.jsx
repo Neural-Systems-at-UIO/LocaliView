@@ -1,11 +1,10 @@
 import * as React from 'react';
-import { Box, Typography, Button, Tooltip, IconButton, CircularProgress, List, ListItem, ListItemText, ListItemButton } from '@mui/material';
+import { Box, Typography, Button, Tooltip, IconButton, CircularProgress, List, ListItem, ListItemText, ListItemButton, TextField } from '@mui/material';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import AddIcon from '@mui/icons-material/Add';
 
 // Project handling
-import { fetchBucketDir, fetchBrainStats } from '../actions/handleCollabs.js';
+import { fetchBucketDir, fetchBrainStats, createProject } from '../actions/handleCollabs.js';
 import CreationDialog from './CreationDialog.jsx';
 import BrainTable from './BrainTable.jsx';
 import AdditionalInfo from './QuickActions.jsx';
@@ -25,6 +24,8 @@ export default function QuintTable({ token }) {
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [isFetchingStats, setIsFetchingStats] = React.useState(false);
     const [updatingBrains, setUpdatingBrains] = React.useState(false);
+    // To create a new project state
+    const [newProjectName, setNewProjectName] = React.useState('');
 
     const fetchAndUpdateProjects = (collabName) => {
         fetchBucketDir(token, collabName, null, '/')
@@ -100,6 +101,22 @@ export default function QuintTable({ token }) {
         }
     }
 
+    const createProjectCall = async (projectName) => {
+        console.log(`Creating project: ${projectName}`);
+        try {
+            let res = await createProject({
+                'token': token,
+                'bucketName': bucketName,
+                'projectName': projectName
+            }
+            );
+            console.log('Project created:', res);
+            fetchAndUpdateProjects(bucketName);
+        } catch (error) {
+            console.error('Error creating project:', error);
+        }
+    }
+
     const handleOpenDialog = () => setIsDialogOpen(true);
     const handleCloseDialog = () => setIsDialogOpen(false);
 
@@ -129,10 +146,28 @@ export default function QuintTable({ token }) {
                                 <Typography variant="h6" align="left">
                                     Projects
                                 </Typography>
-                                <Box>
-                                    <IconButton sx={{ alignSelf: 'flex-start' }}>
-                                        <AddIcon />
-                                    </IconButton>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <TextField
+                                        size="small"
+                                        placeholder="New project..."
+                                        value={newProjectName}
+                                        onChange={(e) => setNewProjectName(e.target.value)}
+                                        sx={{ width: '150px' }}
+                                    />
+                                    <Tooltip title="Create new project">
+                                        <IconButton
+                                            sx={{ alignSelf: 'flex-start' }}
+                                            onClick={() => {
+                                                if (newProjectName.trim()) {
+                                                    createProjectCall(newProjectName);
+                                                    setNewProjectName('');
+                                                }
+                                            }}
+                                            disabled={!newProjectName.trim()}
+                                        >
+                                            <AddIcon />
+                                        </IconButton>
+                                    </Tooltip>
                                     <Tooltip title="Open bucket directory">
                                         <IconButton onClick={(e) => {
                                             e.stopPropagation();

@@ -195,6 +195,47 @@ export const uploadToPath = async (token, bucketName, projectName, brainName, fi
     return { url: uploadUrl, status: uploadResponse.status === 204 };
 }
 
+export const createProject = async (uploadObj) => {
+    const objectName = `${uploadObj.projectName}/projectsettings.json`.replace(/\/+/g, '/');
+    const getUrlEndpoint = `${BUCKET_URL}${uploadObj.bucketName}/${objectName}`;
+
+    const content = {
+        'created_at': new Date().toISOString(),
+        'project_name': uploadObj.projectName,
+    }
+
+    // Step 1: Get upload URL
+    const urlResponse = await fetch(getUrlEndpoint, {
+        method: 'PUT',
+        headers: {
+            'Authorization': 'Bearer ' + uploadObj.token,
+            'Accept': 'application/json'
+        }
+    });
+
+    if (!urlResponse.ok) {
+        throw new Error(`Failed to get upload URL`);
+    }
+
+    const { url: uploadUrl } = await urlResponse.json();
+
+    // Step 2: Upload JSON content
+    const uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(content)
+    });
+
+    if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload file`);
+    }
+
+    return { url: uploadResponse.json, status: uploadResponse.status === 204 };
+}
+
+
 export const uploadToJson = async (uploadObj, fileName, content) => {
     const objectName = `${uploadObj.projectName}/${uploadObj.brainName}/jsons/${fileName}`.replace(/\/+/g, '/');
     const getUrlEndpoint = `${BUCKET_URL}${uploadObj.bucketName}/${objectName}`;
@@ -229,3 +270,5 @@ export const uploadToJson = async (uploadObj, fileName, content) => {
 
     return { url: uploadResponse.json, status: uploadResponse.status === 204 };
 }
+
+// const fetchAlignmentContent = async (token, bucketName, brainPrefix, fileName) => {

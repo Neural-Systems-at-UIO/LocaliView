@@ -307,25 +307,52 @@ const AdditionalInfo = ({ braininfo, stats, isLoading, token }) => {
                     </Grid>
                 </Grid>
             </Grid>
-            <Box sx={{ mt: 2, boxShadow: 'none', border: '1px solid #e0e0e0', backgroundColor: 'white', display: 'flex', justifyContent: 'space-between', }}>
+            <Box sx={{
+                mt: 2,
+                boxShadow: 'none',
+                border: '1px solid #e0e0e0',
+                backgroundColor: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                width: '35%',
+                borderRadius: 1
+            }}>
                 <ListItem>
                     <ListItemText
-                        primary="JSON Files"
+                        primary="Alignment files"
                         secondary={walnJson.jsons?.length || 'N/A'}
                     />
                 </ListItem>
                 <Select
                     value={selectedJson}
-                    onChange={(e) => setSelectedJson(e.target.value)}
+                    onChange={(e) => {
+                        setSelectedJson(e.target.value);
+                        console.log(selectedJson.split('/').slice(-1)[0]);
+                    }
+                    }
                     size='small'
-                    sx={{ m: 1 }}
+                    sx={{
+                        m: 1,
+                        width: '180px', // Fixed width for select
+                        '& .MuiSelect-select': {
+                            textOverflow: 'ellipsis'
+                        }
+                    }}
                     displayEmpty
                 >
                     <MenuItem value="" disabled>
-                        Select a JSON file
+                        Select an alignment file
                     </MenuItem>
                     {walnJson.jsons?.map((jsonPath, index) => (
-                        <MenuItem key={index} value={jsonPath}>
+                        <MenuItem
+                            key={index}
+                            value={jsonPath}
+                            sx={{
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                            }}
+                        >
                             {jsonPath.split('/').slice(-1)[0]}
                         </MenuItem>
                     ))}
