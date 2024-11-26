@@ -138,19 +138,15 @@ export const fetchBrainStats = async (token, bucketName, brainPrefix) => {
                 "name": brainPrefix + workDir,
                 "files": data.objects.length,
                 "size": data.objects.reduce((acc, obj) => acc + obj.bytes, 0),
-                "last_modified": data.objects.reduce((latest, obj) => {
-                    const objDate = new Date(obj.last_modified);
-                    return objDate > latest ? objDate : latest;
-                }, null)
             }
             // Workdir relevant keys
 
             if (workDir === 'raw_images') {
-                stats.tiffs = data.objects.filter(obj => obj.name.endsWith('.tif')).map(obj => obj.name)
+                stats.tiffs = data.objects.filter(obj => obj.name.endsWith('.tif'))
             } else if (workDir === 'zipped_images') {
-                stats.zips = data.objects.filter(obj => obj.name.endsWith('.dzip')).map(obj => obj.name)
+                stats.zips = data.objects.filter(obj => obj.name.endsWith('.dzip'))
             } else if (workDir === 'jsons') {
-                stats.jsons = data.objects.filter(obj => obj.name.endsWith('.waln')).map(obj => obj.name)
+                stats.jsons = data.objects.filter(obj => obj.name.endsWith('.waln'))
             }
 
             res.push(stats)

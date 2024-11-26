@@ -148,9 +148,9 @@ function Atlas({ bucketName, dzips, token, updateInfo }) {
     }, [dzips]);
 
     return (
-        <Card sx={{ boxShadow: 'none', border: '1px solid #e0e0e0', alignItems: 'left' }}>
+        <Card sx={{ boxShadow: 'none', width: '100%', alignItems: 'left' }}>
             <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
 
                     <Typography sx={{ color: 'text.secondary', fontSize: 14 }}>
                         {imageCount || 0} Images are ready for alignment
@@ -166,7 +166,7 @@ function Atlas({ bucketName, dzips, token, updateInfo }) {
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    mb: 2
+
                 }}>
                     <FormControl
                         fullWidth

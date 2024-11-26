@@ -41,7 +41,7 @@ const BrainList = ({ rows, onBrainSelect }) => {
 
 const BrainTable = ({ selectedProject, rows, onBackClick, onAddBrainClick, onBrainSelect }) => {
     return (
-        <Box sx={{ flex: 2, overflow: 'visible', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ flex: 1, maxWidth:'25%', overflow: 'visible', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Box sx={{ display: 'flex', gap: 2 }}>
                     <Button
