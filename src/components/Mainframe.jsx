@@ -10,7 +10,6 @@ const Mainframe = ({ url, native, token }) => {
             sx={{
                 width: '100%',
                 height: '95vh',
-                backgroundColor: '#333333',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
@@ -20,7 +19,7 @@ const Mainframe = ({ url, native, token }) => {
             {native ? (
                 // The native application goes here
                 <Box sx={{
-                    width: '98%',
+                    width: '99%',
                     height: '98%',
                     border: 'none',
                     borderRadius: '4px',

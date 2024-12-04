@@ -1,286 +1,363 @@
-import * as React from 'react';
-import { Box, Typography, Button, Tooltip, IconButton, CircularProgress, List, ListItem, ListItemText, ListItemButton, TextField } from '@mui/material';
-import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
-import AddIcon from '@mui/icons-material/Add';
+import * as React from "react";
+import {
+  Box,
+  Typography,
+  Button,
+  Tooltip,
+  IconButton,
+  CircularProgress,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemButton,
+  TextField,
+} from "@mui/material";
+import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
+import AddIcon from "@mui/icons-material/Add";
 
 // Project handling
-import { fetchBucketDir, fetchBrainStats, createProject } from '../actions/handleCollabs.js';
-import CreationDialog from './CreationDialog.jsx';
-import BrainTable from './BrainTable.jsx';
-import AdditionalInfo from './QuickActions.jsx';
+import {
+  fetchBucketDir,
+  fetchBrainStats,
+  createProject,
+} from "../actions/handleCollabs.js";
+import CreationDialog from "./CreationDialog.jsx";
+import BrainTable from "./BrainTable.jsx";
+import AdditionalInfo from "./QuickActions.jsx";
 
 export default function QuintTable({ token }) {
-    // Query helpers
-    const [bucketName, setBucketName] = React.useState(null);
-    const [projects, setProjects] = React.useState([]);
-    const [selectedProject, setSelectedProject] = React.useState(null);
-    const [selectedBrain, setSelectedBrain] = React.useState(null);
-    const [selectedBrainStats, setSelectedBrainStats] = React.useState([]);
-    const [projectBrainEntries, setProjectBrainEntries] = React.useState([]);
-    // Other stuff
-    const [updateTrigger, setUpdateTrigger] = React.useState(0);
-    const [rows, setRows] = React.useState([]);
-    const [processes, setProcesses] = React.useState([]);
-    const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-    const [isFetchingStats, setIsFetchingStats] = React.useState(false);
-    const [updatingBrains, setUpdatingBrains] = React.useState(false);
-    // To create a new project state
-    const [newProjectName, setNewProjectName] = React.useState('');
+  // Query helpers
+  const [bucketName, setBucketName] = React.useState(null);
+  const [projects, setProjects] = React.useState([]);
+  const [selectedProject, setSelectedProject] = React.useState(null);
+  const [selectedBrain, setSelectedBrain] = React.useState(null);
+  const [selectedBrainStats, setSelectedBrainStats] = React.useState([]);
+  const [projectBrainEntries, setProjectBrainEntries] = React.useState([]);
+  // Other stuff
+  const [rows, setRows] = React.useState([]);
+  const [processes, setProcesses] = React.useState([]);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [isFetchingStats, setIsFetchingStats] = React.useState(false);
+  const [updatingBrains, setUpdatingBrains] = React.useState(false);
+  // To create a new project state
+  const [newProjectName, setNewProjectName] = React.useState("");
 
-    const fetchAndUpdateProjects = (collabName) => {
-        fetchBucketDir(token, collabName, null, '/')
-            .then(projects => {
-                console.log(projects);
-                setProjects(projects);
-                setUpdateTrigger(prev => prev + 1);
-            })
-            .catch(error => {
-                console.error('Error fetching projects:', error);
-            });
-    };
-
-    React.useEffect(() => {
-        try {
-            const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-            const userName = userInfo.username;
-            const collabName = `${userName}-rwb`
-            setBucketName(collabName);
+  const fetchAndUpdateProjects = (collabName) => {
+    fetchBucketDir(token, collabName, null, "/")
+      .then((projects) => {
+        if (projects.length === 0) {
+          console.log("No projects found");
+          return;
         }
-        catch (error) {
-            console.error('Error parsing userInfo:', error);
-            return;
-        }
+        console.log(projects);
+        setProjects(projects);
+      })
+      .catch((error) => {
+        console.error("Error fetching projects:", error);
+      });
+  };
 
-        if (projects.length === 0 && bucketName) {
-            fetchAndUpdateProjects(bucketName);
-        }
-    }, [bucketName, projects, token]);
+  React.useEffect(() => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const userName = userInfo.username;
+      const collabName = `${userName}-rwb`;
+      setBucketName(collabName);
+    } catch (error) {
+      console.error("Error parsing userInfo:", error);
+    }
+  }, [token]); // only token hook here to avoid infinite loop
 
-    const handleProjectSelect = async (project) => {
-        setSelectedProject(project);
-        setUpdatingBrains(true);
+  // Second effect: Fetch projects when we have both token and bucketName
+  React.useEffect(() => {
+    if (token && bucketName && projects.length === 0) {
+      fetchAndUpdateProjects(bucketName);
+    }
+  }, [token, bucketName]); // Only depends on token and bucketName
 
-        if (project === null) {
-            setSelectedBrain(null);
-            setRows([]);
-            return;
-        }
+  const handleProjectSelect = async (project) => {
+    setSelectedProject(project);
+    setUpdatingBrains(true);
 
-        try {
-            const projectPath = `${project.name}/`;
-            const brainEntries = await fetchBucketDir(token, bucketName, projectPath, '/');
-            const newRows = brainEntries.map((entry, index) => ({
-                id: index,
-                name: entry.name.split('/').pop(),
-                type: entry.type,
-                path: entry.path
-            }));
-            setRows(newRows);
-            setProjectBrainEntries(brainEntries);
-            setUpdatingBrains(false);
-        } catch (error) {
-            console.error('Error fetching brain entries:', error);
-            setRows([]);
-            setUpdatingBrains(false);
-        }
-    };
-
-    const handleBrainSelect = async (params) => {
-        console.log('Params passed down', params);
-        setSelectedBrain(params.row);
-        setIsFetchingStats(true);
-        console.log(`Selected brain: ${params.row.name}`);
-        try {
-            const stats = await fetchBrainStats(token, bucketName, params.row.path);
-            setSelectedBrainStats(stats);
-            console.log(`Selected brain stats:`, stats);
-        } catch (error) {
-            console.error('Error fetching brain stats:', error);
-        } finally {
-            setIsFetchingStats(false);
-        }
+    if (project === null) {
+      setSelectedBrain(null);
+      setRows([]);
+      return;
     }
 
-    const createProjectCall = async (projectName) => {
-        console.log(`Creating project: ${projectName}`);
-        try {
-            let res = await createProject({
-                'token': token,
-                'bucketName': bucketName,
-                'projectName': projectName
-            }
-            );
-            console.log('Project created:', res);
-            fetchAndUpdateProjects(bucketName);
-        } catch (error) {
-            console.error('Error creating project:', error);
-        }
+    try {
+      const projectPath = `${project.name}/`;
+      const brainEntries = await fetchBucketDir(
+        token,
+        bucketName,
+        projectPath,
+        "/"
+      );
+      const newRows = brainEntries.map((entry, index) => ({
+        id: index,
+        name: entry.name.split("/").pop(),
+        type: entry.type,
+        path: entry.path,
+      }));
+      setRows(newRows);
+      setProjectBrainEntries(brainEntries);
+      setUpdatingBrains(false);
+    } catch (error) {
+      console.error("Error fetching brain entries:", error);
+      setRows([]);
+      setUpdatingBrains(false);
     }
+  };
 
-    const handleOpenDialog = () => setIsDialogOpen(true);
-    const handleCloseDialog = () => setIsDialogOpen(false);
+  const handleBrainSelect = async (params) => {
+    console.log("Params passed down", params);
+    setSelectedBrain(params.row);
+    setIsFetchingStats(true);
+    console.log(`Selected brain: ${params.row.name}`);
+    try {
+      const stats = await fetchBrainStats(token, bucketName, params.row.path);
+      setSelectedBrainStats(stats);
+      console.log(`Selected brain stats:`, stats);
+    } catch (error) {
+      console.error("Error fetching brain stats:", error);
+    } finally {
+      setIsFetchingStats(false);
+    }
+  };
 
-    return (
-        <Box sx={{ backgroundColor: '#f6f6f6', padding: '2%', display: 'flex', flexDirection: 'row', alignItems: 'stretch', height: '95%', borderRadius: '4px', gap: 2 }}>
-            <Box sx={{ display: 'flex', flexGrow: 1, minHeight: 0 }}>
-                {selectedProject === null ? (
-                    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'row', gap: 2 }}>
-                        <Box sx={{
-                            flexDirection: 'column',
-                            flexGrow: 1,
-                            border: '1px solid #e0e0e0',
-                            borderRadius: '8px',
-                            padding: 2,
-                            backgroundColor: 'white'
-                        }}>
-                            <Box sx={{
-                                display: 'flex',
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                gap: 2,
-                                justifyContent: 'space-between',
-                                borderBottom: '1px solid #e0e0e0',
-                                pb: 2,
-                                mb: 2
-                            }}>
-                                <Typography variant="h6" align="left">
-                                    Projects
-                                </Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <TextField
-                                        size="small"
-                                        placeholder="New project..."
-                                        value={newProjectName}
-                                        onChange={(e) => setNewProjectName(e.target.value)}
-                                        sx={{ width: '150px' }}
-                                    />
-                                    <Tooltip title="Create new project">
-                                        <IconButton
-                                            sx={{ alignSelf: 'flex-start' }}
-                                            onClick={() => {
-                                                if (newProjectName.trim()) {
-                                                    createProjectCall(newProjectName);
-                                                    setNewProjectName('');
-                                                }
-                                            }}
-                                            disabled={!newProjectName.trim()}
-                                        >
-                                            <AddIcon />
-                                        </IconButton>
-                                    </Tooltip>
-                                    <Tooltip title="Open bucket directory">
-                                        <IconButton onClick={(e) => {
-                                            e.stopPropagation();
-                                            window.open(`https://data-proxy.ebrains.eu/${bucketName}`, '_blank');
-                                        }}>
-                                            <FolderRoundedIcon sx={{ cursor: 'pointer' }} color='primary' />
-                                        </IconButton>
-                                    </Tooltip>
-                                </Box>
-                            </Box>
+  const createProjectCall = async (projectName) => {
+    console.log(`Creating project: ${projectName}`);
+    try {
+      let res = await createProject({
+        token: token,
+        bucketName: bucketName,
+        projectName: projectName,
+      });
+      console.log("Project created:", res);
+      fetchAndUpdateProjects(bucketName);
+    } catch (error) {
+      console.error("Error creating project:", error);
+    }
+  };
 
-                            <Box sx={{ display: 'flex', gap: 2 }}>
-                                {projects.length === 0 ? (
-                                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', width: '100%', py: 4 }}>
-                                        <CircularProgress size={20} />
-                                        <Typography>Getting projects...</Typography>
-                                    </Box>
-                                ) : (
-                                    <List sx={{
-                                        width: '100%',
-                                        '& .MuiListItem-root': {
-                                            border: '1px solid #e0e0e0',
-                                            borderRadius: '4px',
-                                            mb: 1,
-                                            backgroundColor: 'white',
-                                            transition: 'all 0.2s ease',
-                                            cursor: 'pointer',
-                                            '&:hover': {
-                                                backgroundColor: '#f5f5f5',
-                                                transform: 'translateX(4px)'
-                                            }
-                                        }
-                                    }}>
-                                        {projects.map((project, index) => (
-                                            <ListItem
-                                                key={index}
-                                                sx={{
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'center',
-                                                    px: 2,
-                                                    py: 1
-                                                }}
-                                                onClick={() => handleProjectSelect(project)}
-                                            >
-                                                <ListItemText
-                                                    primary={project.name}
-                                                    sx={{
-                                                        '& .MuiListItemText-primary': {
-                                                            fontWeight: 500
-                                                        }
-                                                    }}
-                                                />
-                                            </ListItem>
-                                        ))}
-                                    </List>
-                                )}
-                            </Box>
-                        </Box>
-                        <Box
-                            component="iframe"
-                            src="https://quint-webtools.readthedocs.io/en/latest/"
-                            sx={{
-                                display: 'flex',
-                                flexGrow: 1.5,
-                                borderRadius: '8px',
-                                border: '1px solid #e0e0e0'
-                            }}>
-                        </Box>
-                    </Box>
+  const handleOpenDialog = () => setIsDialogOpen(true);
+  const handleCloseDialog = () => setIsDialogOpen(false);
+
+  return (
+    <Box
+      sx={{
+        backgroundColor: "#f6f6f6",
+        p: 1,
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "stretch",
+        height: "95%",
+        borderRadius: "4px",
+        gap: 2,
+      }}
+    >
+      <Box sx={{ display: "flex", flexGrow: 1, minHeight: 0 }}>
+        {selectedProject === null ? (
+          <Box sx={{ flex: 1, display: "flex", flexDirection: "row", gap: 2 }}>
+            <Box
+              sx={{
+                flexDirection: "column",
+                flexGrow: 1,
+                border: "1px solid #e0e0e0",
+                borderRadius: "8px",
+                padding: 2,
+                backgroundColor: "white",
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 2,
+                  justifyContent: "space-between",
+                  borderBottom: "1px solid #e0e0e0",
+                  pb: 2,
+                  mb: 2,
+                }}
+              >
+                <Typography variant="h6" align="left">
+                  Projects
+                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <TextField
+                    size="small"
+                    placeholder="New project..."
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    sx={{ width: "150px" }}
+                  />
+                  <Tooltip title="Create new project">
+                    <IconButton
+                      sx={{ alignSelf: "flex-start" }}
+                      onClick={() => {
+                        if (newProjectName.trim()) {
+                          createProjectCall(newProjectName);
+                          setNewProjectName("");
+                        }
+                      }}
+                      disabled={!newProjectName.trim()}
+                    >
+                      <AddIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Open bucket directory">
+                    <IconButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(
+                          `https://data-proxy.ebrains.eu/${bucketName}`,
+                          "_blank"
+                        );
+                      }}
+                    >
+                      <FolderRoundedIcon
+                        sx={{ cursor: "pointer" }}
+                        color="primary"
+                      />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </Box>
+
+              <Box sx={{ display: "flex", gap: 2 }}>
+                {projects.length === 0 ? (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      gap: 2,
+                      justifyContent: "center",
+                      width: "100%",
+                      py: 4,
+                    }}
+                  >
+                    {token ? (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: 2,
+                          justifyContent: "center",
+                          width: "100%",
+                          py: 4,
+                        }}
+                      >
+                        <CircularProgress size={20} />
+                        <Typography>Getting projects...</Typography>
+                      </Box>
+                    ) : (
+                      <Typography>Log in to see projects</Typography>
+                    )}
+                  </Box>
                 ) : (
-                    <>
-                        {updatingBrains ? (
-                            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', width: '100%', alignItems: 'center' }}>
-                                <CircularProgress size={24} />
-                                <Typography>Loading brains...</Typography>
-                            </Box>
-                        ) : (
-                            <>
-                                <BrainTable
-                                    selectedProject={selectedProject}
-                                    rows={rows}
-                                    onBackClick={() => {
-                                        setSelectedProject(null);
-                                        setSelectedBrain(null);
-                                    }}
-                                    onAddBrainClick={handleOpenDialog}
-                                    onBrainSelect={handleBrainSelect}
-                                />
-                                <Box sx={{ width: '60%', ml: 2, flexGrow: 0.6 }}>
-                                    <AdditionalInfo
-
-                                        braininfo={selectedBrain}
-                                        stats={selectedBrainStats}
-                                        isLoading={isFetchingStats}
-                                        token={token}
-                                    />
-                                </Box>
-                            </>
-                        )}
-                    </>
+                  <List
+                    sx={{
+                      width: "100%",
+                      "& .MuiListItem-root": {
+                        border: "1px solid #e0e0e0",
+                        borderRadius: "4px",
+                        mb: 1,
+                        backgroundColor: "white",
+                        transition: "all 0.2s ease",
+                        cursor: "pointer",
+                        "&:hover": {
+                          backgroundColor: "#f5f5f5",
+                          transform: "translateX(4px)",
+                        },
+                      },
+                    }}
+                  >
+                    {projects.map((project, index) => (
+                      <ListItem
+                        key={index}
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          px: 2,
+                          py: 1,
+                        }}
+                        onClick={() => handleProjectSelect(project)}
+                      >
+                        <ListItemText
+                          primary={project.name}
+                          sx={{
+                            "& .MuiListItemText-primary": {
+                              fontWeight: 500,
+                            },
+                          }}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
                 )}
+              </Box>
             </Box>
+            <Box
+              component="iframe"
+              src="https://quint-webtools.readthedocs.io/en/latest/"
+              sx={{
+                display: "flex",
+                flexGrow: 1.5,
+                borderRadius: "8px",
+                border: "1px solid #e0e0e0",
+              }}
+            ></Box>
+          </Box>
+        ) : (
+          <>
+            {updatingBrains ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 2,
+                  justifyContent: "center",
+                  width: "100%",
+                  alignItems: "center",
+                }}
+              >
+                <CircularProgress size={24} />
+                <Typography>Loading series...</Typography>
+              </Box>
+            ) : (
+              <>
+                <BrainTable
+                  selectedProject={selectedProject}
+                  rows={rows}
+                  onBackClick={() => {
+                    setSelectedProject(null);
+                    setSelectedBrain(null);
+                  }}
+                  onAddBrainClick={handleOpenDialog}
+                  onBrainSelect={handleBrainSelect}
+                />
+                <Box sx={{ width: "60%", ml: 2, flexGrow: 0.6 }}>
+                  <AdditionalInfo
+                    braininfo={selectedBrain}
+                    stats={selectedBrainStats}
+                    isLoading={isFetchingStats}
+                    token={token}
+                    setSelectedBrain={setSelectedBrain}
+                  />
+                </Box>
+              </>
+            )}
+          </>
+        )}
+      </Box>
 
-            <CreationDialog
-                open={isDialogOpen}
-                onClose={handleCloseDialog}
-                project={selectedProject}
-                updateProjects={fetchAndUpdateProjects}
-                token={token}
-                brainEntries={projectBrainEntries}
-
-            />
-        </Box>
-    );
+      <CreationDialog
+        open={isDialogOpen}
+        onClose={handleCloseDialog}
+        project={selectedProject}
+        updateProjects={fetchAndUpdateProjects}
+        token={token}
+        brainEntries={projectBrainEntries}
+      />
+    </Box>
+  );
 }

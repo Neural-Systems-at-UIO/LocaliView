@@ -41,26 +41,24 @@ const BrainList = ({ rows, onBrainSelect }) => {
 
 const BrainTable = ({ selectedProject, rows, onBackClick, onAddBrainClick, onBrainSelect }) => {
     return (
-        <Box sx={{ flex: 1, maxWidth:'25%', overflow: 'visible', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ flex: 1, maxWidth: '25%', overflow: 'visible', display: 'flex', flexDirection: 'column', p: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Box sx={{ display: 'flex', gap: 2 }}>
                     <Button
                         size="small"
-
                         onClick={onBackClick}
                         sx={{ maxWidth: 180 }}
                         startIcon={<ArrowBack />}
                     >
-                        Back to Projects
+                        to Projects
                     </Button>
                     <Button
                         size="small"
-
                         sx={{ maxWidth: 180 }}
                         startIcon={<Add />}
                         onClick={onAddBrainClick}
                     >
-                        Add or edit Brain
+                        Add/Edit Series
                     </Button>
                 </Box>
                 <Typography variant="h6" color="black" gutterBottom>

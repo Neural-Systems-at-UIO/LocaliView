@@ -176,11 +176,11 @@ function Atlas({ bucketName, dzips, token, updateInfo }) {
                             width: '80%'
                         }}
                     >
-                        <InputLabel htmlFor="grouped-select">Atlas reference</InputLabel>
+                        <InputLabel htmlFor="grouped-select">Select the reference atlas</InputLabel>
                         <Select
                             defaultValue=""
                             id="grouped-select"
-                            label="Atlas Reference"
+                            label="Select the reference atlas"
                             dense='true'
                             onChange={(event) => {
                                 const value = event.target.value;

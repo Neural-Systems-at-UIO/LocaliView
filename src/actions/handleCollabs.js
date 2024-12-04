@@ -26,7 +26,14 @@ function dzisection(dzi, filename) {
     };
 }
 
-
+export function deleteItem(bucket, prefix, token) {
+    return fetch(`https://data-proxy.ebrains.eu/api/v1/buckets/${bucket}?prefix=${prefix}`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': 'Bearer ' + token
+        }
+    });
+}
 
 
 // Works fine

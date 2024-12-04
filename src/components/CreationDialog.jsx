@@ -10,7 +10,8 @@ import {
     Snackbar,
     Chip,
     Box,
-    Alert
+    Alert,
+    Autocomplete
 } from '@mui/material';
 import { uploadToPath } from '../actions/handleCollabs';
 import UploadZone from './UploadZone';
@@ -92,52 +93,47 @@ export default function CreationDialog({ open, onClose, onSubmit, project, updat
     return (
         <>
             <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ style: { minHeight: '80vh' } }}>
-                <DialogTitle>Create a new Brain in Project {project?.name || ''}</DialogTitle>
+                <DialogTitle>Upload an image series in {project?.name || ''}</DialogTitle>
                 <DialogContent sx={{ padding: '20px' }}>
                     <DialogContentText sx={{ marginBottom: '20px' }}>
-                        Enter the name of the brain, or click on already created brains, upload files, choose and click submit.
+                        Enter the name of the series, or click on already created serie, upload files, choose and click submit.
                     </DialogContentText>
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            overflow: 'auto',
-                            whiteSpace: 'nowrap',
-                            mb: 2,
-                            pb: 1,
-                            '&::-webkit-scrollbar': {
-                                height: '8px',
-                            },
-                            '&::-webkit-scrollbar-thumb': {
-                                backgroundColor: '#bbb',
-                                borderRadius: '4px',
+                    <Autocomplete
+                        freeSolo
+                        id="brain-name-combo"
+                        options={editBrainsList}
+                        value={name}
+                        onChange={(event, newValue) => {
+                            // Agnostic replace to handle both selection from dropdown and manual entry
+                            if (newValue) {
+                                handleNameChange({ target: { value: newValue } });
                             }
                         }}
-                    >
-                        {editBrainsList.map((brainName, index) => (
-                            <Chip
-                                key={index}
-                                label={brainName}
-                                onClick={() => handleChipClick(brainName)}
-                                color="primary"                     // Built-in MUI color
-                                sx={{
-                                    m: 0.5,
-                                    '&:first-of-type': { ml: 0 },
-                                    '&:hover': { cursor: 'pointer' }
-                                }}
+                        onInputChange={(event, newValue) => {
+                            handleNameChange({ target: { value: newValue } });
+                        }}
+                        renderInput={(params) => (
+                            <TextField
+                                {...params}
+                                autoFocus
+                                margin="dense"
+                                label="Name"
+                                variant="outlined"
+                                fullWidth
+                                sx={{ marginBottom: '20px' }}
                             />
-                        ))}
-                    </Box>
-                    <TextField
-                        autoFocus
-                        margin="dense"
-                        id="name"
-                        label="Name"
-                        type="text"
-                        fullWidth
-                        variant="outlined"
-                        value={name}
-                        onChange={handleNameChange}
-                        sx={{ marginBottom: '20px' }}
+                        )}
+                        sx={{
+                            '& .MuiAutocomplete-listbox': {
+                                '&::-webkit-scrollbar': {
+                                    height: '8px',
+                                },
+                                '&::-webkit-scrollbar-thumb': {
+                                    backgroundColor: '#bbb',
+                                    borderRadius: '4px',
+                                }
+                            }
+                        }}
                     />
 
                     <UploadZone
