@@ -63,9 +63,22 @@ body,
   flex-direction: column;
 }
 
-/* If using Material-UI, add this */
 .MuiContainer-root {
   max-width: 100% !important;
   width: 100% !important;
   padding: 0 !important;
+}
+
+@font-face {
+  font-family: 'Dosis';
+  src: url('./Dosis-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'OpenSans';
+  src: url('./OpenSans-Medium.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
 }

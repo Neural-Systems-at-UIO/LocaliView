@@ -1,48 +1,48 @@
-
-import React from 'react';
-import { Box } from '@mui/material';
-import QuintTable from './QuintTable';
-
+import React from "react";
+import { Box } from "@mui/material";
+import QuintTable from "./QuintTable";
 
 const Mainframe = ({ url, native, token }) => {
-    return (
+  return (
+    <Box
+      sx={{
+        width: "100%",
+        height: "96vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        position: "relative",
+      }}
+    >
+      {native ? (
+        // The native application goes here
         <Box
-            sx={{
-                width: '100%',
-                height: '95vh',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                position: 'relative',
-            }}
+          sx={{
+            width: "99%",
+            height: "98%",
+            border: "none",
+            borderRadius: "4px",
+          }}
         >
-            {native ? (
-                // The native application goes here
-                <Box sx={{
-                    width: '99%',
-                    height: '98%',
-                    border: 'none',
-                    borderRadius: '4px',
-                }}>
-                    <QuintTable token={token} />
-                </Box>
-            ) : (
-                <Box
-                    component="iframe"
-                    sx={{
-                        width: '98%',
-                        height: '98%',
-                        border: 'none',
-                        bgcolor: 'white',
-                        borderRadius: '4px',
-                    }}
-                    src={url || ''}
-                    title="Mainframe Content"
-                    allowFullScreen
-                />
-            )}
+          <QuintTable token={token} />
         </Box>
-    )
+      ) : (
+        <Box
+          component="iframe"
+          sx={{
+            width: "98%",
+            height: "98%",
+            border: "none",
+            bgcolor: "white",
+            borderRadius: "4px",
+          }}
+          src={url || ""}
+          title="Mainframe Content"
+          allowFullScreen
+        />
+      )}
+    </Box>
+  );
 };
 
 export default Mainframe;

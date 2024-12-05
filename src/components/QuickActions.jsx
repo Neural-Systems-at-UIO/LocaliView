@@ -73,7 +73,7 @@ const AdditionalInfo = ({
     try {
       const userInfo = JSON.parse(localStorage.getItem("userInfo"));
       setUser(userInfo.username);
-      setBucketName(`${user}-rwb`);
+      setBucketName(localStorage.getItem("bucketName"));
     } catch (error) {
       console.error("Error parsing userInfo:", error);
     }
@@ -201,7 +201,7 @@ const AdditionalInfo = ({
         <Alert
           onClose={() => setInfoMessage({ ...infoMessage, open: false })}
           severity={infoMessage.severity}
-          elevation={6}
+          elevation={4}
         >
           {infoMessage.message}
         </Alert>
@@ -577,10 +577,22 @@ const AdditionalInfo = ({
                       <IconButton
                         size="small"
                         onClick={() => {
+                          if (!(bucketName && walnJson.jsons?.[0]?.name)) {
+                            setInfoMessage({
+                              open: true,
+                              message: "No alignment file to delete",
+                              severity: "warning",
+                            });
+
+                            return;
+                          }
                           deleteItem(
-                            bucketName,
-                            walnJson.jsons?.[0]?.name,
+                            bucketName + "/" + walnJson.jsons?.[0]?.name,
                             token
+                          );
+                          console.log(
+                            "Deleting",
+                            bucketName + "/" + walnJson.jsons?.[0]?.name
                           );
                           setInfoMessage({
                             open: true,

@@ -80,7 +80,7 @@ const Header = () => {
   const [loginAlert, setLoginAlert] = useState(true);
 
   const handleLogin = () => {
-    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://127.00.0.1:3000`;
+    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://rodent-workbench.apps.ebrains.eu/new/`;
   };
 
   const toggleDrawer = () => {
@@ -118,7 +118,7 @@ const Header = () => {
     const code = urlParams.get("code");
 
     if (code) {
-      fetch(`${FAPI_URL}token/dev?code=${code}`)
+      fetch(`${FAPI_URL}token/quint?code=${code}`)
         .then((response) => response.json())
         .then((data) => {
           console.log(data);
@@ -212,7 +212,11 @@ const Header = () => {
                         handleNativeChange();
                         break;
                       case "WebAlign":
-                        let url = tab.url + `?clb-collab-id=${getBucketName()}`;
+                        let url =
+                          tab.url +
+                          `?clb-collab-id=${localStorage.getItem(
+                            "bucketName"
+                          )}`;
                         handleFrameChange(url);
                         break;
                       default:
@@ -231,6 +235,8 @@ const Header = () => {
               top: "50%",
               transform: "translate(-50%, -50%)",
               zIndex: 1,
+              display: "flex",
+              flexDirection: "row",
             }}
           >
             <Typography

@@ -11,6 +11,8 @@ import {
   ListItemText,
   ListItemButton,
   TextField,
+  Select,
+  Autocomplete,
 } from "@mui/material";
 import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
 import AddIcon from "@mui/icons-material/Add";
@@ -20,6 +22,7 @@ import {
   fetchBucketDir,
   fetchBrainStats,
   createProject,
+  listAvailableWorkspaces,
 } from "../actions/handleCollabs.js";
 import CreationDialog from "./CreationDialog.jsx";
 import BrainTable from "./BrainTable.jsx";
@@ -27,7 +30,7 @@ import AdditionalInfo from "./QuickActions.jsx";
 
 export default function QuintTable({ token }) {
   // Query helpers
-  const [bucketName, setBucketName] = React.useState(null);
+  const [bucketName, setBucketName] = React.useState("");
   const [projects, setProjects] = React.useState([]);
   const [selectedProject, setSelectedProject] = React.useState(null);
   const [selectedBrain, setSelectedBrain] = React.useState(null);
@@ -35,12 +38,12 @@ export default function QuintTable({ token }) {
   const [projectBrainEntries, setProjectBrainEntries] = React.useState([]);
   // Other stuff
   const [rows, setRows] = React.useState([]);
-  const [processes, setProcesses] = React.useState([]);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isFetchingStats, setIsFetchingStats] = React.useState(false);
   const [updatingBrains, setUpdatingBrains] = React.useState(false);
   // To create a new project state
   const [newProjectName, setNewProjectName] = React.useState("");
+  const [workspaces, setWorkspaces] = React.useState([]);
 
   const fetchAndUpdateProjects = (collabName) => {
     fetchBucketDir(token, collabName, null, "/")
@@ -57,7 +60,7 @@ export default function QuintTable({ token }) {
       });
   };
 
-  React.useEffect(() => {
+  /*React.useEffect(() => {
     try {
       const userInfo = JSON.parse(localStorage.getItem("userInfo"));
       const userName = userInfo.username;
@@ -67,6 +70,19 @@ export default function QuintTable({ token }) {
       console.error("Error parsing userInfo:", error);
     }
   }, [token]); // only token hook here to avoid infinite loop
+  */
+
+  React.useEffect(() => {
+    if (token) {
+      listAvailableWorkspaces(token)
+        .then((spaces) => {
+          setWorkspaces(spaces);
+        })
+        .catch((error) => {
+          console.error("Error fetching workspaces:", error);
+        });
+    }
+  }, [token]);
 
   // Second effect: Fetch projects when we have both token and bucketName
   React.useEffect(() => {
@@ -181,16 +197,48 @@ export default function QuintTable({ token }) {
                   mb: 2,
                 }}
               >
-                <Typography variant="h6" align="left">
+                <Autocomplete
+                  value={bucketName || null}
+                  options={workspaces}
+                  sx={{ minWidth: "230px" }}
+                  size="small"
+                  getOptionLabel={(option) => option.name || option}
+                  onChange={(event, newValue) => {
+                    const selected = newValue?.name || newValue;
+                    setBucketName(selected);
+                    if (selected === null) {
+                      setProjects([]);
+                    }
+                    localStorage.setItem("bucketName", selected);
+                    if (selected) {
+                      fetchAndUpdateProjects(selected);
+                    }
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Select Workspace"
+                      variant="outlined"
+                    />
+                  )}
+                />
+                <Typography variant="h5" align="left">
                   Projects
                 </Typography>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    justifyContent: "space-between",
+                  }}
+                >
                   <TextField
                     size="small"
                     placeholder="New project..."
                     value={newProjectName}
                     onChange={(e) => setNewProjectName(e.target.value)}
-                    sx={{ width: "150px" }}
+                    sx={{ width: "150px", height: "40px" }}
                   />
                   <Tooltip title="Create new project">
                     <IconButton
@@ -236,7 +284,7 @@ export default function QuintTable({ token }) {
                       py: 4,
                     }}
                   >
-                    {token ? (
+                    {!(token && bucketName === null) ? (
                       <Box
                         sx={{
                           display: "flex",
@@ -250,12 +298,16 @@ export default function QuintTable({ token }) {
                         <Typography>Getting projects...</Typography>
                       </Box>
                     ) : (
-                      <Typography>Log in to see projects</Typography>
+                      <Typography>
+                        Log in and choose a workspace to see projects
+                      </Typography>
                     )}
                   </Box>
                 ) : (
                   <List
                     sx={{
+                      overflow: "auto",
+                      overflowY: "scroll",
                       width: "100%",
                       "& .MuiListItem-root": {
                         border: "1px solid #e0e0e0",

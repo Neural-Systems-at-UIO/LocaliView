@@ -14,7 +14,7 @@ function convertDziToSection(dziData, snr = 1) {
         overlap: dziData.overlap,
     };
 }
-
+// populating the file
 function dzisection(dzi, filename) {
     return {
         filename,
@@ -26,13 +26,50 @@ function dzisection(dzi, filename) {
     };
 }
 
-export function deleteItem(bucket, prefix, token) {
-    return fetch(`https://data-proxy.ebrains.eu/api/v1/buckets/${bucket}?prefix=${prefix}`, {
-        method: 'DELETE',
-        headers: {
-            'Authorization': 'Bearer ' + token
+export async function deleteItem(path, token) {
+    try {
+        // Naming here is the full path
+        const response = await fetch(`https://data-proxy.ebrains.eu/api/v1/buckets/${path}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-    });
+
+        return response;
+    }
+    catch (error) {
+        console.error('Error deleting item:', error);
+        throw error; // Re-throw to allow caller to handle
+    }
+}
+
+
+export async function listAvailableWorkspaces(token) {
+    try {
+        const response = await fetch('https://data-proxy.ebrains.eu/api/v1/buckets', {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+                'Authorization': 'Bearer ' + token
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const workspaces = await response.json();
+        return workspaces.map(workspace => workspace.name);
+
+    } catch (error) {
+        console.error('Error fetching workspaces:', error);
+        throw error; // Re-throw to allow handling by caller on the UI secito 
+    }
 }
 
 
@@ -111,6 +148,11 @@ export const fetchBucketDir = async (token, bucketName, prefix, delimiter, limit
         console.error('Error fetching bucket directory:', error)
         throw error
     }
+}
+
+export function fetchWorkspaceConfigurations(workspace, token) {
+
+    return null;
 }
 
 export const fetchBrainStats = async (token, bucketName, brainPrefix) => {
@@ -242,6 +284,8 @@ export const createProject = async (uploadObj) => {
 export const uploadToJson = async (uploadObj, fileName, content) => {
     const objectName = `${uploadObj.projectName}/${uploadObj.brainName}/jsons/${fileName}`.replace(/\/+/g, '/');
     const getUrlEndpoint = `${BUCKET_URL}${uploadObj.bucketName}/${objectName}`;
+
+    console.log('Uploading JSON:', uploadObj)
 
     // Step 1: Get upload URL
     const urlResponse = await fetch(getUrlEndpoint, {
