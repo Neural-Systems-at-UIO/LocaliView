@@ -23,12 +23,13 @@ import {
   fetchBrainStats,
   createProject,
   listAvailableWorkspaces,
+  checkBucketExists,
 } from "../actions/handleCollabs.js";
 import CreationDialog from "./CreationDialog.jsx";
 import BrainTable from "./BrainTable.jsx";
 import AdditionalInfo from "./QuickActions.jsx";
 
-export default function QuintTable({ token }) {
+export default function QuintTable({ token, user }) {
   // Query helpers
   const [bucketName, setBucketName] = React.useState("");
   const [projects, setProjects] = React.useState([]);
@@ -43,7 +44,63 @@ export default function QuintTable({ token }) {
   const [updatingBrains, setUpdatingBrains] = React.useState(false);
   // To create a new project state
   const [newProjectName, setNewProjectName] = React.useState("");
-  const [workspaces, setWorkspaces] = React.useState([]);
+
+  // Project view issues
+  const [projectIssue, setProjectIssue] = React.useState({
+    problem: false,
+    message: "",
+    severity: "info", // 'error' | 'warning' | 'info' available as of now
+    loading: false,
+  });
+
+  // Project state helper for conditional rendering
+  const getProjectState = () => {
+    if (!token) {
+      return "unauthorized";
+    }
+    if (bucketName === null) {
+      return "no-workspace";
+    }
+    if (projectIssue.loading) {
+      return "loading";
+    }
+    if (projectIssue.problem) {
+      return "error";
+    }
+    if (projects.length === 0) {
+      return "empty";
+    }
+    // TODO Add an i cant find your bucekt and creating
+    return "ready";
+  };
+
+  const renderProjectContent = () => {
+    switch (getProjectState()) {
+      case "unauthorized":
+        return <Typography>Please log in to view projects</Typography>;
+      case "no-workspace":
+        return <Typography>Select a workspace to continue</Typography>;
+      case "loading":
+        return (
+          <Box
+            sx={{ display: "flex", gap: 2, justifyContent: "center", py: 4 }}
+          >
+            <CircularProgress size={20} />
+            <Typography>Loading projects...</Typography>
+          </Box>
+        );
+      case "error":
+        return (
+          <Box sx={{ color: "error.main", py: 2 }}>
+            <Typography>{projectIssue.message}</Typography>
+          </Box>
+        );
+      case "empty":
+        return <Typography>This bucket has no projects yet</Typography>;
+      default:
+        return null; // Projects will be rendered normally
+    }
+  };
 
   const fetchAndUpdateProjects = (collabName) => {
     fetchBucketDir(token, collabName, null, "/")
@@ -60,33 +117,74 @@ export default function QuintTable({ token }) {
       });
   };
 
-  /*React.useEffect(() => {
+  React.useEffect(() => {
     try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      const userName = userInfo.username;
-      const collabName = `${userName}-rwb`;
+      const userName = user.username;
+      console.log("User info received by table:", user);
+      const collabName = `rwb-${userName}`;
       setBucketName(collabName);
+
+      // Initialize the collab/bucket if it doesn't exist
+      const initializeWorkspace = async () => {
+        try {
+          const resp = await checkBucketExists(token, collabName);
+          if (resp) {
+            console.log("Bucket already exists");
+            setBucketName(collabName);
+          } else {
+            try {
+              const response = await fetch(
+                "https://deepzoom.apps.ebrains.eu/api/initialize-collab",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    token: token,
+                    collab_id: collabName,
+                  }),
+                }
+              );
+
+              const data = await response.json();
+
+              if (data.success) {
+                setBucketName(collabName);
+              } else {
+                throw new Error("Failed to initialize collab");
+              }
+            } catch (error) {
+              console.error("Error initializing collab:", error);
+              setProjectIssue({
+                problem: true,
+                message: "Failed to initialize collab",
+                severity: "error",
+                loading: false,
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error initializing workspace:", error);
+          setProjectIssue({
+            problem: true,
+            message: "Failed to initialize workspace",
+            severity: "error",
+            loading: false,
+          });
+        }
+      };
+
+      initializeWorkspace();
     } catch (error) {
       console.error("Error parsing userInfo:", error);
     }
-  }, [token]); // only token hook here to avoid infinite loop
-  */
-
-  React.useEffect(() => {
-    if (token) {
-      listAvailableWorkspaces(token)
-        .then((spaces) => {
-          setWorkspaces(spaces);
-        })
-        .catch((error) => {
-          console.error("Error fetching workspaces:", error);
-        });
-    }
-  }, [token]);
+  }, [user, token]); // only token hook here to avoid infinite loop
 
   // Second effect: Fetch projects when we have both token and bucketName
   React.useEffect(() => {
     if (token && bucketName && projects.length === 0) {
+      localStorage.setItem("bucketName", bucketName);
       fetchAndUpdateProjects(bucketName);
     }
   }, [token, bucketName]); // Only depends on token and bucketName
@@ -197,33 +295,8 @@ export default function QuintTable({ token }) {
                   mb: 2,
                 }}
               >
-                <Autocomplete
-                  value={bucketName || null}
-                  options={workspaces}
-                  sx={{ minWidth: "230px" }}
-                  size="small"
-                  getOptionLabel={(option) => option.name || option}
-                  onChange={(event, newValue) => {
-                    const selected = newValue?.name || newValue;
-                    setBucketName(selected);
-                    if (selected === null) {
-                      setProjects([]);
-                    }
-                    localStorage.setItem("bucketName", selected);
-                    if (selected) {
-                      fetchAndUpdateProjects(selected);
-                    }
-                  }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Select Workspace"
-                      variant="outlined"
-                    />
-                  )}
-                />
                 <Typography variant="h5" align="left">
-                  Projects
+                  Projects in {bucketName}
                 </Typography>
                 <Box
                   sx={{
@@ -274,35 +347,8 @@ export default function QuintTable({ token }) {
               </Box>
 
               <Box sx={{ display: "flex", gap: 2 }}>
-                {projects.length === 0 ? (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      gap: 2,
-                      justifyContent: "center",
-                      width: "100%",
-                      py: 4,
-                    }}
-                  >
-                    {!(token && bucketName === null) ? (
-                      <Box
-                        sx={{
-                          display: "flex",
-                          gap: 2,
-                          justifyContent: "center",
-                          width: "100%",
-                          py: 4,
-                        }}
-                      >
-                        <CircularProgress size={20} />
-                        <Typography>Getting projects...</Typography>
-                      </Box>
-                    ) : (
-                      <Typography>
-                        Log in and choose a workspace to see projects
-                      </Typography>
-                    )}
-                  </Box>
+                {projectIssue.loading || projectIssue.problem ? (
+                  renderProjectContent()
                 ) : (
                   <List
                     sx={{

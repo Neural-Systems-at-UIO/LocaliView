@@ -319,3 +319,28 @@ export const uploadToJson = async (uploadObj, fileName, content) => {
 }
 
 // const fetchAlignmentContent = async (token, bucketName, brainPrefix, fileName) => {
+
+// Ported from the old code, but with async/await
+export async function checkBucketExists(token, searchTerm) {
+    const headers = {
+        'accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+    };
+
+    try {
+        const response = await fetch(
+            `https://data-proxy.ebrains.eu/api/v1/buckets?search=${searchTerm}`,
+            { headers }
+        );
+
+        if (!response.ok) {
+            throw new Error('Failed to check bucket');
+        }
+
+        const data = await response.json();
+        return data && data.length > 0;
+    } catch (error) {
+        console.error('Bucket check error:', error.message);
+        return false;
+    }
+}

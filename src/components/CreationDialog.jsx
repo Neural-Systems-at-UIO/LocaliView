@@ -28,9 +28,13 @@ export default function CreationDialog({
 }) {
   const [name, setName] = useState("");
   const [filesToUpload, setFilesToUpload] = useState([]);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
   const [editBrainsList, setEditBrainsList] = useState([]);
+
+  const [infoMessage, setInfoMessage] = useState({
+    open: false,
+    message: "",
+    severity: "info",
+  });
 
   // For upload feedback of images to series
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -74,10 +78,20 @@ export default function CreationDialog({
           setUploadProgress(((i + 1) / filesToUpload.length) * 100);
         }
         setIsUploading(false);
+        setInfoMessage({
+          open: true,
+          message: "Files uploaded successfully",
+          severity: "success",
+        });
         return uploadedFiles;
       } catch (error) {
         setIsUploading(false);
         console.error("Error uploading files:", error);
+        setInfoMessage({
+          open: true,
+          message: "Error uploading files",
+          severity: "error",
+        });
         throw error;
       }
     }
@@ -92,24 +106,28 @@ export default function CreationDialog({
       if (typeof onSubmit === "function") {
         onSubmit({ name, files: uploadedFiles });
       }
-      setSnackbarMessage("Brain created and files uploaded successfully!");
-      setSnackbarOpen(true);
       updateProjects(collabName);
       onClose();
     } catch (error) {
       console.error("Error in handleSubmit:", error);
-      setSnackbarMessage(
-        "Error creating brain or uploading files. Please try again."
-      );
-      setSnackbarOpen(true);
     }
-  };
-  const handleSnackbarClose = () => {
-    setSnackbarOpen(false);
   };
 
   return (
     <>
+      <Snackbar
+        open={infoMessage.open}
+        autoHideDuration={6000}
+        onClose={() => setInfoMessage({ ...infoMessage, open: false })}
+      >
+        <Alert
+          onClose={() => setInfoMessage({ ...infoMessage, open: false })}
+          severity={infoMessage.severity}
+          sx={{ width: "100%" }}
+        >
+          {infoMessage.message}
+        </Alert>
+      </Snackbar>
       <Dialog
         open={open}
         onClose={onClose}
@@ -182,21 +200,6 @@ export default function CreationDialog({
           <Button onClick={handleSubmit}>Submit</Button>
         </DialogActions>
       </Dialog>
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          severity="success"
-          sx={{ width: "100%" }}
-          elevation={4}
-          onClose={handleSnackbarClose}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
     </>
   );
 }

@@ -80,7 +80,7 @@ const Header = () => {
   const [loginAlert, setLoginAlert] = useState(true);
 
   const handleLogin = () => {
-    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://rodent-workbench.apps.ebrains.eu/new/`;
+    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://rodentworkbench.apps.ebrains.eu/new/`;
   };
 
   const toggleDrawer = () => {
@@ -99,7 +99,6 @@ const Header = () => {
 
   const getBucketName = () => {
     const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-    console.log(userInfo);
     const userName = userInfo.username;
     const collabName = `${userName}-rwb`;
     return collabName;
@@ -138,6 +137,8 @@ const Header = () => {
       try {
         const userInfo = await callUser(token);
         setUser(userInfo);
+        console.log(userInfo);
+        localStorage.setItem("userInfo", JSON.stringify(userInfo));
         setAuth(true);
       } catch (error) {
         console.error("User couldn't be retrieved", error);
@@ -335,7 +336,12 @@ const Header = () => {
           </Box>
         </Drawer>
       </AppBar>
-      <Mainframe url={currentUrl} native={nativeSelection} token={token} />
+      <Mainframe
+        url={currentUrl}
+        native={nativeSelection}
+        token={token}
+        user={user}
+      />
       <Snackbar
         open={loginAlert}
         autoHideDuration={5000}

@@ -2,7 +2,7 @@ import React from "react";
 import { Box } from "@mui/material";
 import QuintTable from "./QuintTable";
 
-const Mainframe = ({ url, native, token }) => {
+const Mainframe = ({ url, native, token, user }) => {
   return (
     <Box
       sx={{
@@ -24,7 +24,7 @@ const Mainframe = ({ url, native, token }) => {
             borderRadius: "4px",
           }}
         >
-          <QuintTable token={token} />
+          <QuintTable token={token} user={user} />
         </Box>
       ) : (
         <Box
