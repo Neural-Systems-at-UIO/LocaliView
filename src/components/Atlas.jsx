@@ -206,9 +206,6 @@ function Atlas({ bucketName, dzips, token, updateInfo }) {
                 <em>None</em>
               </MenuItem>
               <ListSubheader>Rat Brain Atlases</ListSubheader>
-              <MenuItem disabled={true} value={1}>
-                Waxholm Space Atlas of the Sprague Dawley rat v2
-              </MenuItem>
               <MenuItem value={2}>
                 Waxholm Space Atlas of the Sprague Dawley rat v3
               </MenuItem>
@@ -216,9 +213,6 @@ function Atlas({ bucketName, dzips, token, updateInfo }) {
                 Waxholm Space Atlas of the Sprague Dawley rat v4
               </MenuItem>
               <ListSubheader>Mouse Brain Atlases</ListSubheader>
-              <MenuItem disabled={true} value={4}>
-                Allen Mouse Brain Atlas version 3 2015
-              </MenuItem>
               <MenuItem value={5}>
                 Allen Mouse Brain Atlas version 3 2017
               </MenuItem>

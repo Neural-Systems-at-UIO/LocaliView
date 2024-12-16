@@ -26,7 +26,11 @@ import { useState, useEffect } from "react";
 
 import Atlas from "./Atlas";
 // Icons
-import { AutoAwesomeMotionSharp, ImageSharp } from "@mui/icons-material";
+import {
+  AutoAwesomeMotionSharp,
+  ImageSharp,
+  FolderOff,
+} from "@mui/icons-material";
 
 import { deleteItem } from "../actions/handleCollabs";
 
@@ -61,6 +65,7 @@ const AdditionalInfo = ({
   const [user, setUser] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [bucketName, setBucketName] = useState(null);
+  // To view the list of files
 
   // Info messages
   const [infoMessage, setInfoMessage] = useState({
@@ -157,7 +162,10 @@ const AdditionalInfo = ({
         }}
       >
         <Typography variant="h5" color="textSecondary">
-          Choose a Series
+          Choose a series on the left list to view additional information
+          <br />
+          If there are none, you can add a new series by clicking on the
+          'Add/Edit Series' button
         </Typography>
       </Box>
     );
@@ -166,7 +174,7 @@ const AdditionalInfo = ({
   const brainStats = stats[0] || {};
   const brainPyramids = stats[1] || {};
   const walnJson = stats[2] || {};
-  let registrated = walnJson.jsons?.length >= 1;
+  let registered = walnJson.jsons?.length >= 1;
 
   if (isLoading) {
     return (
@@ -192,7 +200,7 @@ const AdditionalInfo = ({
   const pyramidComplete = pyramidCount === brainStats.files;
 
   return (
-    <Box sx={{ overflow: "auto", p: 2, height: "75%" }}>
+    <Box sx={{ overflow: "auto", height: "75%" }}>
       <Snackbar
         open={infoMessage.open}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
@@ -268,9 +276,9 @@ const AdditionalInfo = ({
             sx={{
               boxShadow: "none",
               border: "1px solid #e0e0e0",
-              opacity: registrated ? 0.5 : 1,
+              opacity: registered ? 0.5 : 1,
               "&:hover": {
-                cursor: registrated ? "not-allowed" : "pointer",
+                cursor: registered ? "not-allowed" : "pointer",
               },
             }}
           >
@@ -387,63 +395,93 @@ const AdditionalInfo = ({
                         }}
                       >
                         <List>
-                          {stats[1]?.zips?.map((zip, index) => (
+                          {stats[1]?.zips?.length > 0 ? (
+                            stats[1]?.zips?.map((zip, index) => (
+                              <ListItem
+                                key={index}
+                                sx={{
+                                  transition: "all 0.2s ease",
+                                  "&:hover": {
+                                    backgroundColor: "action.hover",
+                                  },
+                                  "&:last-child": {
+                                    borderBottom: "none",
+                                  },
+                                  justifyContent: "space-between",
+                                }}
+                              >
+                                <ListItemIcon>
+                                  <AutoAwesomeMotionSharp />
+                                </ListItemIcon>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: 500,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                    fontSize: 12,
+                                    textAlign: "left",
+                                  }}
+                                >
+                                  {zip.name.split("/").slice(-1)[0]}
+                                </Typography>
+                                <Typography
+                                  sx={{
+                                    fontWeight: 500,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                    fontSize: 12,
+                                  }}
+                                >
+                                  {formatFileSize(zip.bytes)}
+                                </Typography>
+                                <Typography
+                                  sx={{
+                                    fontWeight: 500,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                    fontSize: 12,
+                                  }}
+                                >
+                                  {new Date(zip.last_modified).toLocaleString(
+                                    "en-GB",
+                                    dateOptions
+                                  )}
+                                </Typography>
+                              </ListItem>
+                            ))
+                          ) : (
                             <ListItem
-                              key={index}
                               sx={{
-                                transition: "all 0.2s ease",
-                                "&:hover": {
-                                  backgroundColor: "action.hover",
-                                },
-                                "&:last-child": {
-                                  borderBottom: "none",
-                                },
-                                justifyContent: "space-between",
+                                height: "100%",
+                                minHeight: 200, // Ensures minimum height
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexDirection: "column",
+                                gap: 1,
+                                opacity: 0.8,
                               }}
                             >
                               <ListItemIcon>
-                                <AutoAwesomeMotionSharp />
+                                <FolderOff sx={{ fontSize: "2rem" }} />
                               </ListItemIcon>
                               <Typography
                                 variant="body2"
                                 sx={{
-                                  fontWeight: 500,
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  fontSize: 12,
-                                  textAlign: "left",
+                                  color: "text.secondary",
+                                  textAlign: "center",
                                 }}
                               >
-                                {zip.name.split("/").slice(-1)[0]}
-                              </Typography>
-                              <Typography
-                                sx={{
-                                  fontWeight: 500,
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  fontSize: 12,
-                                }}
-                              >
-                                {formatFileSize(zip.bytes)}
-                              </Typography>
-                              <Typography
-                                sx={{
-                                  fontWeight: 500,
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  fontSize: 12,
-                                }}
-                              >
-                                {new Date(zip.last_modified).toLocaleString(
-                                  "en-GB",
-                                  dateOptions
-                                )}
+                                No processed files
+                                <br />
+                                Click the process button to start
                               </Typography>
                             </ListItem>
-                          ))}
+                          )}
                         </List>
                       </Box>
                     </Box>
@@ -537,7 +575,7 @@ const AdditionalInfo = ({
           borderRadius: 2,
         }}
       >
-        {!registrated && (
+        {!registered && (
           <Atlas
             token={token}
             bucketName={bucketName}
@@ -546,7 +584,7 @@ const AdditionalInfo = ({
           />
         )}
 
-        {registrated && (
+        {registered && (
           <Box
             sx={{
               display: "flex",

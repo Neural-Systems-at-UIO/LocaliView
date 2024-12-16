@@ -231,6 +231,11 @@ export default function QuintTable({ token, user }) {
     try {
       const stats = await fetchBrainStats(token, bucketName, params.row.path);
       setSelectedBrainStats(stats);
+      // To be passed along other items
+      localStorage.setItem(
+        "selectedBrain",
+        JSON.stringify({ ...params.row, project: selectedProject.name })
+      );
       console.log(`Selected brain stats:`, stats);
     } catch (error) {
       console.error("Error fetching brain stats:", error);
@@ -352,8 +357,6 @@ export default function QuintTable({ token, user }) {
                 ) : (
                   <List
                     sx={{
-                      overflow: "auto",
-                      overflowY: "scroll",
                       width: "100%",
                       "& .MuiListItem-root": {
                         border: "1px solid #e0e0e0",

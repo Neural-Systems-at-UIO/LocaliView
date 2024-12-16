@@ -55,8 +55,18 @@ const tabs = [
     disabled: false,
   },
   {
+    label: "Segments",
+    url: null,
+    disabled: false,
+  },
+  {
     label: "WebNutil",
     url: WEBNUTIL_URL,
+    disabled: false,
+  },
+  {
+    label: "Results",
+    url: null,
     disabled: false,
   },
 ];
@@ -80,7 +90,7 @@ const Header = () => {
   const [loginAlert, setLoginAlert] = useState(true);
 
   const handleLogin = () => {
-    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://rodentworkbench.apps.ebrains.eu/new/`;
+    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://127.00.0.1:3000`;
   };
 
   const toggleDrawer = () => {
@@ -97,11 +107,10 @@ const Header = () => {
     setNativeSelection(!nativeSelection);
   };
 
-  const getBucketName = () => {
-    const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-    const userName = userInfo.username;
-    const collabName = `${userName}-rwb`;
-    return collabName;
+  const getBrain = () => {
+    let brain = JSON.parse(localStorage.getItem("selectedBrain"));
+    console.log(brain);
+    return brain.path;
   };
 
   const sharedListItemSx = {
@@ -117,7 +126,7 @@ const Header = () => {
     const code = urlParams.get("code");
 
     if (code) {
-      fetch(`${FAPI_URL}token/quint?code=${code}`)
+      fetch(`${FAPI_URL}token/dev?code=${code}`)
         .then((response) => response.json())
         .then((data) => {
           console.log(data);
@@ -184,10 +193,12 @@ const Header = () => {
                 "& .MuiTab-root": {
                   minHeight: "36px",
                   fontSize: "0.875rem",
-                  padding: "0 16px",
+                  padding: "0 8px",
                   minWidth: "auto",
-                  opacity: 0.7,
-                  transition: "opacity 0.2s",
+                  opacity: 0.5,
+                  transition: "opacity 0.1s",
+                  color: "black",
+                  textTransform: "lowercase",
                   "&.Mui-selected": {
                     color: "primary.main",
                     opacity: 1,
