@@ -90,7 +90,7 @@ const Header = () => {
   const [loginAlert, setLoginAlert] = useState(true);
 
   const handleLogin = () => {
-    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://127.00.0.1:3000`;
+    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://rodentworkbench.apps.ebrains.eu/new/`;
   };
 
   const toggleDrawer = () => {
@@ -126,7 +126,7 @@ const Header = () => {
     const code = urlParams.get("code");
 
     if (code) {
-      fetch(`${FAPI_URL}token/dev?code=${code}`)
+      fetch(`${FAPI_URL}token/quint?code=${code}`)
         .then((response) => response.json())
         .then((data) => {
           console.log(data);
@@ -139,6 +139,7 @@ const Header = () => {
     }
   }, []);
 
+  // Get user on mount, always renews on new token
   useEffect(() => {
     const fetchUser = async () => {
       if (!token) return;
