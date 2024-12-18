@@ -214,6 +214,7 @@ export default function QuintTable({ token, user }) {
         path: entry.path,
       }));
       setRows(newRows);
+      localStorage.setItem("projectBrainEntries", JSON.stringify(brainEntries));
       setProjectBrainEntries(brainEntries);
       setUpdatingBrains(false);
     } catch (error) {
@@ -458,6 +459,7 @@ export default function QuintTable({ token, user }) {
         updateProjects={fetchAndUpdateProjects}
         token={token}
         brainEntries={projectBrainEntries}
+        onUploadComplete={() => fetchBrains(selectedProject)}
       />
     </Box>
   );

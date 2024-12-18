@@ -83,28 +83,37 @@ const Header = () => {
   // Control for the iframe, further divergence from an iframe can be done within the Mainframe component
   // Mainly for Native use of the applications and the webalign etc i frame ones
   const [currentUrl, setCurrentUrl] = useState(null);
-  const [nativeSelection, setNativeSelection] = useState(true);
+  const [nativeSelection, setNativeSelection] = useState({
+    native: true,
+    app: "workspace", // Default app, but we can use nutil and results
+  });
   const [tab, setTab] = useState(0);
 
   // Login alert
   const [loginAlert, setLoginAlert] = useState(true);
 
   const handleLogin = () => {
-    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://rodentworkbench.apps.ebrains.eu/new/`;
+    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://127.00.0.1:3000`;
   };
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
   };
 
+  const handleNativeChange = () => {
+    setNativeSelection({
+      native: !nativeSelection.native,
+      app: nativeSelection.app,
+    });
+  };
+
   const handleFrameChange = (url) => {
     console.log(`Changing frame to ${url}`);
     setCurrentUrl(url);
-    setNativeSelection(false);
-  };
-
-  const handleNativeChange = () => {
-    setNativeSelection(!nativeSelection);
+    setNativeSelection({
+      native: false,
+      app: "frame",
+    });
   };
 
   const getBrain = () => {
@@ -126,7 +135,7 @@ const Header = () => {
     const code = urlParams.get("code");
 
     if (code) {
-      fetch(`${FAPI_URL}token/quint?code=${code}`)
+      fetch(`${FAPI_URL}token/dev?code=${code}`)
         .then((response) => response.json())
         .then((data) => {
           console.log(data);
@@ -163,12 +172,11 @@ const Header = () => {
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar
-        position="static"
+        position="flex"
         sx={{
           backgroundColor: "#f0f0f0",
           color: "black",
           boxShadow: "none",
-          borderBottom: "1px solid #e0e0e0",
         }}
       >
         <Toolbar
@@ -194,7 +202,7 @@ const Header = () => {
                 "& .MuiTab-root": {
                   minHeight: "36px",
                   fontSize: "0.875rem",
-                  padding: "0 8px",
+                  padding: "0 4px",
                   minWidth: "auto",
                   opacity: 0.5,
                   transition: "opacity 0.1s",
@@ -207,6 +215,8 @@ const Header = () => {
                   },
                   "&:hover": {
                     opacity: 1,
+                    backgroundColor: "lightgray",
+                    //textShadow: "0 0 1px ",
                   },
                 },
                 "& .MuiTabs-indicator": {
@@ -222,7 +232,10 @@ const Header = () => {
                   onClick={() => {
                     switch (tab.label) {
                       case "Projects":
-                        handleNativeChange();
+                        setNativeSelection({
+                          native: true,
+                          app: "workspace",
+                        });
                         break;
                       case "WebAlign":
                         let url =
@@ -231,6 +244,20 @@ const Header = () => {
                             "bucketName"
                           )}`;
                         handleFrameChange(url);
+                        break;
+                      case "WebNutil": {
+                        setNativeSelection({
+                          native: true,
+                          app: "nutil",
+                        });
+                        console.log(nativeSelection);
+                        break;
+                      }
+                      case "Results":
+                        setNativeSelection({
+                          native: true,
+                          app: "results",
+                        });
                         break;
                       default:
                         handleFrameChange(tab.url);
@@ -254,7 +281,7 @@ const Header = () => {
           >
             <Typography
               sx={{
-                fontSize: 18,
+                fontSize: "0.875rem",
               }}
             >
               rodent workbench

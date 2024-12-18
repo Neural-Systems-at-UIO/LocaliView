@@ -71,16 +71,6 @@ const createAtlas = async (atlasName, bucketName, dzips, token) => {
 
   console.log(uploadObj);
 
-  // This would sort the sections but there maybe more than one sectin with the same number
-
-  /*
-    const sortedDzips = [...dzips].sort((a, b) => {
-            const numA = parseInt(a.match(/\d+/)?.[0] || '0');
-            const numB = parseInt(b.match(/\d+/)?.[0] || '0');
-            return numA - numB;
-        });
-    */
-
   try {
     // Initialize atlas structure from the passed down params.
     const atlas = {

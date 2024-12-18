@@ -25,6 +25,7 @@ export default function CreationDialog({
   updateProjects,
   token,
   brainEntries,
+  onUploadComplete,
 }) {
   const [name, setName] = useState("");
   const [filesToUpload, setFilesToUpload] = useState([]);
@@ -106,6 +107,7 @@ export default function CreationDialog({
       if (typeof onSubmit === "function") {
         onSubmit({ name, files: uploadedFiles });
       }
+      onUploadComplete?.();
       updateProjects(collabName);
       onClose();
     } catch (error) {

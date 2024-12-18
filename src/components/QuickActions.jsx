@@ -30,6 +30,7 @@ import {
   AutoAwesomeMotionSharp,
   ImageSharp,
   FolderOff,
+  Share,
 } from "@mui/icons-material";
 
 import { deleteItem } from "../actions/handleCollabs";
@@ -238,7 +239,9 @@ const AdditionalInfo = ({
               sx={{
                 fontWeight: "bold",
                 textWrap: "wrap",
+                borderBottom: "1px solid #e0e0e0",
               }}
+              width={1}
               textAlign="left"
               padding={2}
             >
@@ -249,6 +252,14 @@ const AdditionalInfo = ({
                 <ListItemText
                   primary="Total Images in Series"
                   secondary={brainStats.files || "N/A"}
+                  sx={{
+                    "& .MuiListItemText-primary": {
+                      fontSize: "0.8rem",
+                    },
+                    "& .MuiListItemText-secondary": {
+                      fontSize: "0.7rem",
+                    },
+                  }}
                 />
                 <Tooltip title="You can add more images from the 'Add or Edit' button">
                   <InfoIcon fontSize="small" color="action" />
@@ -260,15 +271,47 @@ const AdditionalInfo = ({
                   secondary={
                     brainStats.size ? formatFileSize(brainStats.size) : "N/A"
                   }
+                  sx={{
+                    "& .MuiListItemText-primary": {
+                      fontSize: "0.8rem",
+                    },
+                    "& .MuiListItemText-secondary": {
+                      fontSize: "0.7rem",
+                    },
+                  }}
                 />
               </ListItem>
               <ListItem>
                 <ListItemText
                   primary="Last updated on"
                   secondary={new Date().toLocaleString()}
+                  sx={{
+                    "& .MuiListItemText-primary": {
+                      fontSize: "0.8rem",
+                    },
+                    "& .MuiListItemText-secondary": {
+                      fontSize: "0.7rem",
+                    },
+                  }}
                 />
               </ListItem>
             </List>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "flex-start",
+                gap: 2,
+                p: 2,
+                borderTop: "1px solid #e0e0e0",
+              }}
+            >
+              <Button size="small" color="error" startIcon={<DeleteIcon />}>
+                Delete
+              </Button>
+              <Button size="small" startIcon={<Share />}>
+                Share
+              </Button>
+            </Box>
           </Card>
         </Grid>
         <Grid size={9}>
@@ -278,7 +321,7 @@ const AdditionalInfo = ({
               border: "1px solid #e0e0e0",
               opacity: registered ? 0.5 : 1,
               "&:hover": {
-                cursor: registered ? "not-allowed" : "pointer",
+                cursor: registered ? "not-allowed" : "default",
               },
             }}
           >
@@ -291,9 +334,17 @@ const AdditionalInfo = ({
                   alignItems: { xs: "flex-start", sm: "center" },
                   mb: 2,
                   width: "100%",
+                  height: "100%",
                 }}
               >
-                <Box sx={{ mb: { xs: 2, sm: 0 }, width: "100%" }}>
+                <Box
+                  sx={{
+                    mb: { xs: 2, sm: 0 },
+                    width: "100%",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
                   <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
                     <Box sx={{ flex: 1 }}>
                       <Typography
@@ -572,7 +623,7 @@ const AdditionalInfo = ({
           alignItems: "center",
           flexDirection: "column",
           p: 1,
-          borderRadius: 2,
+          borderRadius: 1,
         }}
       >
         {!registered && (
