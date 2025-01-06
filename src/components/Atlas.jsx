@@ -13,11 +13,14 @@ import {
 } from "@mui/material";
 import netunzip from "../actions/atlasUtils";
 import { uploadToJson } from "../actions/handleCollabs";
+import { Refresh } from "@mui/icons-material";
 
 // Extractor definitions
+// Filename has to match the exact name of the DZIP file instead of dzi
 const dzisection = (dzi, filename) => {
+  const newFilename = filename.replace(/\.dzi$/, ".dzip");
   return {
-    filename,
+    filename: newFilename,
     width: parseInt(dzi.match(/Width="(\d+)"/m)[1]),
     height: parseInt(dzi.match(/Height="(\d+)"/m)[1]),
     tilesize: parseInt(dzi.match(/TileSize="(\d+)"/m)[1]),
@@ -52,13 +55,7 @@ let brainAnnounce;
 // Main function to get called with a list
 
 const createAtlas = async (atlasName, bucketName, dzips, token) => {
-  // TODO - add tally counter for snr's, automatic or manual
-
-  // This is a clean sort as there are numbers in the middle of the names
-  // later on is an automatic section sorter
   const sortedDzips = [...dzips].sort((a, b) => a.name.localeCompare(b.name));
-  console.log("Ordered slices", sortedDzips);
-
   const split = dzips[0].name.split("/");
   const uploadObj = {
     token: token,
@@ -66,36 +63,36 @@ const createAtlas = async (atlasName, bucketName, dzips, token) => {
     projectName: split[0],
     brainName: split[1],
   };
-
   brainAnnounce = uploadObj.brainName;
 
-  console.log(uploadObj);
-
   try {
-    // Initialize atlas structure from the passed down params.
+    const pathParts = dzips[0].name.split("/");
+    pathParts.pop();
+    const dziproot = pathParts.join("/");
+
     const atlas = {
       atlas: atlasName,
       sections: [],
       bucket: bucketName,
+      dziproot: dziproot + "/",
     };
 
-    // Process each DZIP file
+    // Redirect param expected for authenticated downloads
+    const urlLocator = (url) => {
+      return () =>
+        fetch(`${url}?redirect=false`, {
+          headers: { authorization: `Bearer ${token}` },
+        })
+          .then((response) => response.json())
+          .then((json) => json.url);
+    };
+
     for (let [index, dzipObj] of sortedDzips.entries()) {
-      const fetchWithAuth = async (urlPath) => {
-        const baseUrl = `https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}/`;
-        const fullUrl = baseUrl + urlPath;
-
-        const options = {
-          method: "GET",
-        };
-        return fetch(fullUrl, options);
-      };
-
-      // Pass the name property to fetchWithAuth
-      const zipdir = await netunzip(async () => {
-        const response = await fetchWithAuth(dzipObj.name);
-        return response.url;
-      });
+      const zipdir = await netunzip(
+        urlLocator(
+          `https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}/${dzipObj.name}`
+        )
+      );
 
       const dziEntry = Array.from(zipdir.entries.values()).find((entry) =>
         entry.name.endsWith(".dzi")
@@ -109,19 +106,15 @@ const createAtlas = async (atlasName, bucketName, dzips, token) => {
         atlas.sections.push(sectionData);
       }
     }
-    const walnName =
-      atlasName.toLowerCase().replace(/\s+/g, "_") +
-      "_" +
-      new Date()
-        .toISOString()
-        .replace(/[:.]/g, "-")
-        .replace("T", "_")
-        .slice(0, 19) +
-      ".waln";
 
+    const walnName = `${atlasName
+      .toLowerCase()
+      .replace(/\s+/g, "_")}_${new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .replace("T", "_")
+      .slice(0, 19)}.waln`;
     const response = await uploadToJson(uploadObj, walnName, atlas);
-    console.log("Atlas uploaded:", response);
-
     return atlas;
   } catch (error) {
     console.error("Error creating atlas:", error);
@@ -129,7 +122,7 @@ const createAtlas = async (atlasName, bucketName, dzips, token) => {
   }
 };
 
-function Atlas({ bucketName, dzips, token, updateInfo }) {
+function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
   const [atlasName, setAtlasName] = useState(null);
   const [creating, setCreating] = useState(false);
   const [imageCount, setImageCount] = useState(0);
@@ -142,7 +135,7 @@ function Atlas({ bucketName, dzips, token, updateInfo }) {
     console.log("Files staged for atlas creation", dzips);
     if (dzips && Array.isArray(dzips)) {
       setImageCount(dzips.length);
-      console.log(imageCount, "images are ready for alignment");
+      console.log(imageCount, "images are ready for registration");
     }
   }, [dzips]);
 
@@ -157,10 +150,10 @@ function Atlas({ bucketName, dzips, token, updateInfo }) {
           }}
         >
           <Typography sx={{ color: "text.secondary", fontSize: 14 }}>
-            {imageCount || 0} Images are ready for alignment
+            {imageCount || 0} Images are ready for registration
           </Typography>
           <Typography sx={{ color: "text.secondary", fontSize: 14 }}>
-            Generate atlas referenced alignment
+            Generate atlas referenced registration
           </Typography>
         </Box>
         <Box
@@ -223,16 +216,15 @@ function Atlas({ bucketName, dzips, token, updateInfo }) {
               }}
               onClick={async () => {
                 setCreating(true);
-                console.log(
-                  "Creating following atlas: ",
-                  createAtlas(atlasName, bucketName, dzips, token)
-                );
-                setCreating(false);
+                console.log("Creating following atlas: ");
                 updateInfo({
                   open: true,
-                  message: `a new atlas is being created for ${brainAnnounce}`,
-                  severity: "success",
+                  message: `Selected atlas registration is in progress, do not close the page`,
+                  severity: "info",
                 });
+                await createAtlas(atlasName, bucketName, dzips, token);
+                refreshBrain();
+                setCreating(false);
               }}
             >
               Generate

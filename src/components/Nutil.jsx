@@ -25,6 +25,8 @@ import {
 import { useState, useEffect } from "react";
 import mBrain from "../mBrain.ico";
 
+import { fetchBrainSegmentations } from "../actions/handleCollabs";
+
 // Shared styles object
 const styles = {
   listContainer: {
@@ -54,9 +56,11 @@ const styles = {
   },
 };
 
-const Nutil = () => {
+const Nutil = ({ token }) => {
   const [brainEntries, setBrainEntries] = useState([]);
   const [error, setError] = useState(null);
+
+  const [selectedBrain, setSelectedBrain] = useState(null);
 
   useEffect(() => {
     try {
@@ -71,6 +75,32 @@ const Nutil = () => {
       setError("Failed to load brain entries");
     }
   }, []);
+
+  const getSegmentations = async (brainEntry) => {
+    try {
+      let collabName = localStorage.getItem("bucketName");
+      let brainPath = brainEntry.path; // Use the selected brain's path
+
+      const response = await fetchBrainSegmentations(
+        token,
+        collabName,
+        brainPath
+      );
+      if (response.status === 200) {
+        const data = await response.json();
+        setBrainEntries(data);
+        localStorage.setItem("projectBrainEntries", JSON.stringify(data));
+      }
+    } catch (error) {
+      console.error("Error fetching brain segmentations:", error);
+      setError("Failed to fetch brain segmentations");
+    }
+  };
+
+  const handleBrainSelect = (brain) => {
+    setSelectedBrain(brain);
+    getSegmentations(brain);
+  };
 
   return (
     <Box
@@ -91,7 +121,17 @@ const Nutil = () => {
         <List>
           {brainEntries.length > 0 ? (
             brainEntries.map((entry, index) => (
-              <ListItem key={index} sx={styles.listItem}>
+              <ListItem
+                key={index}
+                sx={{
+                  ...styles.listItem,
+                  backgroundColor:
+                    selectedBrain?.name === entry.name
+                      ? "#e3f2fd"
+                      : "transparent",
+                }}
+                onClick={() => handleBrainSelect(entry)}
+              >
                 <ListItemIcon>
                   <img
                     src={mBrain}

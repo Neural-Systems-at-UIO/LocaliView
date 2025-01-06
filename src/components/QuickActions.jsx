@@ -61,6 +61,7 @@ const AdditionalInfo = ({
   isLoading,
   token,
   setSelectedBrain,
+  refreshBrain,
 }) => {
   let pyramidCount = stats[1]?.zips.length || 0;
   const [user, setUser] = useState(null);
@@ -632,6 +633,7 @@ const AdditionalInfo = ({
             bucketName={bucketName}
             dzips={brainPyramids.zips}
             updateInfo={setInfoMessage}
+            refreshBrain={refreshBrain}
           />
         )}
 
@@ -656,20 +658,30 @@ const AdditionalInfo = ({
                   }}
                 >
                   <Typography>
-                    Alignment file:{" "}
+                    Registration file:{" "}
                     {walnJson.jsons?.[0]?.name.split("/").slice(-1)[0] ||
                       "None"}
                   </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "text.secondary" }}
+                  >
+                    {walnJson.jsons?.[0]?.last_modified
+                      ? `Last modified: ${new Date(
+                          walnJson.jsons[0].last_modified
+                        ).toLocaleString()}`
+                      : ""}
+                  </Typography>
 
                   <Box sx={{ display: "flex", gap: 1 }}>
-                    <Tooltip title="Delete alignment">
+                    <Tooltip title="Delete registration">
                       <IconButton
                         size="small"
                         onClick={() => {
                           if (!(bucketName && walnJson.jsons?.[0]?.name)) {
                             setInfoMessage({
                               open: true,
-                              message: "No alignment file to delete",
+                              message: "No registration file to delete",
                               severity: "warning",
                             });
 
@@ -685,10 +697,12 @@ const AdditionalInfo = ({
                           );
                           setInfoMessage({
                             open: true,
-                            message: "Alignment file is being deleted",
-                            severity: "success",
+                            message: "Registration file is being deleted",
+                            severity: "info",
                           });
-                          setSelectedBrain(braininfo);
+                          setTimeout(() => {
+                            refreshBrain();
+                          }, 2000);
                         }}
                         disabled={!walnJson.jsons?.[0]}
                       >

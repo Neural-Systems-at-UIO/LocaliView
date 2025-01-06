@@ -2,17 +2,13 @@ import * as React from "react";
 import {
   Box,
   Typography,
-  Button,
   Tooltip,
   IconButton,
   CircularProgress,
   List,
   ListItem,
   ListItemText,
-  ListItemButton,
   TextField,
-  Select,
-  Autocomplete,
 } from "@mui/material";
 import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
 import AddIcon from "@mui/icons-material/Add";
@@ -22,7 +18,6 @@ import {
   fetchBucketDir,
   fetchBrainStats,
   createProject,
-  listAvailableWorkspaces,
   checkBucketExists,
 } from "../actions/handleCollabs.js";
 import CreationDialog from "./CreationDialog.jsx";
@@ -245,6 +240,13 @@ export default function QuintTable({ token, user }) {
     }
   };
 
+  const refreshBrain = async () => {
+    // Refecthing what we have to update the stats
+    if (selectedBrain) {
+      handleBrainSelect({ row: selectedBrain });
+    }
+  };
+
   const createProjectCall = async (projectName) => {
     console.log(`Creating project: ${projectName}`);
     try {
@@ -444,6 +446,7 @@ export default function QuintTable({ token, user }) {
                     isLoading={isFetchingStats}
                     token={token}
                     setSelectedBrain={setSelectedBrain}
+                    refreshBrain={refreshBrain}
                   />
                 </Box>
               </>
