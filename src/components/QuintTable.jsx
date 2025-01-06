@@ -2,17 +2,13 @@ import * as React from "react";
 import {
   Box,
   Typography,
-  Button,
   Tooltip,
   IconButton,
   CircularProgress,
   List,
   ListItem,
   ListItemText,
-  ListItemButton,
   TextField,
-  Select,
-  Autocomplete,
 } from "@mui/material";
 import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
 import AddIcon from "@mui/icons-material/Add";
@@ -22,7 +18,6 @@ import {
   fetchBucketDir,
   fetchBrainStats,
   createProject,
-  listAvailableWorkspaces,
   checkBucketExists,
 } from "../actions/handleCollabs.js";
 import CreationDialog from "./CreationDialog.jsx";
@@ -214,6 +209,7 @@ export default function QuintTable({ token, user }) {
         path: entry.path,
       }));
       setRows(newRows);
+      localStorage.setItem("projectBrainEntries", JSON.stringify(brainEntries));
       setProjectBrainEntries(brainEntries);
       setUpdatingBrains(false);
     } catch (error) {
@@ -241,6 +237,13 @@ export default function QuintTable({ token, user }) {
       console.error("Error fetching brain stats:", error);
     } finally {
       setIsFetchingStats(false);
+    }
+  };
+
+  const refreshBrain = async () => {
+    // Refecthing what we have to update the stats
+    if (selectedBrain) {
+      handleBrainSelect({ row: selectedBrain });
     }
   };
 
@@ -443,6 +446,7 @@ export default function QuintTable({ token, user }) {
                     isLoading={isFetchingStats}
                     token={token}
                     setSelectedBrain={setSelectedBrain}
+                    refreshBrain={refreshBrain}
                   />
                 </Box>
               </>
@@ -458,6 +462,7 @@ export default function QuintTable({ token, user }) {
         updateProjects={fetchAndUpdateProjects}
         token={token}
         brainEntries={projectBrainEntries}
+        onUploadComplete={() => fetchBrains(selectedProject)}
       />
     </Box>
   );

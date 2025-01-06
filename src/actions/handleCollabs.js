@@ -207,6 +207,52 @@ export const fetchBrainStats = async (token, bucketName, brainPrefix) => {
     }
     return res
 }
+
+export const fetchBrainSegmentations = async (token, bucketName, brainPrefix) => {
+    let res = []
+
+    try {
+        let url = `https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}?`
+
+        const workDirs = [
+            'segmentations',
+        ]
+
+        for (const workDir of workDirs) {
+            const params = new URLSearchParams()
+            if (brainPrefix) params.append('prefix', `${brainPrefix}${workDir}/`)
+            params.append('limit', 1000)
+            const workDirUrl = `${url}${params.toString()}`
+
+            const response = await fetch(workDirUrl, {
+                method: 'GET',
+                headers: {
+                    'accept': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                }
+            })
+            if (!response.ok) {
+                throw new Error(`Failed to fetch bucket directory for ${workDir}`)
+            }
+            const data = await response.json()
+            const stats = {
+                "name": brainPrefix + workDir,
+                "files": data.objects.length,
+                "size": data.objects.reduce((acc, obj) => acc + obj.bytes, 0),
+                "images": data.objects,
+            }
+
+            res.push(stats)
+        }
+
+    } catch (error) {
+        console.error('Error fetching bucket directory:', error)
+        throw error
+    }
+    return res
+}
+
+
 // For initial upload of brains
 export const uploadToPath = async (token, bucketName, projectName, brainName, file) => {
     const objectName = `${projectName}/${brainName}/raw_images/${file.name}`.replace(/\/+/g, '/');
@@ -317,8 +363,6 @@ export const uploadToJson = async (uploadObj, fileName, content) => {
 
     return { url: uploadResponse.json, status: uploadResponse.status === 204 };
 }
-
-// const fetchAlignmentContent = async (token, bucketName, brainPrefix, fileName) => {
 
 // Ported from the old code, but with async/await
 export async function checkBucketExists(token, searchTerm) {

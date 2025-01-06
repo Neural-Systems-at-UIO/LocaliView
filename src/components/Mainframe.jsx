@@ -1,6 +1,7 @@
 import React from "react";
 import { Box } from "@mui/material";
 import QuintTable from "./QuintTable";
+import Nutil from "./Nutil";
 
 const Mainframe = ({ url, native, token, user }) => {
   return (
@@ -14,8 +15,7 @@ const Mainframe = ({ url, native, token, user }) => {
         position: "relative",
       }}
     >
-      {native ? (
-        // The native application goes here
+      {native.native ? (
         <Box
           sx={{
             width: "99%",
@@ -24,7 +24,12 @@ const Mainframe = ({ url, native, token, user }) => {
             borderRadius: "4px",
           }}
         >
-          <QuintTable token={token} user={user} />
+          {native.app === "workspace" ? (
+            // .app helps figure the native selections we have
+            <QuintTable token={token} user={user} />
+          ) : native.app === "nutil" ? (
+            <Nutil token={token} user={user} />
+          ) : null}
         </Box>
       ) : (
         <Box
