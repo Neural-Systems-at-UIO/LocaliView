@@ -67,8 +67,10 @@ const AdditionalInfo = ({
   const [user, setUser] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [bucketName, setBucketName] = useState(null);
-  // To view the list of files
-
+  // current work alignment file
+  const [alignment, setAlignment] = useState(
+    localStorage.getItem("alignment") || null
+  );
   // Info messages
   const [infoMessage, setInfoMessage] = useState({
     open: false,
@@ -657,23 +659,31 @@ const AdditionalInfo = ({
                     justifyContent: "space-between",
                   }}
                 >
-                  <Typography>
-                    Registration file:{" "}
-                    {walnJson.jsons?.[0]?.name.split("/").slice(-1)[0] ||
-                      "None"}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "text.secondary" }}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                    }}
                   >
-                    {walnJson.jsons?.[0]?.last_modified
-                      ? `Last modified: ${new Date(
-                          walnJson.jsons[0].last_modified
-                        ).toLocaleString()}`
-                      : ""}
-                  </Typography>
+                    <Typography>
+                      Registration file:{" "}
+                      {walnJson.jsons?.[0]?.name.split("/").slice(-1)[0] ||
+                        "None"}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: "text.secondary" }}
+                    >
+                      {walnJson.jsons?.[0]?.last_modified
+                        ? `Last modified: ${new Date(
+                            walnJson.jsons[0].last_modified
+                          ).toLocaleString()}`
+                        : ""}
+                    </Typography>
+                  </Box>
 
-                  <Box sx={{ display: "flex", gap: 1 }}>
+                  <Box sx={{ display: "flex", gap: 2 }}>
                     <Tooltip title="Delete registration">
                       <IconButton
                         size="small"
@@ -720,6 +730,27 @@ const AdditionalInfo = ({
                       >
                         <SaveIcon fontSize="small" />
                       </IconButton>
+                    </Tooltip>
+
+                    <Tooltip title="Set this registration to use as working alignment">
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          alert(
+                            `Set ${
+                              walnJson.jsons?.[0]?.name.split("/").slice(-1)[0]
+                            } as working alignment`
+                          );
+                          localStorage.setItem(
+                            "alignment",
+                            walnJson.jsons?.[0].name
+                          );
+                        }}
+                      >
+                        {alignment === walnJson.jsons?.[0]?.name
+                          ? "Current working alignment"
+                          : "Set as working alignment"}
+                      </Button>
                     </Tooltip>
                   </Box>
                 </Box>

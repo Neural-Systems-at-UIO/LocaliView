@@ -46,7 +46,7 @@ const tabs = [
   },
   {
     label: "WebWarp",
-    url: WEBWARP_URL,
+    url: "https://webwarp.apps.ebrains.eu/webwarp.php",
     disabled: false,
   },
   {
@@ -93,7 +93,8 @@ const Header = () => {
   const [loginAlert, setLoginAlert] = useState(true);
 
   const handleLogin = () => {
-    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://127.00.0.1:3000`;
+    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://rodentworkbench.apps.ebrains.eu/new/`;
+    // WIP url https://rodentworkbench.apps.ebrains.eu/new/
   };
 
   const toggleDrawer = () => {
@@ -135,7 +136,7 @@ const Header = () => {
     const code = urlParams.get("code");
 
     if (code) {
-      fetch(`${FAPI_URL}token/dev?code=${code}`)
+      fetch(`${FAPI_URL}token/quint?code=${code}`)
         .then((response) => response.json())
         .then((data) => {
           console.log(data);
@@ -242,8 +243,16 @@ const Header = () => {
                           tab.url +
                           `?clb-collab-id=${localStorage.getItem(
                             "bucketName"
-                          )}`;
+                          )}&filename=${localStorage.getItem("alignment")}`;
                         handleFrameChange(url);
+                        break;
+                      case "WebWarp":
+                        let warpurl =
+                          tab.url +
+                          `?clb-collab-id=${localStorage.getItem(
+                            "bucketName"
+                          )}&filename=${localStorage.getItem("alignment")}`;
+                        handleFrameChange(warpurl);
                         break;
                       case "WebNutil": {
                         setNativeSelection({
