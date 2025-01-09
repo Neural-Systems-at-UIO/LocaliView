@@ -62,6 +62,7 @@ const AdditionalInfo = ({
   token,
   setSelectedBrain,
   refreshBrain,
+  refreshProjectBrains,
 }) => {
   let pyramidCount = stats[1]?.zips.length || 0;
   const [user, setUser] = useState(null);
@@ -308,10 +309,42 @@ const AdditionalInfo = ({
                 borderTop: "1px solid #e0e0e0",
               }}
             >
-              <Button size="small" color="error" startIcon={<DeleteIcon />}>
+              <Button
+                size="small"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={async (e) => {
+                  try {
+                    e.preventDefault();
+
+                    setInfoMessage({
+                      open: true,
+                      message: "Deleting series...",
+                      severity: "info",
+                    });
+                    console.log("Deleting", bucketName + "/" + braininfo.path);
+                    await deleteItem(bucketName + "/" + braininfo.path, token);
+                    await setTimeout(() => {
+                      refreshProjectBrains();
+                      setInfoMessage({
+                        open: true,
+                        message: "Series deleted successfully",
+                        severity: "success",
+                      });
+                    }, 2000);
+                  } catch (error) {
+                    console.error("Error deleting item:", error);
+                    setInfoMessage({
+                      open: true,
+                      message: "Error deleting series",
+                      severity: "error",
+                    });
+                  }
+                }}
+              >
                 Delete
               </Button>
-              <Button size="small" startIcon={<Share />}>
+              <Button size="small" startIcon={<Share />} disabled={true}>
                 Share
               </Button>
             </Box>
@@ -735,12 +768,31 @@ const AdditionalInfo = ({
                     <Tooltip title="Set this registration to use as working alignment">
                       <Button
                         size="small"
+                        sx={{
+                          // Visiblity change if selected color agnostic
+                          backgroundColor:
+                            alignment === walnJson.jsons?.[0]?.name
+                              ? "primary.main"
+                              : "transparent",
+                          color:
+                            alignment === walnJson.jsons?.[0]?.name
+                              ? "white"
+                              : "primary.main",
+                        }}
                         onClick={() => {
+                          // TODO: Wrap this guy in try soon
                           alert(
                             `Set ${
                               walnJson.jsons?.[0]?.name.split("/").slice(-1)[0]
                             } as working alignment`
                           );
+                          setInfoMessage({
+                            open: true,
+                            message: "Alignment set",
+                            severity: "info",
+                          });
+
+                          setAlignment(walnJson.jsons?.[0]?.name);
                           localStorage.setItem(
                             "alignment",
                             walnJson.jsons?.[0].name

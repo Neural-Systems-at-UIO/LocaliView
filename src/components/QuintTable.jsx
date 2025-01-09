@@ -219,6 +219,13 @@ export default function QuintTable({ token, user }) {
     }
   };
 
+  const refreshProjectBrains = () => {
+    handleProjectSelect(selectedProject);
+    setSelectedBrain(null);
+    // Initially project change updates the brain list
+    // the current brain will be deleted so defaults to null
+  };
+
   const handleBrainSelect = async (params) => {
     console.log("Params passed down", params);
     setSelectedBrain(params.row);
@@ -447,6 +454,7 @@ export default function QuintTable({ token, user }) {
                     token={token}
                     setSelectedBrain={setSelectedBrain}
                     refreshBrain={refreshBrain}
+                    refreshProjectBrains={refreshProjectBrains}
                   />
                 </Box>
               </>
@@ -462,7 +470,7 @@ export default function QuintTable({ token, user }) {
         updateProjects={fetchAndUpdateProjects}
         token={token}
         brainEntries={projectBrainEntries}
-        onUploadComplete={() => fetchBrains(selectedProject)}
+        onUploadComplete={refreshProjectBrains}
       />
     </Box>
   );
