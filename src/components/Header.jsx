@@ -24,14 +24,8 @@ import Mainframe from "./Mainframe";
 import callUser from "../actions/createUser";
 
 // Variable loading for URLs
-const WEBALIGN_URL = import.meta.env.VITE_APP_WEBALIGN_URL;
-const WEBWARP_URL = import.meta.env.VITE_APP_WEBWARP_URL;
-const WEBNUTIL_URL = import.meta.env.VITE_APP_WEBNUTIL_URL;
-const FILECREATOR = import.meta.env.VITE_APP_FILECREATOR_URL;
-const LOCALIZOOM = import.meta.env.VITE_APP_LOCALIZOOM_URL;
 const FAPI_URL = import.meta.env.VITE_APP_FAPI_URL;
 const OIDC = import.meta.env.VITE_APP_OIDC;
-const USER_INFO_URL = import.meta.env.VITE_APP_USER_INFO_URL;
 
 const tabs = [
   {
@@ -51,7 +45,7 @@ const tabs = [
   },
   {
     label: "WebIlastik",
-    url: WEBWARP_URL,
+    url: null,
     disabled: false,
   },
   {
@@ -61,7 +55,7 @@ const tabs = [
   },
   {
     label: "WebNutil",
-    url: WEBNUTIL_URL,
+    url: null,
     disabled: false,
   },
   {
