@@ -4,13 +4,17 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
-  Toolbar,
-  IconButton,
+  TextField,
+  Select,
+  MenuItem,
   Divider,
   Button,
   Switch,
   Typography,
   Stack,
+  InputLabel,
+  FormControl,
+  ToggleButton,
 } from "@mui/material";
 import {
   Edit,
@@ -59,6 +63,7 @@ const styles = {
 const Nutil = ({ token }) => {
   const [brainEntries, setBrainEntries] = useState([]);
   const [error, setError] = useState(null);
+  const [objectSplitting, setObjectSplitting] = useState(false);
 
   const [selectedBrain, setSelectedBrain] = useState(null);
 
@@ -191,7 +196,36 @@ const Nutil = ({ token }) => {
         >
           Quantification and Utilities
         </Typography>
+
         <List>
+          <ListItem
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Typography variant="subtitle2">Object Splitting</Typography>
+            <ToggleButton
+              value={objectSplitting}
+              selected={objectSplitting}
+              onChange={() => setObjectSplitting(!objectSplitting)}
+              sx={{
+                borderRadius: "4px",
+              }}
+            >
+              <Add />
+            </ToggleButton>
+          </ListItem>
+          <ListItem>
+            <TextField
+              type="color"
+              size="small"
+              label="Object color"
+              sx={{ width: 100 }}
+              defaultValue="#000000"
+            />
+          </ListItem>
           <ListItem>
             <Button sx={styles.toolbarButton} startIcon={<Analytics />}>
               Run quantification analysis

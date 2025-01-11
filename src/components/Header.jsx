@@ -15,10 +15,13 @@ import {
   Typography,
   Snackbar,
   Alert,
+  IconButton,
+  Dialog,
 } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import HelpRoundedIcon from "@mui/icons-material/HelpRounded";
+import ContentPasteSearchIcon from "@mui/icons-material/ContentPasteSearch";
 
 import Mainframe from "./Mainframe";
 import callUser from "../actions/createUser";
@@ -49,7 +52,7 @@ const tabs = [
     disabled: false,
   },
   {
-    label: "Segments",
+    label: "Segmentations",
     url: null,
     disabled: false,
   },
@@ -82,6 +85,7 @@ const Header = () => {
     app: "workspace", // Default app, but we can use nutil and results
   });
   const [tab, setTab] = useState(0);
+  const [docsOpen, setDocsOpen] = useState(false);
 
   // Login alert
   const [loginAlert, setLoginAlert] = useState(true);
@@ -93,6 +97,10 @@ const Header = () => {
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
+  };
+
+  const toggleDocs = () => {
+    setDocsOpen(!docsOpen);
   };
 
   const handleNativeChange = () => {
@@ -290,7 +298,32 @@ const Header = () => {
               rodent workbench
             </Typography>
           </Box>
-          <Box>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              position: "absolute",
+              flexDirection: "row",
+              right: 0,
+              mr: 2,
+            }}
+          >
+            <Tooltip title="Docs">
+              <IconButton
+                onClick={toggleDocs}
+                size="small"
+                sx={{
+                  color: "black",
+                  padding: 0,
+                  "&:hover": {
+                    backgroundColor: "transparent",
+                  },
+                  mr: 1,
+                }}
+              >
+                <ContentPasteSearchIcon />
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Account, settings and FAQ">
               <Button
                 onClick={user ? toggleDrawer : handleLogin}
@@ -378,6 +411,28 @@ const Header = () => {
           </Box>
         </Drawer>
       </AppBar>
+      <Dialog
+        open={docsOpen}
+        onClose={toggleDocs}
+        maxWidth={false}
+        PaperProps={{
+          sx: {
+            right: 0,
+            m: 0,
+            height: "100%",
+            width: "50%",
+            borderRadius: 0,
+            transition: "transform 0.3s ease-in-out",
+            transform: docsOpen ? "translateX(0)" : "translateX(100%)",
+          },
+        }}
+      >
+        <iframe
+          src="https://quint-webtools.readthedocs.io/en/latest/"
+          style={{ width: "100%", height: "100%", border: "none" }}
+          title="Rodent Workbench Documentation"
+        />
+      </Dialog>
       <Mainframe
         url={currentUrl}
         native={nativeSelection}

@@ -132,7 +132,7 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
   }
 
   useEffect(() => {
-    console.log("Files staged for atlas creation", dzips);
+    console.log("Files staged for registration", dzips);
     if (dzips && Array.isArray(dzips)) {
       setImageCount(dzips.length);
       console.log(imageCount, "images are ready for registration");
@@ -201,7 +201,7 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
               </MenuItem>
             </Select>
           </FormControl>
-          {creating && <Typography>Creating atlas...</Typography>}
+          {creating && <Typography>Creating registration...</Typography>}
           {!creating && (
             <Button
               variant="outlined"
@@ -215,11 +215,20 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
                 },
               }}
               onClick={async () => {
+                if (!atlasName) {
+                  updateInfo({
+                    open: true,
+                    message: `Please select an atlas`,
+                    severity: "error",
+                  });
+                  return;
+                }
+
                 setCreating(true);
                 console.log("Creating following atlas: ");
                 updateInfo({
                   open: true,
-                  message: `Selected atlas registration is in progress, do not close the page`,
+                  message: `Selected registration is in progress, do not close the page`,
                   severity: "info",
                 });
                 await createAtlas(atlasName, bucketName, dzips, token);

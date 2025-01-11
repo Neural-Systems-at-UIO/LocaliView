@@ -622,7 +622,9 @@ const AdditionalInfo = ({
                         pyramidComplete ||
                         brainStats.files === 0
                       }
-                      onClick={() => processTiffFiles()}
+                      onClick={() => {
+                        processTiffFiles();
+                      }}
                       sx={{
                         size: "md",
                         borderColor: (theme) => theme.palette.grey[800],
@@ -800,8 +802,8 @@ const AdditionalInfo = ({
                         }}
                       >
                         {alignment === walnJson.jsons?.[0]?.name
-                          ? "Current working alignment"
-                          : "Set as working alignment"}
+                          ? "Current working registration"
+                          : "Set as working registration"}
                       </Button>
                     </Tooltip>
                   </Box>
