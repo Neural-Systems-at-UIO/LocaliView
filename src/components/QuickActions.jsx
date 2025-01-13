@@ -167,10 +167,10 @@ const AdditionalInfo = ({
         }}
       >
         <Typography variant="h5" color="textSecondary">
-          Choose a series on the left list to view additional information
+          Choose a series on the left to view additional information
           <br />
-          If there are none, you can add a new series by clicking on the
-          'Add/Edit Series' button
+          If there are none, add a new series by clicking on the 'Add/Edit
+          Series' button
         </Typography>
       </Box>
     );
@@ -195,7 +195,7 @@ const AdditionalInfo = ({
         }}
       >
         <Typography variant="body2" color="textSecondary">
-          Loading series stats...
+          Loading series...
         </Typography>
         <CircularProgress size={15} />
       </Box>
@@ -783,11 +783,7 @@ const AdditionalInfo = ({
                         }}
                         onClick={() => {
                           // TODO: Wrap this guy in try soon
-                          alert(
-                            `Set ${
-                              walnJson.jsons?.[0]?.name.split("/").slice(-1)[0]
-                            } as working alignment`
-                          );
+
                           setInfoMessage({
                             open: true,
                             message: "Alignment set",

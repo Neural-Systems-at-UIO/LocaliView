@@ -22,6 +22,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import HelpRoundedIcon from "@mui/icons-material/HelpRounded";
 import ContentPasteSearchIcon from "@mui/icons-material/ContentPasteSearch";
+import FindInPageIcon from "@mui/icons-material/FindInPage";
 
 import Mainframe from "./Mainframe";
 import callUser from "../actions/createUser";
@@ -51,11 +52,7 @@ const tabs = [
     url: null,
     disabled: false,
   },
-  {
-    label: "Segmentations",
-    url: null,
-    disabled: false,
-  },
+
   {
     label: "WebNutil",
     url: null,
@@ -321,7 +318,7 @@ const Header = () => {
                   mr: 1,
                 }}
               >
-                <ContentPasteSearchIcon />
+                <FindInPageIcon />
               </IconButton>
             </Tooltip>
             <Tooltip title="Account, settings and FAQ">

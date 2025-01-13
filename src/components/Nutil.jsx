@@ -15,7 +15,9 @@ import {
   InputLabel,
   FormControl,
   ToggleButton,
+  Tooltip,
 } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import {
   Edit,
   Delete,
@@ -25,6 +27,7 @@ import {
   SaveAlt,
   Compare,
   Calculate,
+  Info,
 } from "@mui/icons-material";
 import { useState, useEffect } from "react";
 import mBrain from "../mBrain.ico";
@@ -122,7 +125,7 @@ const Nutil = ({ token }) => {
       Brain list
       - > Fetched from the initial chosen project on the main list and populated with the brains in localstorage
       */}
-      <Box sx={{ ...styles.listContainer, width: "25%" }}>
+      <Box sx={{ ...styles.listContainer, width: "15%", height: "50%" }}>
         <List>
           {brainEntries.length > 0 ? (
             brainEntries.map((entry, index) => (
@@ -189,64 +192,117 @@ const Nutil = ({ token }) => {
       </Box>
 
       {/* Right Toolbar */}
-      <Box sx={{ ...styles.listContainer, width: "25%" }}>
+      <Box sx={{ ...styles.listContainer, width: "45%" }}>
         <Typography
           variant="subtitle2"
           sx={{ p: 2, borderBottom: "1px solid #e0e0e0" }}
         >
           Quantification and Utilities
         </Typography>
-
-        <List>
-          <ListItem
+        <Box
+          sx={{
+            width: "40%",
+            border: "1px solid rgba(0, 0, 0, 0.12)",
+            borderRadius: 2,
+            padding: 2,
+            margin: 2,
+          }}
+        >
+          <Typography
+            variant="body2"
             sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+              mb: 2,
+              px: 1,
             }}
           >
-            <Typography variant="subtitle2">Object Splitting</Typography>
-            <ToggleButton
-              value={objectSplitting}
-              selected={objectSplitting}
-              onChange={() => setObjectSplitting(!objectSplitting)}
+            Settings
+          </Typography>
+
+          <List
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+            }}
+          >
+            <ListItem
               sx={{
-                borderRadius: "4px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                py: 1,
               }}
             >
-              <Add />
-            </ToggleButton>
-          </ListItem>
-          <ListItem>
-            <TextField
-              type="color"
-              size="small"
-              label="Object color"
-              sx={{ width: 100 }}
-              defaultValue="#000000"
-            />
-          </ListItem>
-          <ListItem>
-            <Button sx={styles.toolbarButton} startIcon={<Analytics />}>
-              Run quantification analysis
-            </Button>
-          </ListItem>
-          <ListItem>
-            <Button sx={styles.toolbarButton} startIcon={<Compare />}>
-              Compare segmentations to raw images
-            </Button>
-          </ListItem>
-          <ListItem>
-            <Button sx={styles.toolbarButton} startIcon={<Calculate />}>
-              Get statistics
-            </Button>
-          </ListItem>
-          <ListItem>
-            <Button sx={styles.toolbarButton} startIcon={<SaveAlt />}>
-              Export results
-            </Button>
-          </ListItem>
-        </List>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography variant="subtitle2">Object Splitting</Typography>
+                <Tooltip title="Enable to ?">
+                  <Info fontSize="small" color="action" />
+                </Tooltip>
+              </Box>
+              <Switch
+                checked={objectSplitting}
+                onChange={(e) => setObjectSplitting(e.target.checked)}
+                color="primary"
+                size="small"
+              />
+            </ListItem>
+            <ListItem sx={{ py: 1 }}>
+              <TextField
+                type="color"
+                size="small"
+                label="Object color"
+                helperText="Select the object of interest color in the segmentations"
+                fullWidth
+                sx={{
+                  '& input[type="color"]': {
+                    width: "100%",
+                  },
+                }}
+                defaultValue="#000000"
+              />
+            </ListItem>
+            <ListItem>
+              <Grid container spacing={1}>
+                <Grid item xs={6}>
+                  <Button
+                    fullWidth
+                    sx={styles.toolbarButton}
+                    startIcon={<Analytics />}
+                  >
+                    Run quantification
+                  </Button>
+                </Grid>
+                <Grid item xs={6}>
+                  <Button
+                    fullWidth
+                    sx={styles.toolbarButton}
+                    startIcon={<Compare />}
+                  >
+                    Compare images
+                  </Button>
+                </Grid>
+                <Grid item xs={6}>
+                  <Button
+                    fullWidth
+                    sx={styles.toolbarButton}
+                    startIcon={<Calculate />}
+                  >
+                    Get statistics
+                  </Button>
+                </Grid>
+                <Grid item xs={6}>
+                  <Button
+                    fullWidth
+                    sx={styles.toolbarButton}
+                    startIcon={<SaveAlt />}
+                  >
+                    Export results
+                  </Button>
+                </Grid>
+              </Grid>
+            </ListItem>
+          </List>
+        </Box>
       </Box>
     </Box>
   );

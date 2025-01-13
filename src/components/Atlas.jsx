@@ -153,7 +153,7 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
             {imageCount || 0} Images are ready for registration
           </Typography>
           <Typography sx={{ color: "text.secondary", fontSize: 14 }}>
-            Generate atlas referenced registration
+            Generate registration file
           </Typography>
         </Box>
         <Box
@@ -201,7 +201,7 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
               </MenuItem>
             </Select>
           </FormControl>
-          {creating && <Typography>Creating registration...</Typography>}
+          {creating && <Typography>Generating registration...</Typography>}
           {!creating && (
             <Button
               variant="outlined"
@@ -228,7 +228,7 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
                 console.log("Creating following atlas: ");
                 updateInfo({
                   open: true,
-                  message: `Selected registration is in progress, do not close the page`,
+                  message: `Generation of the registration file is in progress...`,
                   severity: "info",
                 });
                 await createAtlas(atlasName, bucketName, dzips, token);
