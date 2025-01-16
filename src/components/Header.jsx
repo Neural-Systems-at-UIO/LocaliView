@@ -88,7 +88,7 @@ const Header = () => {
   const [loginAlert, setLoginAlert] = useState(true);
 
   const handleLogin = () => {
-    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://rodentworkbench.apps.ebrains.eu/new/`;
+    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://127.00.0.1:3000`;
     // WIP url https://rodentworkbench.apps.ebrains.eu/new/
   };
 
@@ -135,7 +135,7 @@ const Header = () => {
     const code = urlParams.get("code");
 
     if (code) {
-      fetch(`${FAPI_URL}token/quint?code=${code}`)
+      fetch(`${FAPI_URL}token/dev?code=${code}`)
         .then((response) => response.json())
         .then((data) => {
           console.log(data);

@@ -234,7 +234,13 @@ export const fetchBrainSegmentations = async (token, bucketName, brainPrefix) =>
             if (!response.ok) {
                 throw new Error(`Failed to fetch bucket directory for ${workDir}`)
             }
+
             const data = await response.json()
+
+            if (!data.objects || data.objects.length === 0) {
+                return []
+            }
+
             const stats = {
                 "name": brainPrefix + workDir,
                 "files": data.objects.length,
@@ -245,11 +251,12 @@ export const fetchBrainSegmentations = async (token, bucketName, brainPrefix) =>
             res.push(stats)
         }
 
+        return res
+
     } catch (error) {
         console.error('Error fetching bucket directory:', error)
         throw error
     }
-    return res
 }
 
 

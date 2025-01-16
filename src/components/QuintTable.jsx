@@ -28,12 +28,42 @@ export default function QuintTable({ token, user }) {
   // Query helpers
   const [bucketName, setBucketName] = React.useState("");
   const [projects, setProjects] = React.useState([]);
-  const [selectedProject, setSelectedProject] = React.useState(null);
+  const [selectedProject, setSelectedProject] = React.useState(() => {
+    try {
+      const storedProject = localStorage.getItem("selectedProject");
+      return storedProject ? JSON.parse(storedProject) : null;
+    } catch (error) {
+      console.error("Error parsing selectedProject:", error);
+      return null;
+    }
+  });
   const [selectedBrain, setSelectedBrain] = React.useState(null);
   const [selectedBrainStats, setSelectedBrainStats] = React.useState([]);
-  const [projectBrainEntries, setProjectBrainEntries] = React.useState([]);
+  const [projectBrainEntries, setProjectBrainEntries] = React.useState(() => {
+    try {
+      const storedEntries = localStorage.getItem("projectBrainEntries");
+      return storedEntries ? JSON.parse(storedEntries) : [];
+    } catch (error) {
+      console.error("Error parsing projectBrainEntries:", error);
+      return [];
+    }
+  });
   // Other stuff
-  const [rows, setRows] = React.useState([]);
+  const [rows, setRows] = React.useState(() => {
+    try {
+      const storedEntries = localStorage.getItem("projectBrainEntries");
+      const entries = storedEntries ? JSON.parse(storedEntries) : [];
+      return entries.map((entry, index) => ({
+        id: index,
+        name: entry.name.split("/").pop(),
+        type: entry.type,
+        path: entry.path,
+      }));
+    } catch (error) {
+      console.error("Error parsing rows from projectBrainEntries:", error);
+      return [];
+    }
+  });
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isFetchingStats, setIsFetchingStats] = React.useState(false);
   const [updatingBrains, setUpdatingBrains] = React.useState(false);
@@ -186,6 +216,7 @@ export default function QuintTable({ token, user }) {
 
   const handleProjectSelect = async (project) => {
     setSelectedProject(project);
+    localStorage.setItem("selectedProject", JSON.stringify(project));
     setUpdatingBrains(true);
 
     if (project === null) {

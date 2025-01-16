@@ -12,9 +12,7 @@ import {
   Switch,
   Typography,
   Stack,
-  InputLabel,
-  FormControl,
-  ToggleButton,
+  CircularProgress,
   Tooltip,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
@@ -63,15 +61,19 @@ const styles = {
   },
 };
 
+// Implementation for the Nutil over the web
 const Nutil = ({ token }) => {
   const [brainEntries, setBrainEntries] = useState([]);
   const [error, setError] = useState(null);
   const [objectSplitting, setObjectSplitting] = useState(false);
-
+  const [segmentations, setSegmentations] = useState([]);
+  const [selectedSegmentations, setSelectedSegmentations] = useState([]);
+  const [isFetchingSegmentations, setIsFetchingSegmentations] = useState(false);
   const [selectedBrain, setSelectedBrain] = useState(null);
 
   useEffect(() => {
     try {
+      // Getting the brain entries from localstorage, previously set by clicking on a project
       const storedBrainEntries = localStorage.getItem("projectBrainEntries");
       if (storedBrainEntries) {
         const parsedEntries = JSON.parse(storedBrainEntries);
@@ -85,6 +87,7 @@ const Nutil = ({ token }) => {
   }, []);
 
   const getSegmentations = async (brainEntry) => {
+    setIsFetchingSegmentations(true);
     try {
       let collabName = localStorage.getItem("bucketName");
       let brainPath = brainEntry.path; // Use the selected brain's path
@@ -94,14 +97,17 @@ const Nutil = ({ token }) => {
         collabName,
         brainPath
       );
-      if (response.status === 200) {
-        const data = await response.json();
-        setBrainEntries(data);
-        localStorage.setItem("projectBrainEntries", JSON.stringify(data));
+      if (response) {
+        console.log("Brain segmentations fetched:", response);
+        setSegmentations(response);
+        setSelectedSegmentations(response);
+        localStorage.setItem("projectBrainEntries", JSON.stringify(response));
       }
     } catch (error) {
       console.error("Error fetching brain segmentations:", error);
       setError("Failed to fetch brain segmentations");
+    } finally {
+      setIsFetchingSegmentations(false);
     }
   };
 
@@ -153,8 +159,8 @@ const Nutil = ({ token }) => {
           ) : (
             <ListItem>
               <ListItemText
-                primary={error || "No brains available"}
-                sx={{ color: error ? "error.main" : "text.secondary" }}
+                primary={"No brains available"}
+                sx={{ color: "error.main" }}
               />
             </ListItem>
           )}
@@ -166,7 +172,11 @@ const Nutil = ({ token }) => {
 
       */}
       <Box sx={{ ...styles.listContainer, width: "35%" }}>
-        <Stack sx={{ p: 2 }} direction="row" spacing={1}>
+        <Stack
+          sx={{ p: 2, borderBottom: "1px solid #e0e0e0" }}
+          direction="row"
+          spacing={1}
+        >
           <Button startIcon={<Upload />} size="small">
             Upload Segmentations
           </Button>
@@ -174,20 +184,39 @@ const Nutil = ({ token }) => {
             Delete
           </Button>
         </Stack>
-        <Divider sx={{ my: 1 }} />
+
         <List>
-          {[1, 2, 3, 4, 5].map((item) => (
-            <ListItem
-              key={item}
-              sx={styles.listItem}
-              secondaryAction={<Switch edge="end" />}
-            >
-              <ListItemText
-                primary={`Image ${item}`}
-                secondary={`Segmentation ${item}`}
-              />
+          {isFetchingSegmentations ? (
+            <ListItem>
+              <Box sx={{ width: "100%", textAlign: "center", py: 2 }}>
+                <CircularProgress size={24} />
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Loading segmentations...
+                </Typography>
+              </Box>
             </ListItem>
-          ))}
+          ) : segmentations.length > 0 ? (
+            segmentations.map((item) => (
+              <ListItem
+                key={item.name}
+                sx={styles.listItem}
+                secondaryAction={<Switch edge="end" />}
+              >
+                <ListItemText
+                  primary={item.name}
+                  secondary={`Files: ${item.files} | Size: ${(
+                    item.size /
+                    1024 /
+                    1024
+                  ).toFixed(2)} MB`}
+                />
+              </ListItem>
+            ))
+          ) : (
+            <ListItem>
+              <ListItemText primary="No segmentations found" />
+            </ListItem>
+          )}
         </List>
       </Box>
 
@@ -201,28 +230,18 @@ const Nutil = ({ token }) => {
         </Typography>
         <Box
           sx={{
-            width: "40%",
-            border: "1px solid rgba(0, 0, 0, 0.12)",
-            borderRadius: 2,
+            display: "flex",
+            flexDirection: "column",
+            height: "calc(96% - 60px)", // Account for header
             padding: 2,
-            margin: 2,
           }}
         >
-          <Typography
-            variant="body2"
-            sx={{
-              mb: 2,
-              px: 1,
-            }}
-          >
-            Settings
-          </Typography>
-
           <List
             sx={{
               display: "flex",
               flexDirection: "column",
               gap: 2,
+              width: "100%",
             }}
           >
             <ListItem
@@ -233,74 +252,84 @@ const Nutil = ({ token }) => {
                 py: 1,
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Typography variant="subtitle2">Object Splitting</Typography>
-                <Tooltip title="Enable to ?">
-                  <Info fontSize="small" color="action" />
-                </Tooltip>
-              </Box>
-              <Switch
-                checked={objectSplitting}
-                onChange={(e) => setObjectSplitting(e.target.checked)}
-                color="primary"
-                size="small"
-              />
-            </ListItem>
-            <ListItem sx={{ py: 1 }}>
-              <TextField
-                type="color"
-                size="small"
-                label="Object color"
-                helperText="Select the object of interest color in the segmentations"
-                fullWidth
+              <Box
                 sx={{
-                  '& input[type="color"]': {
-                    width: "100%",
-                  },
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 5,
                 }}
-                defaultValue="#000000"
-              />
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="subtitle2">Object Splitting</Typography>
+                  <Tooltip title="Enable to ?">
+                    <Info fontSize="small" color="action" />
+                  </Tooltip>
+                </Box>
+                <Switch
+                  checked={objectSplitting}
+                  onChange={(e) => setObjectSplitting(e.target.checked)}
+                  color="primary"
+                  size="small"
+                />
+              </Box>
+              <Box>
+                <TextField
+                  type="color"
+                  size="small"
+                  label="Object color"
+                  helperText="Select the object of interest color in the segmentations"
+                  fullWidth
+                  sx={{
+                    '& input[type="color"]': {
+                      width: "100%",
+                    },
+                  }}
+                  defaultValue="#000000"
+                />
+              </Box>
             </ListItem>
-            <ListItem>
-              <Grid container spacing={1}>
-                <Grid item xs={6}>
-                  <Button
-                    fullWidth
-                    sx={styles.toolbarButton}
-                    startIcon={<Analytics />}
-                  >
-                    Run quantification
-                  </Button>
-                </Grid>
-                <Grid item xs={6}>
-                  <Button
-                    fullWidth
-                    sx={styles.toolbarButton}
-                    startIcon={<Compare />}
-                  >
-                    Compare images
-                  </Button>
-                </Grid>
-                <Grid item xs={6}>
-                  <Button
-                    fullWidth
-                    sx={styles.toolbarButton}
-                    startIcon={<Calculate />}
-                  >
-                    Get statistics
-                  </Button>
-                </Grid>
-                <Grid item xs={6}>
-                  <Button
-                    fullWidth
-                    sx={styles.toolbarButton}
-                    startIcon={<SaveAlt />}
-                  >
-                    Export results
-                  </Button>
-                </Grid>
-              </Grid>
-            </ListItem>
+
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "row",
+                gap: 1,
+                width: "100%",
+                mt: "auto", // Push to bottom
+              }}
+            >
+              <Button
+                fullWidth
+                sx={styles.toolbarButton}
+                startIcon={<Analytics />}
+              >
+                Run quantification
+              </Button>
+
+              <Button
+                fullWidth
+                sx={styles.toolbarButton}
+                startIcon={<Compare />}
+              >
+                Compare images
+              </Button>
+
+              <Button
+                fullWidth
+                sx={styles.toolbarButton}
+                startIcon={<Calculate />}
+              >
+                Get statistics
+              </Button>
+
+              <Button
+                fullWidth
+                sx={styles.toolbarButton}
+                startIcon={<SaveAlt />}
+              >
+                Export results
+              </Button>
+            </Box>
           </List>
         </Box>
       </Box>
