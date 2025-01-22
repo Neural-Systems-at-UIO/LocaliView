@@ -333,6 +333,37 @@ export const createProject = async (uploadObj) => {
     return { url: uploadResponse.json, status: uploadResponse.status === 204 };
 }
 
+export const uploadToSegments = async (token, bucketName, projectName, brainName, file) => {
+    const objectName = `${projectName}/${brainName}/segmentations/${file.name}`.replace(/\/+/g, '/');
+    const getUrlEndpoint = `${BUCKET_URL}${bucketName}/${objectName}`;
+
+    // Step 1:
+    const urlResponse = await fetch(getUrlEndpoint, {
+        method: 'PUT',
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Accept': 'application/json'
+        }
+    });
+
+    if (!urlResponse.ok) {
+        throw new Error(`Failed to get upload URL for ${file.name}`);
+    }
+
+    const { url: uploadUrl } = await urlResponse.json();
+
+    // Step 2: 
+    const uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file
+    });
+
+    if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload file ${file.name}`);
+    }
+
+    return { url: uploadUrl, status: uploadResponse.status === 204 };
+}
 
 export const uploadToJson = async (uploadObj, fileName, content) => {
     const objectName = `${uploadObj.projectName}/${uploadObj.brainName}/jsons/${fileName}`.replace(/\/+/g, '/');

@@ -72,7 +72,6 @@ button:focus-visible {
   }
 }
 
-/* In your main CSS file */
 html,
 body,
 #root {
@@ -90,7 +89,6 @@ body,
   flex-direction: column;
 }
 
-/* If using Material-UI, add this */
 .MuiContainer-root {
   max-width: 100% !important;
   width: 100% !important;

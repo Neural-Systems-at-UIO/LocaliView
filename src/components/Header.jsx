@@ -59,7 +59,7 @@ const tabs = [
     disabled: false,
   },
   {
-    label: "Results",
+    label: "Sandbox",
     url: null,
     disabled: false,
   },
@@ -100,13 +100,6 @@ const Header = () => {
     setDocsOpen(!docsOpen);
   };
 
-  const handleNativeChange = () => {
-    setNativeSelection({
-      native: !nativeSelection.native,
-      app: nativeSelection.app,
-    });
-  };
-
   const handleFrameChange = (url) => {
     console.log(`Changing frame to ${url}`);
     setCurrentUrl(url);
@@ -114,12 +107,6 @@ const Header = () => {
       native: false,
       app: "frame",
     });
-  };
-
-  const getBrain = () => {
-    let brain = JSON.parse(localStorage.getItem("selectedBrain"));
-    console.log(brain);
-    return brain.path;
   };
 
   const sharedListItemSx = {
@@ -261,7 +248,7 @@ const Header = () => {
                         console.log(nativeSelection);
                         break;
                       }
-                      case "Results":
+                      case "Sandbox":
                         setNativeSelection({
                           native: true,
                           app: "results",

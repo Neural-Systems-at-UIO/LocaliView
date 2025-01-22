@@ -20,7 +20,6 @@ import UploadZone from "./UploadZone";
 export default function CreationDialog({
   open,
   onClose,
-  onSubmit,
   project,
   updateProjects,
   token,
@@ -103,10 +102,7 @@ export default function CreationDialog({
   const handleSubmit = async () => {
     const collabName = localStorage.getItem("bucketName");
     try {
-      const uploadedFiles = await uploadFiles();
-      if (typeof onSubmit === "function") {
-        onSubmit({ name, files: uploadedFiles });
-      }
+      await uploadFiles();
       onUploadComplete?.();
       updateProjects(collabName);
       onClose();

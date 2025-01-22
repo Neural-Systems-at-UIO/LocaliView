@@ -30,8 +30,12 @@ export default function QuintTable({ token, user }) {
   const [projects, setProjects] = React.useState([]);
   const [selectedProject, setSelectedProject] = React.useState(() => {
     try {
-      const storedProject = localStorage.getItem("selectedProject");
-      return storedProject ? JSON.parse(storedProject) : null;
+      if (token !== null) {
+        const storedProject = localStorage.getItem("selectedProject");
+        return storedProject ? JSON.parse(storedProject) : null;
+      } else {
+        return null;
+      }
     } catch (error) {
       console.error("Error parsing selectedProject:", error);
       return null;
