@@ -6,7 +6,9 @@ import {
   ListItemIcon,
   TextField,
   Button,
-  Switch,
+  FormControl,
+  Select,
+  MenuItem,
   Typography,
   Stack,
   CircularProgress,
@@ -26,7 +28,10 @@ import {
 import { useState, useEffect } from "react";
 import mBrain from "../mBrain.ico";
 
-import { fetchBrainSegmentations } from "../actions/handleCollabs";
+import {
+  fetchBrainSegmentations,
+  fetchBrainStats,
+} from "../actions/handleCollabs";
 import UploadSegments from "./UploadSegments";
 
 // Shared styles object
@@ -84,14 +89,21 @@ const styles = {
 const Nutil = ({ token }) => {
   const [brainEntries, setBrainEntries] = useState([]);
   const [error, setError] = useState(null);
-  const [objectSplitting, setObjectSplitting] = useState(false);
+
   const [segmentations, setSegmentations] = useState([]);
   const [selectedSegmentations, setSelectedSegmentations] = useState([]);
+
   const [isFetchingSegmentations, setIsFetchingSegmentations] = useState(false);
   const [selectedBrain, setSelectedBrain] = useState(null);
 
   // Uploading segments window for custom images
   const [uploadSegmentsOpen, setUploadSegmentsOpen] = useState(false);
+  // Object splitting
+  const [outputType, setOutputType] = useState("counts");
+  const [registration, setRegistration] = useState({
+    atlas: null,
+    last_modified: null,
+  });
 
   useEffect(() => {
     try {
@@ -141,10 +153,40 @@ const Nutil = ({ token }) => {
     }
   };
 
-  const handleBrainSelect = (brain) => {
-    setSelectedBrain(brain);
-    localStorage.setItem("selectedBrain", JSON.stringify(brain));
-    getSegmentations(brain);
+  const handleBrainSelect = async (brain) => {
+    try {
+      setSelectedBrain(brain);
+      localStorage.setItem("selectedBrain", JSON.stringify(brain));
+      await getSegmentations(brain);
+      let seriesDescriptor = await fetchBrainStats(
+        token,
+        localStorage.getItem("bucketName"),
+        brain.path,
+        "jsons"
+      );
+      console.log(seriesDescriptor);
+      if (seriesDescriptor[0]?.jsons?.[0]) {
+        const filePath = seriesDescriptor[0].jsons[0].name;
+        const atlasMatch = filePath.match(/\/([^\/]+)_\d{4}-\d{2}-\d{2}/);
+        const atlas = atlasMatch ? atlasMatch[1] : null;
+        const lastModified = seriesDescriptor[0].jsons[0].last_modified;
+
+        await setRegistration({
+          atlas: atlas,
+          last_modified: lastModified,
+        });
+        console.log("Atlas registration found:", registration);
+      } else {
+        console.log("No atlas registration found");
+        await setRegistration({
+          atlas: "Registration file not found",
+          last_modified: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      console.error("Error selecting brain:", error);
+      setError("Failed to select brain");
+    }
   };
 
   return (
@@ -163,6 +205,7 @@ const Nutil = ({ token }) => {
       - > Fetched from the initial chosen project on the main list and populated with the brains in localstorage
       - > Allows the user to select a brain to view the segmentations
       - > Features won't work if no token is provided
+      Probably move this documentation somewhere else or get a consistent style for it
       */}
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2, flex: 1.2 }}>
         <Box sx={{ ...styles.listContainer, overflow: "auto" }}>
@@ -206,7 +249,6 @@ const Nutil = ({ token }) => {
             )}
           </List>
         </Box>
-        {/* Right Toolbar */}
       </Box>
 
       {/* Image list
@@ -217,29 +259,41 @@ const Nutil = ({ token }) => {
         <Stack
           sx={{ p: 2, borderBottom: "1px solid #e0e0e0" }}
           direction="row"
+          gap={3}
           spacing={1}
+          justifyContent={"space-between"}
         >
+          <Box>
+            <Button
+              startIcon={<Upload />}
+              size="small"
+              onClick={() => {
+                if (!selectedBrain) {
+                  alert("Please select a brain first");
+                } else {
+                  setUploadSegmentsOpen(true);
+                }
+              }}
+            >
+              Upload Segmentations
+            </Button>
+            <Button startIcon={<Delete />} size="small" color="error">
+              Delete
+            </Button>
+          </Box>
+
           <Button
-            startIcon={<Upload />}
+            startIcon={<Compare />}
+            variant="contained"
+            disableElevation
             size="small"
-            onClick={() => {
-              if (!selectedBrain) {
-                alert("Please select a brain first");
-              } else {
-                setUploadSegmentsOpen(true);
-              }
-            }}
           >
-            Upload Segmentations
-          </Button>
-          <Button startIcon={<Delete />} size="small" color="error">
-            Delete
+            Compare
           </Button>
         </Stack>
 
         <List dense sx={{ overflow: "auto", height: "calc(96% - 48px)" }}>
           {" "}
-          {/* Added dense prop for more compact list */}
           {isFetchingSegmentations ? (
             <ListItem>
               <Box sx={{ width: "100%", textAlign: "center", py: 1 }}>
@@ -302,169 +356,172 @@ const Nutil = ({ token }) => {
           )}
         </List>
       </Box>
-      {/* Results Panel */}
+
       <Box
         sx={{
-          width: "40%",
-          overflow: "hidden",
-          opacity: 1,
+          flex: 2,
+          border: "1px solid #e0e0e0",
+          borderRadius: 1,
+          backgroundColor: "white",
+          height: "100%",
         }}
       >
-        <Box sx={{ ...styles.listContainer }}>
+        <Box sx={{ height: "98%", display: "flex", flexDirection: "column" }}>
           <Typography
             variant="subtitle2"
-            sx={{ p: 2, borderBottom: "1px solid #e0e0e0" }}
+            sx={{
+              p: 1.5,
+              borderBottom: "1px solid #e0e0e0",
+            }}
           >
             Quantification and Utilities
           </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              padding: 2,
-            }}
-          >
-            <Typography variant="h6" sx={{ textAlign: "left" }}>
-              Settings
-            </Typography>
-            <List
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 2,
-                width: "100%",
-              }}
-            >
-              <ListItem
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  py: 1,
-                }}
-              >
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 5,
-                  }}
-                >
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Typography variant="subtitle2">
-                      Object Splitting
-                    </Typography>
-                    <Tooltip title="Enable to ?">
-                      <Info fontSize="small" color="action" />
-                    </Tooltip>
-                  </Box>
-                  <Switch
-                    checked={objectSplitting}
-                    onChange={(e) => setObjectSplitting(e.target.checked)}
-                    color="primary"
-                    size="small"
-                  />
-                </Box>
-                <Box>
-                  <TextField
-                    type="color"
-                    size="small"
-                    label="Object color"
-                    helperText="Select the object of interest color in the segmentations"
-                    fullWidth
-                    sx={{
-                      '& input[type="color"]': {
-                        width: "100%",
-                      },
-                    }}
-                    defaultValue="#000000"
-                  />
-                </Box>
-              </ListItem>
 
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "row",
-                  gap: 1,
-                  width: "100%",
-                  mt: "auto",
-                }}
-              >
-                <Button
-                  fullWidth
-                  sx={styles.toolbarButton}
-                  startIcon={<Analytics />}
-                >
-                  Run quantification
-                </Button>
-
-                <Button
-                  fullWidth
-                  sx={styles.toolbarButton}
-                  startIcon={<Compare />}
-                >
-                  Compare images
-                </Button>
-              </Box>
-            </List>
-          </Box>
-          <Box
-            sx={{
-              p: 2,
-              borderTop: "1px solid #e0e0e0",
-              flexDirection: "column",
-              display: "flex",
-              alignItems: "left",
-              gap: 2,
-            }}
-          >
-            <Typography variant="h6" sx={{ textAlign: "left" }}>
-              Results
-            </Typography>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ textAlign: "left" }}
-            >
-              Analysis results will appear here
-            </Typography>
+          <Box sx={{ p: 1.5, borderBottom: "1px solid #e0e0e0" }}>
             <Box
               sx={{
                 display: "flex",
-                flexDirection: "row",
-                gap: 1,
-                width: "100%",
-                mt: "auto",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 1.5,
               }}
             >
+              <Typography variant="body2">Analysis Settings</Typography>
               <Button
-                fullWidth
-                sx={styles.toolbarButton}
-                startIcon={<Calculate />}
+                variant="contained"
+                disableElevation
+                size="small"
+                startIcon={<Analytics />}
+                disabled={!registration.atlas}
+                // Checking whether the atlas registration is complete
+                // implies only segmentations aren't enough and we need further info detailed in the registration file
               >
-                Get statistics
+                Run Analysis
               </Button>
-
-              <Button
-                fullWidth
-                sx={styles.toolbarButton}
-                startIcon={<SaveAlt />}
+            </Box>
+            <Box
+              sx={{
+                border: "1px solid #e0e0e0",
+                borderRadius: 1,
+                p: 1.5,
+                mb: 1.5,
+                backgroundColor: "grey.50",
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                Reference Atlas
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                {registration.atlas || "No atlas selected"}
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", mt: 0.5 }}
               >
-                Export results
+                Last modified:{" "}
+                {registration.last_modified
+                  ? new Date(registration.last_modified).toLocaleString(
+                      "no-NO",
+                      {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }
+                    )
+                  : "Never"}
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                // Settings panel
+                display: "flex",
+                gap: 2,
+                alignItems: "flex-start",
+              }}
+            >
+              <Box sx={{ flex: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                  <Typography variant="caption">Output</Typography>
+                  <Tooltip title="Select whether to display object counts or area fraction (percentage) of objects within atlas regions">
+                    <Info
+                      fontSize="small"
+                      sx={{ fontSize: 14 }}
+                      color="action"
+                    />
+                  </Tooltip>
+                </Box>
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={outputType}
+                    onChange={(e) => setOutputType(e.target.value)}
+                    variant="standard"
+                    sx={{ minHeight: "32px" }}
+                  >
+                    <MenuItem value="counts">Counts</MenuItem>
+                    <MenuItem value="areaFraction">Area Fraction</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="caption" display="block" gutterBottom>
+                  Object Color
+                </Typography>
+                <TextField
+                  type="color"
+                  size="small"
+                  fullWidth
+                  defaultValue="#000000"
+                  sx={{
+                    '& input[type="color"]': {
+                      padding: "2px",
+                      height: "32px",
+                    },
+                  }}
+                />
+              </Box>
+            </Box>
+          </Box>
+          <Box
+            sx={{ p: 1.5, flex: 1, display: "flex", flexDirection: "column" }}
+          >
+            <Typography variant="body2" gutterBottom>
+              Results
+            </Typography>
+            <Box
+              sx={{
+                flex: 1,
+                border: "1px solid #e0e0e0",
+                borderRadius: 1,
+                p: 1.5,
+                backgroundColor: "grey.50",
+                mb: 1.5,
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                Analysis results will appear here
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Button size="small" startIcon={<Calculate />} fullWidth>
+                Get Statistics
+              </Button>
+              <Button size="small" startIcon={<SaveAlt />} fullWidth>
+                Export Results
               </Button>
             </Box>
           </Box>
-          <UploadSegments
-            open={uploadSegmentsOpen}
-            onClose={() => setUploadSegmentsOpen(false)}
-            token={token}
-            project={JSON.parse(localStorage.getItem("selectedProject"))}
-            brain={selectedBrain}
-            onUploadComplete={() => getSegmentations(selectedBrain)}
-          />
         </Box>
       </Box>
+      <UploadSegments
+        open={uploadSegmentsOpen}
+        onClose={() => setUploadSegmentsOpen(false)}
+        token={token}
+        project={JSON.parse(localStorage.getItem("selectedProject"))}
+        brain={selectedBrain}
+        onUploadComplete={() => getSegmentations(selectedBrain)}
+      />
     </Box>
   );
 };
