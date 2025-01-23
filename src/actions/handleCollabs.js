@@ -2,30 +2,6 @@
 const BUCKET_URL = 'https://data-proxy.ebrains.eu/api/v1/buckets/'
 const DEEPZOOM_URL = import.meta.env.VITE_APP_DEEPZOOM_URL
 
-// dzi work functions
-function convertDziToSection(dziData, snr = 1) {
-    return {
-        filename: dziData.filename,
-        width: dziData.width,
-        height: dziData.height,
-        snr: snr,
-        format: dziData.format,
-        tilesize: dziData.tilesize,
-        overlap: dziData.overlap,
-    };
-}
-// populating the file
-function dzisection(dzi, filename) {
-    return {
-        filename,
-        width: parseInt(dzi.match(/Width="(\d+)"/m)[1]),
-        height: parseInt(dzi.match(/Height="(\d+)"/m)[1]),
-        tilesize: parseInt(dzi.match(/TileSize="(\d+)"/m)[1]),
-        overlap: parseInt(dzi.match(/Overlap="(\d+)"/m)[1]),
-        format: dzi.match(/Format="([^"]+)"/m)[1]
-    };
-}
-
 export async function deleteItem(path, token) {
     try {
         // Naming here is the full path
@@ -234,7 +210,13 @@ export const fetchBrainSegmentations = async (token, bucketName, brainPrefix) =>
             if (!response.ok) {
                 throw new Error(`Failed to fetch bucket directory for ${workDir}`)
             }
+
             const data = await response.json()
+
+            if (!data.objects || data.objects.length === 0) {
+                return []
+            }
+
             const stats = {
                 "name": brainPrefix + workDir,
                 "files": data.objects.length,
@@ -245,17 +227,18 @@ export const fetchBrainSegmentations = async (token, bucketName, brainPrefix) =>
             res.push(stats)
         }
 
+        return res
+
     } catch (error) {
         console.error('Error fetching bucket directory:', error)
         throw error
     }
-    return res
 }
 
 
-// For initial upload of brains
-export const uploadToPath = async (token, bucketName, projectName, brainName, file) => {
-    const objectName = `${projectName}/${brainName}/raw_images/${file.name}`.replace(/\/+/g, '/');
+// For upload to paths, subdirs are added upon calling in the params eg "brain/raw_images/"
+export const uploadToPath = async (token, bucketName, projectName, uploadPath, file) => {
+    const objectName = `${projectName}/${uploadPath}${file.name}`.replace(/\/+/g, '/');
     const getUrlEndpoint = `${BUCKET_URL}${bucketName}/${objectName}`;
 
     // Step 1:
@@ -326,6 +309,37 @@ export const createProject = async (uploadObj) => {
     return { url: uploadResponse.json, status: uploadResponse.status === 204 };
 }
 
+export const uploadToSegments = async (token, bucketName, projectName, brainName, file) => {
+    const objectName = `${projectName}/${brainName}/segmentations/${file.name}`.replace(/\/+/g, '/');
+    const getUrlEndpoint = `${BUCKET_URL}${bucketName}/${objectName}`;
+
+    // Step 1:
+    const urlResponse = await fetch(getUrlEndpoint, {
+        method: 'PUT',
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Accept': 'application/json'
+        }
+    });
+
+    if (!urlResponse.ok) {
+        throw new Error(`Failed to get upload URL for ${file.name}`);
+    }
+
+    const { url: uploadUrl } = await urlResponse.json();
+
+    // Step 2: 
+    const uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file
+    });
+
+    if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload file ${file.name}`);
+    }
+
+    return { url: uploadUrl, status: uploadResponse.status === 204 };
+}
 
 export const uploadToJson = async (uploadObj, fileName, content) => {
     const objectName = `${uploadObj.projectName}/${uploadObj.brainName}/jsons/${fileName}`.replace(/\/+/g, '/');

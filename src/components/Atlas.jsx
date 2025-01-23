@@ -50,8 +50,6 @@ const atlasValueToName = {
   5: "ABA_Mouse_CCFv3_2017_25um",
 };
 
-let brainAnnounce;
-
 // Main function to get called with a list
 
 const createAtlas = async (atlasName, bucketName, dzips, token) => {

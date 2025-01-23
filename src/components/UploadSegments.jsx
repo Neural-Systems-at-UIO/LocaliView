@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Button,
   Dialog,
@@ -6,51 +6,34 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  TextField,
   Snackbar,
   Box,
   Alert,
-  Autocomplete,
   LinearProgress,
+  Typography,
 } from "@mui/material";
 import { uploadToPath } from "../actions/handleCollabs";
 import UploadZone from "./UploadZone";
 
-export default function CreationDialog({
+export default function UploadSegments({
   open,
   onClose,
   project,
   token,
-  brainEntries,
+  brain,
   onUploadComplete,
 }) {
-  const [name, setName] = useState("");
   const [filesToUpload, setFilesToUpload] = useState([]);
-  const [editBrainsList, setEditBrainsList] = useState([]);
-  // Message to inform user
   const [infoMessage, setInfoMessage] = useState({
     open: false,
     message: "",
     severity: "info",
   });
-
-  // For upload feedback of images to series
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
 
-  useEffect(() => {
-    if (brainEntries) {
-      const editBrains = brainEntries.map((entry) => entry.name);
-      setEditBrainsList(editBrains);
-      console.log(editBrains);
-    }
-  }, [brainEntries]);
+  const uploadPath = `${project?.name}/${brain?.name}/segments/`;
 
-  const handleNameChange = (event) => {
-    setName(event.target.value);
-  };
-
-  // Allow user to unselect files
   const handleFilesSelected = (files) => {
     setFilesToUpload(files);
   };
@@ -69,26 +52,25 @@ export default function CreationDialog({
             token,
             collabName,
             project.name,
-            name + "/raw_images/",
+            `${brain.name}/segmentations/`,
             file
           );
-          console.log("uploading", result);
           uploadedFiles.push({ ...result, originalFile: file });
           setUploadProgress(((i + 1) / filesToUpload.length) * 100);
         }
         setIsUploading(false);
         setInfoMessage({
           open: true,
-          message: "Files uploaded successfully",
+          message: "Segments uploaded successfully!",
           severity: "success",
         });
         return uploadedFiles;
       } catch (error) {
         setIsUploading(false);
-        console.error("Error uploading files:", error);
+        console.error("Error uploading segments:", error);
         setInfoMessage({
           open: true,
-          message: "Error uploading files",
+          message: "Error uploading segments",
           severity: "error",
         });
         throw error;
@@ -128,53 +110,25 @@ export default function CreationDialog({
         onClose={onClose}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ style: { minHeight: "80vh" } }}
+        PaperProps={{ style: { minHeight: "60vh" } }}
       >
-        <DialogTitle>
-          Upload an image series in {project?.name || ""}
-        </DialogTitle>
+        <DialogTitle>Upload your own segmentations</DialogTitle>
         <DialogContent sx={{ padding: "20px" }}>
           <DialogContentText sx={{ marginBottom: "20px" }}>
-            Enter the name of the series, or click on already created serie,
-            upload files, choose and click submit.
+            upload segmentation files...
           </DialogContentText>
-          <Autocomplete
-            freeSolo
-            id="brain-name-combo"
-            options={editBrainsList}
-            value={name}
-            onChange={(event, newValue) => {
-              // Agnostic replace to handle both selection from dropdown and manual entry
-              if (newValue) {
-                handleNameChange({ target: { value: newValue } });
-              }
-            }}
-            onInputChange={(event, newValue) => {
-              handleNameChange({ target: { value: newValue } });
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                autoFocus
-                margin="dense"
-                label="Name"
-                variant="outlined"
-                fullWidth
-                sx={{ marginBottom: "20px" }}
-              />
-            )}
+          <Typography
+            variant="body2"
             sx={{
-              "& .MuiAutocomplete-listbox": {
-                "&::-webkit-scrollbar": {
-                  height: "8px",
-                },
-                "&::-webkit-scrollbar-thumb": {
-                  backgroundColor: "#bbb",
-                  borderRadius: "4px",
-                },
-              },
+              backgroundColor: "grey.100",
+              p: 2,
+              borderRadius: 1,
+              fontFamily: "monospace",
+              mb: 3,
             }}
-          />
+          >
+            {uploadPath}
+          </Typography>
 
           <UploadZone onFilesSelected={handleFilesSelected} />
           {isUploading && (
@@ -192,7 +146,7 @@ export default function CreationDialog({
         </DialogContent>
         <DialogActions sx={{ padding: "20px" }}>
           <Button onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit}>Submit</Button>
+          <Button onClick={handleSubmit}>Upload</Button>
         </DialogActions>
       </Dialog>
     </>
