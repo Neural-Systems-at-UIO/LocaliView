@@ -13,7 +13,6 @@ import {
 } from "@mui/material";
 import netunzip from "../actions/atlasUtils";
 import { uploadToJson } from "../actions/handleCollabs";
-import { Refresh } from "@mui/icons-material";
 
 // Extractor definitions
 // Filename has to match the exact name of the DZIP file instead of dzi

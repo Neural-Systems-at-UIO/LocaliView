@@ -131,16 +131,22 @@ export function fetchWorkspaceConfigurations(workspace, token) {
     return null;
 }
 
-export const fetchBrainStats = async (token, bucketName, brainPrefix) => {
+export const fetchBrainStats = async (token, bucketName, brainPrefix, optional = null) => {
     let res = []
     try {
         let url = `${BUCKET_URL}${bucketName}?`
+        let workDirs = [];
 
-        const workDirs = [
-            'raw_images',
-            'zipped_images',
-            'jsons'
-        ]
+        if (optional) {
+            workDirs.push(optional);
+            console.log("added", optional, "to ", workDirs);
+        } else {
+            workDirs = [
+                'raw_images',
+                'zipped_images',
+                'jsons'
+            ];
+        }
 
         for (const workDir of workDirs) {
             const params = new URLSearchParams()
