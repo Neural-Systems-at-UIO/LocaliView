@@ -21,7 +21,6 @@ import {
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import HelpRoundedIcon from "@mui/icons-material/HelpRounded";
-import ContentPasteSearchIcon from "@mui/icons-material/ContentPasteSearch";
 import FindInPageIcon from "@mui/icons-material/FindInPage";
 
 import Mainframe from "./Mainframe";
@@ -88,7 +87,7 @@ const Header = () => {
   const [loginAlert, setLoginAlert] = useState(true);
 
   const handleLogin = () => {
-    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://127.00.0.1:3000`;
+    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://rodentworkbench.apps.ebrains.eu/new/`;
     // WIP url https://rodentworkbench.apps.ebrains.eu/new/
   };
 
@@ -122,7 +121,7 @@ const Header = () => {
     const code = urlParams.get("code");
 
     if (code) {
-      fetch(`${FAPI_URL}token/dev?code=${code}`)
+      fetch(`${FAPI_URL}token/quint?code=${code}`)
         .then((response) => response.json())
         .then((data) => {
           console.log(data);
@@ -215,7 +214,7 @@ const Header = () => {
                 <Tab
                   key={index}
                   label={tab.label}
-                  disabled={tab.disabled}
+                  disabled={!token && tab.label !== "Projects"}
                   onClick={() => {
                     switch (tab.label) {
                       case "Projects":

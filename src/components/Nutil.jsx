@@ -109,6 +109,11 @@ const Nutil = ({ token }) => {
   }, []);
 
   const getSegmentations = async (brainEntry) => {
+    if (!token) {
+      alert("Please login to access this feature");
+      return;
+    }
+
     setIsFetchingSegmentations(true);
     try {
       let collabName = localStorage.getItem("bucketName");
@@ -138,6 +143,7 @@ const Nutil = ({ token }) => {
 
   const handleBrainSelect = (brain) => {
     setSelectedBrain(brain);
+    localStorage.setItem("selectedBrain", JSON.stringify(brain));
     getSegmentations(brain);
   };
 
@@ -149,12 +155,14 @@ const Nutil = ({ token }) => {
         backgroundColor: "#f6f6f6",
         borderRadius: "4px",
         gap: 2,
-        padding: 2,
+        padding: 1,
       }}
     >
       {/* 
       Brain list
       - > Fetched from the initial chosen project on the main list and populated with the brains in localstorage
+      - > Allows the user to select a brain to view the segmentations
+      - > Features won't work if no token is provided
       */}
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2, flex: 1.2 }}>
         <Box sx={{ ...styles.listContainer, overflow: "auto" }}>
@@ -202,8 +210,8 @@ const Nutil = ({ token }) => {
       </Box>
 
       {/* Image list
-      - > Allows custom uploads from the user made with QuickNII
-
+      - > Allows custom uploads from the user made with Ilastik
+      - > Displays the segmentations filled via webilastik
       */}
       <Box sx={{ ...styles.listContainer, flex: 2 }}>
         <Stack
@@ -214,7 +222,13 @@ const Nutil = ({ token }) => {
           <Button
             startIcon={<Upload />}
             size="small"
-            onClick={() => setUploadSegmentsOpen(true)}
+            onClick={() => {
+              if (!selectedBrain) {
+                alert("Please select a brain first");
+              } else {
+                setUploadSegmentsOpen(true);
+              }
+            }}
           >
             Upload Segmentations
           </Button>
@@ -246,7 +260,6 @@ const Nutil = ({ token }) => {
                   py: 0.5,
                   "&:hover": {
                     backgroundColor: "rgba(0, 0, 0, 0.04)", // Subtle hover effect
-                    borderRadius: 1,
                   },
                 }}
               >
@@ -311,6 +324,9 @@ const Nutil = ({ token }) => {
               padding: 2,
             }}
           >
+            <Typography variant="h6" sx={{ textAlign: "left" }}>
+              Settings
+            </Typography>
             <List
               sx={{
                 display: "flex",
@@ -442,6 +458,10 @@ const Nutil = ({ token }) => {
           <UploadSegments
             open={uploadSegmentsOpen}
             onClose={() => setUploadSegmentsOpen(false)}
+            token={token}
+            project={JSON.parse(localStorage.getItem("selectedProject"))}
+            brain={selectedBrain}
+            onUploadComplete={() => getSegmentations(selectedBrain)}
           />
         </Box>
       </Box>

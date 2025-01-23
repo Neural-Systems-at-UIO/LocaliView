@@ -8,7 +8,6 @@ import {
   DialogTitle,
   TextField,
   Snackbar,
-  Chip,
   Box,
   Alert,
   Autocomplete,
@@ -21,7 +20,6 @@ export default function CreationDialog({
   open,
   onClose,
   project,
-  updateProjects,
   token,
   brainEntries,
   onUploadComplete,
@@ -29,7 +27,7 @@ export default function CreationDialog({
   const [name, setName] = useState("");
   const [filesToUpload, setFilesToUpload] = useState([]);
   const [editBrainsList, setEditBrainsList] = useState([]);
-
+  // Message to inform user
   const [infoMessage, setInfoMessage] = useState({
     open: false,
     message: "",
@@ -71,9 +69,10 @@ export default function CreationDialog({
             token,
             collabName,
             project.name,
-            name,
+            name + "/raw_images/",
             file
           );
+          console.log("uploading", result);
           uploadedFiles.push({ ...result, originalFile: file });
           setUploadProgress(((i + 1) / filesToUpload.length) * 100);
         }
@@ -100,11 +99,9 @@ export default function CreationDialog({
   };
 
   const handleSubmit = async () => {
-    const collabName = localStorage.getItem("bucketName");
     try {
       await uploadFiles();
       onUploadComplete?.();
-      updateProjects(collabName);
       onClose();
     } catch (error) {
       console.error("Error in handleSubmit:", error);

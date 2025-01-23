@@ -2,30 +2,6 @@
 const BUCKET_URL = 'https://data-proxy.ebrains.eu/api/v1/buckets/'
 const DEEPZOOM_URL = import.meta.env.VITE_APP_DEEPZOOM_URL
 
-// dzi work functions
-function convertDziToSection(dziData, snr = 1) {
-    return {
-        filename: dziData.filename,
-        width: dziData.width,
-        height: dziData.height,
-        snr: snr,
-        format: dziData.format,
-        tilesize: dziData.tilesize,
-        overlap: dziData.overlap,
-    };
-}
-// populating the file
-function dzisection(dzi, filename) {
-    return {
-        filename,
-        width: parseInt(dzi.match(/Width="(\d+)"/m)[1]),
-        height: parseInt(dzi.match(/Height="(\d+)"/m)[1]),
-        tilesize: parseInt(dzi.match(/TileSize="(\d+)"/m)[1]),
-        overlap: parseInt(dzi.match(/Overlap="(\d+)"/m)[1]),
-        format: dzi.match(/Format="([^"]+)"/m)[1]
-    };
-}
-
 export async function deleteItem(path, token) {
     try {
         // Naming here is the full path
@@ -260,9 +236,9 @@ export const fetchBrainSegmentations = async (token, bucketName, brainPrefix) =>
 }
 
 
-// For initial upload of brains
-export const uploadToPath = async (token, bucketName, projectName, brainName, file) => {
-    const objectName = `${projectName}/${brainName}/raw_images/${file.name}`.replace(/\/+/g, '/');
+// For upload to paths, subdirs are added upon calling in the params eg "brain/raw_images/"
+export const uploadToPath = async (token, bucketName, projectName, uploadPath, file) => {
+    const objectName = `${projectName}/${uploadPath}${file.name}`.replace(/\/+/g, '/');
     const getUrlEndpoint = `${BUCKET_URL}${bucketName}/${objectName}`;
 
     // Step 1:

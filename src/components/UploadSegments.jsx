@@ -1,62 +1,154 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
-  Box,
   Button,
-  TextField,
-  Typography,
   Dialog,
-  DialogContent,
   DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Snackbar,
+  Box,
+  Alert,
+  LinearProgress,
+  Typography,
 } from "@mui/material";
-import { uploadToSegments } from "../actions/handleCollabs";
+import { uploadToPath } from "../actions/handleCollabs";
 import UploadZone from "./UploadZone";
 
-const UploadSegments = () => {
-  const [segments, setSegments] = useState([]);
-  const [title, setTitle] = useState("");
+export default function UploadSegments({
+  open,
+  onClose,
+  project,
+  token,
+  brain,
+  onUploadComplete,
+}) {
+  const [filesToUpload, setFilesToUpload] = useState([]);
+  const [infoMessage, setInfoMessage] = useState({
+    open: false,
+    message: "",
+    severity: "info",
+  });
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleUpload = async () => {
-    if (!title || !segments.length) {
-      return;
+  const uploadPath = `${project?.name}/${brain?.name}/segments/`;
+
+  const handleFilesSelected = (files) => {
+    setFilesToUpload(files);
+  };
+
+  const uploadFiles = async () => {
+    const collabName = localStorage.getItem("bucketName");
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    if (filesToUpload.length > 0) {
+      try {
+        const uploadedFiles = [];
+        for (let i = 0; i < filesToUpload.length; i++) {
+          const file = filesToUpload[i];
+          const result = await uploadToPath(
+            token,
+            collabName,
+            project.name,
+            `${brain.name}/segmentations/`,
+            file
+          );
+          uploadedFiles.push({ ...result, originalFile: file });
+          setUploadProgress(((i + 1) / filesToUpload.length) * 100);
+        }
+        setIsUploading(false);
+        setInfoMessage({
+          open: true,
+          message: "Segments uploaded successfully!",
+          severity: "success",
+        });
+        return uploadedFiles;
+      } catch (error) {
+        setIsUploading(false);
+        console.error("Error uploading segments:", error);
+        setInfoMessage({
+          open: true,
+          message: "Error uploading segments",
+          severity: "error",
+        });
+        throw error;
+      }
     }
+    setIsUploading(false);
+    return [];
+  };
 
-    const formData = new FormData();
-    formData.append("title", title);
-    segments.forEach((segment) => {
-      formData.append("segments", segment);
-    });
-
-    await uploadToSegments(formData);
+  const handleSubmit = async () => {
+    try {
+      await uploadFiles();
+      onUploadComplete?.();
+      onClose();
+    } catch (error) {
+      console.error("Error in handleSubmit:", error);
+    }
   };
 
   return (
-    <Dialog>
-      <Typography variant="h5" sx={{ mb: 2 }}>
-        Upload Segments
-      </Typography>
-      <TextField
-        fullWidth
-        label="Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        sx={{ mb: 2 }}
-      />
-      <UploadZone files={segments} setFiles={setSegments} />
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handleUpload}
-        sx={{ mt: 2 }}
+    <>
+      <Snackbar
+        open={infoMessage.open}
+        autoHideDuration={6000}
+        onClose={() => setInfoMessage({ ...infoMessage, open: false })}
       >
-        Upload
-      </Button>
+        <Alert
+          onClose={() => setInfoMessage({ ...infoMessage, open: false })}
+          severity={infoMessage.severity}
+          sx={{ width: "100%" }}
+        >
+          {infoMessage.message}
+        </Alert>
+      </Snackbar>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ style: { minHeight: "60vh" } }}
+      >
+        <DialogTitle>Upload your own segmentations</DialogTitle>
+        <DialogContent sx={{ padding: "20px" }}>
+          <DialogContentText sx={{ marginBottom: "20px" }}>
+            upload segmentation files...
+          </DialogContentText>
+          <Typography
+            variant="body2"
+            sx={{
+              backgroundColor: "grey.100",
+              p: 2,
+              borderRadius: 1,
+              fontFamily: "monospace",
+              mb: 3,
+            }}
+          >
+            {uploadPath}
+          </Typography>
 
-      <DialogActions>
-        <Button onClick={() => {}}>Cancel</Button>
-        <Button onClick={handleUpload}>Submit</Button>
-      </DialogActions>
-    </Dialog>
+          <UploadZone onFilesSelected={handleFilesSelected} />
+          {isUploading && (
+            <Box sx={{ width: "100%", mt: 2 }}>
+              <DialogContentText>
+                Uploading: {Math.round(uploadProgress)}%
+              </DialogContentText>
+              <LinearProgress
+                variant="determinate"
+                value={uploadProgress}
+                sx={{ mt: 1 }}
+              />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ padding: "20px" }}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSubmit}>Upload</Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
-};
-
-export default UploadSegments;
+}
