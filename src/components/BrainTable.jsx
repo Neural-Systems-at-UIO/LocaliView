@@ -7,11 +7,12 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
-  IconButton,
   ListItemIcon,
+  Icon,
 } from "@mui/material";
 import ArrowBack from "@mui/icons-material/ArrowBack";
 import Add from "@mui/icons-material/Add";
+import FolderOffOutlinedIcon from "@mui/icons-material/FolderOffOutlined";
 import mBrain from "../mBrain.ico";
 
 const BrainList = ({ rows, onBrainSelect }) => {
@@ -22,6 +23,28 @@ const BrainList = ({ rows, onBrainSelect }) => {
     setSelectedBrain(brain);
     onBrainSelect({ row: brain });
   };
+
+  if (rows.length === 0) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100%",
+          flexDirection: "column",
+        }}
+      >
+        <Icon
+          component={FolderOffOutlinedIcon}
+          sx={{ fontSize: 100, color: "gray" }}
+        />
+        <Typography variant="h6" color="black" gutterBottom>
+          No series were found, please add a series.
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <List
