@@ -27,8 +27,11 @@ import Mainframe from "./Mainframe";
 import callUser from "../actions/createUser";
 
 // Variable loading for URLs
-const FAPI_URL = import.meta.env.VITE_APP_FAPI_URL;
 const OIDC = import.meta.env.VITE_APP_OIDC;
+
+// Dev instance switch pain points
+const TOKEN_URL = import.meta.env.VITE_APP_TOKEN_URL;
+const MY_URL = import.meta.env.VITE_APP_MY_URL;
 
 const tabs = [
   {
@@ -87,7 +90,7 @@ const Header = () => {
   const [loginAlert, setLoginAlert] = useState(true);
 
   const handleLogin = () => {
-    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=https://rodentworkbench.apps.ebrains.eu/new/`;
+    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=${MY_URL}`;
     // WIP url https://rodentworkbench.apps.ebrains.eu/new/
   };
 
@@ -121,7 +124,7 @@ const Header = () => {
     const code = urlParams.get("code");
 
     if (code) {
-      fetch(`${FAPI_URL}token/quint?code=${code}`)
+      fetch(`${TOKEN_URL}?code=${code}`)
         .then((response) => response.json())
         .then((data) => {
           console.log(data);

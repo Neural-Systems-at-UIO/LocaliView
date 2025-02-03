@@ -216,9 +216,15 @@ const Nutil = ({ token }) => {
                   key={index}
                   sx={{
                     ...styles.listItem,
-
+                    backgroundColor:
+                      selectedBrain?.name === entry.name
+                        ? "rgba(28, 148, 86, 0.08)"
+                        : "transparent",
                     "&:hover": {
-                      backgroundColor: "rgba(0, 0, 0, 0.04)",
+                      backgroundColor:
+                        selectedBrain?.name === entry.name
+                          ? "rgba(0, 0, 0, 0.12)"
+                          : "rgba(0, 0, 0, 0.04)",
                       cursor: "pointer",
                     },
                   }}
@@ -232,11 +238,6 @@ const Nutil = ({ token }) => {
                     />
                   </ListItemIcon>
                   <ListItemText primary={entry.name.split("/").pop()} />
-                  {selectedBrain?.name === entry.name ? (
-                    <ListItemIcon>
-                      <Search sx={{ color: "primary.main" }} />
-                    </ListItemIcon>
-                  ) : null}
                 </ListItem>
               ))
             ) : (
@@ -367,16 +368,6 @@ const Nutil = ({ token }) => {
         }}
       >
         <Box sx={{ height: "98%", display: "flex", flexDirection: "column" }}>
-          <Typography
-            variant="subtitle2"
-            sx={{
-              p: 1.5,
-              borderBottom: "1px solid #e0e0e0",
-            }}
-          >
-            Quantification and Utilities
-          </Typography>
-
           <Box sx={{ p: 1.5, borderBottom: "1px solid #e0e0e0" }}>
             <Box
               sx={{
@@ -386,7 +377,7 @@ const Nutil = ({ token }) => {
                 mb: 1.5,
               }}
             >
-              <Typography variant="body2">Analysis Settings</Typography>
+              <Typography variant="body2">Quantification Settings</Typography>
               <Button
                 variant="contained"
                 disableElevation
@@ -396,7 +387,7 @@ const Nutil = ({ token }) => {
                 // Checking whether the atlas registration is complete
                 // implies only segmentations aren't enough and we need further info detailed in the registration file
               >
-                Run Analysis
+                Run analysis
               </Button>
             </Box>
             <Box

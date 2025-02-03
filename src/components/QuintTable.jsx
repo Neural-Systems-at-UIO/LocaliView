@@ -178,7 +178,7 @@ export default function QuintTable({ token, user }) {
 
               const data = await response.json();
 
-              if (data.success) {
+              if (data.success || response.status === 409) {
                 setBucketName(collabName);
               } else {
                 throw new Error("Failed to initialize collab");

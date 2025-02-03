@@ -29,13 +29,14 @@ const Mainframe = ({ url, native, token, user }) => {
             <QuintTable token={token} user={user} />
           ) : native.app === "nutil" ? (
             <Nutil token={token} user={user} />
-          ) : null}
+          ) : // TODO Sandbox here
+          null}
         </Box>
       ) : (
         <Box
           component="iframe"
           sx={{
-            width: "98%",
+            width: "99%",
             height: "98%",
             border: "none",
             bgcolor: "white",
