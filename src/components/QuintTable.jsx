@@ -132,6 +132,12 @@ export default function QuintTable({ token, user }) {
   };
 
   const fetchAndUpdateProjects = (collabName) => {
+    setProjectIssue({
+      problem: false,
+      message: "",
+      severity: "info",
+      loading: true,
+    });
     fetchBucketDir(token, collabName, null, "/")
       .then((projects) => {
         if (projects.length === 0) {
@@ -140,6 +146,12 @@ export default function QuintTable({ token, user }) {
         }
         console.log(projects);
         setProjects(projects);
+        setProjectIssue({
+          problem: false,
+          message: "",
+          severity: "info",
+          loading: false,
+        });
       })
       .catch((error) => {
         console.error("Error fetching projects:", error);
@@ -397,7 +409,7 @@ export default function QuintTable({ token, user }) {
               </Box>
 
               <Box sx={{ display: "flex", gap: 2 }}>
-                {projectIssue.loading || projectIssue.problem ? (
+                {projectIssue.loading && !projectIssue.problem ? (
                   renderProjectContent()
                 ) : (
                   <List
