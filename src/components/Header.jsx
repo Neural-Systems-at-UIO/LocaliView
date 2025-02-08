@@ -191,25 +191,29 @@ const Header = () => {
                 "& .MuiTab-root": {
                   minHeight: "36px",
                   fontSize: "0.875rem",
-                  padding: "0 4px",
+                  padding: "0 16px", // Adjust padding as needed
                   minWidth: "auto",
-                  opacity: 0.5,
+                  opacity: 0.7,
                   transition: "opacity 0.1s",
                   color: "black",
                   textTransform: "lowercase",
+                  backgroundColor: "#e0e0e0", // Default background color
+                  borderTopLeftRadius: "4px",
+                  borderTopRightRadius: "4px",
+                  clipPath: "polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%)", // Arrow shape
+                  marginRight: "10px", // Spacing between tabs
                   "&.Mui-selected": {
                     color: "primary.main",
                     opacity: 1,
-                    backgroundColor: "transparent",
+                    backgroundColor: "white", // Selected tab background
                   },
                   "&:hover": {
                     opacity: 1,
                     backgroundColor: "lightgray",
-                    //textShadow: "0 0 1px ",
                   },
                 },
                 "& .MuiTabs-indicator": {
-                  height: "2px",
+                  display: "none", // Hide the default indicator
                 },
               }}
             >
