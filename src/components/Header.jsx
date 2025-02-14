@@ -255,14 +255,16 @@ const Header = () => {
                   opacity: 0.7,
                   transition: "opacity 0.1s",
                   color: "black",
-                  textTransform: "lowercase",
+                  textTransform: "none",
                   backgroundColor: "#e0e0e0",
                   borderTopLeftRadius: "4px",
                   borderTopRightRadius: "4px",
                   clipPath:
                     "polygon(90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%, 0 0)", // Arrow shape
-                  marginRight: "0px", // Spacing is 0 for now as arrows look to be fitting in
-
+                  marginLeft: -0.5, // Spacing is 0 for now as arrows look to be fitting in
+                  "&:first-child": {
+                    marginLeft: 0,
+                  },
                   "&.Mui-selected": {
                     color: "white",
                     opacity: 1,

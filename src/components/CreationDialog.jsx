@@ -46,6 +46,15 @@ export default function CreationDialog({
     }
   }, [brainEntries]);
 
+  useEffect(() => {
+    if (!open) {
+      // Reset state when dialog closes fully otherwise stuck with the old uploads
+      setFilesToUpload([]);
+      setName("");
+      setUploadProgress(0);
+    }
+  }, [open]);
+
   const handleNameChange = (event) => {
     setName(event.target.value);
   };
@@ -99,6 +108,26 @@ export default function CreationDialog({
   };
 
   const handleSubmit = async () => {
+    if (!name || name.trim() === "") {
+      setInfoMessage({
+        open: true,
+        message: "An image series name is required",
+        severity: "error",
+      });
+      alert("An image series name is required");
+      return;
+    }
+
+    if (filesToUpload.length === 0) {
+      setInfoMessage({
+        open: true,
+        message: "Please select files to upload",
+        severity: "warning",
+      });
+      alert("Please select files to upload");
+      return;
+    }
+
     try {
       await uploadFiles();
       onUploadComplete?.();
@@ -191,8 +220,12 @@ export default function CreationDialog({
           )}
         </DialogContent>
         <DialogActions sx={{ padding: "20px" }}>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit}>Submit</Button>
+          <Button onClick={onClose} disabled={isUploading}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={isUploading}>
+            {isUploading ? "Uploading..." : "Submit"}
+          </Button>
         </DialogActions>
       </Dialog>
     </>

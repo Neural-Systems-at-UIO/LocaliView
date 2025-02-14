@@ -23,7 +23,6 @@ import {
   Calculate,
   Info,
   ImageOutlined,
-  Search,
 } from "@mui/icons-material";
 import { useState, useEffect } from "react";
 import mBrain from "../mBrain.ico";
@@ -265,19 +264,21 @@ const Nutil = ({ token }) => {
           justifyContent={"space-between"}
         >
           <Box>
-            <Button
-              startIcon={<Upload />}
-              size="small"
-              onClick={() => {
-                if (!selectedBrain) {
-                  alert("Please select a brain first");
-                } else {
-                  setUploadSegmentsOpen(true);
-                }
-              }}
-            >
-              Upload Segmentations
-            </Button>
+            <Tooltip title="Upload your own segmentations from Ilastik">
+              <Button
+                startIcon={<Upload />}
+                size="small"
+                onClick={() => {
+                  if (!selectedBrain) {
+                    alert("Please select a brain first");
+                  } else {
+                    setUploadSegmentsOpen(true);
+                  }
+                }}
+              >
+                Upload Segmentations
+              </Button>
+            </Tooltip>
             <Button startIcon={<Delete />} size="small" color="error">
               Delete
             </Button>
