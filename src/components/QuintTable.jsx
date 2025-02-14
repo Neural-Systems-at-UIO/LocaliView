@@ -441,14 +441,7 @@ export default function QuintTable({ token, user }) {
                         }}
                         onClick={() => handleProjectSelect(project)}
                       >
-                        <ListItemText
-                          primary={project.name}
-                          sx={{
-                            "& .MuiListItemText-primary": {
-                              fontWeight: 500,
-                            },
-                          }}
-                        />
+                        <ListItemText primary={project.name} />
                       </ListItem>
                     ))}
                   </List>
@@ -494,7 +487,9 @@ export default function QuintTable({ token, user }) {
                   onAddBrainClick={handleOpenDialog}
                   onBrainSelect={handleBrainSelect}
                 />
-                <Box sx={{ width: "60%", ml: 2, flexGrow: 0.6 }}>
+                <Box
+                  sx={{ width: "60%", ml: 2, flexGrow: 0.6, height: "100%" }}
+                >
                   <AdditionalInfo
                     braininfo={selectedBrain}
                     stats={selectedBrainStats}

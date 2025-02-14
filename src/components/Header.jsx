@@ -294,21 +294,21 @@ const Header = () => {
                         });
                         break;
                       case "WebAlign":
-                        let url =
+                      case "WebWarp": {
+                        const alignment = localStorage.getItem("alignment");
+                        const bucketName = localStorage.getItem("bucketName");
+
+                        if (!alignment || alignment === "") {
+                          alert("Please set a working alignment first");
+                          return;
+                        }
+
+                        const url =
                           tab.url +
-                          `?clb-collab-id=${localStorage.getItem(
-                            "bucketName"
-                          )}&filename=${localStorage.getItem("alignment")}`;
+                          `?clb-collab-id=${bucketName}&filename=${alignment}`;
                         handleFrameChange(url);
                         break;
-                      case "WebWarp":
-                        let warpurl =
-                          tab.url +
-                          `?clb-collab-id=${localStorage.getItem(
-                            "bucketName"
-                          )}&filename=${localStorage.getItem("alignment")}`;
-                        handleFrameChange(warpurl);
-                        break;
+                      }
                       case "WebNutil": {
                         setNativeSelection({
                           native: true,

@@ -17,24 +17,23 @@ const theme = createTheme({
     },
     h3: {
       fontFamily: '"Open Sans", sans-serif',
-      fontWeight: 300,
+      fontWeight: 400,
     },
     h4: {
       fontFamily: '"Open Sans", sans-serif',
-      fontWeight: 300,
+      fontWeight: 400,
     },
     body1: {
       fontFamily: '"Open Sans", sans-serif',
-      fontWeight: 300,
+      fontWeight: 400,
     },
     body2: {
       fontFamily: '"Open Sans", sans-serif',
-      fontWeight: 300,
+      fontWeight: 400,
     },
     button: {
       fontFamily: '"Open Sans", sans-serif',
       fontWeight: 400,
-      textTransform: "none",
     },
     allVariants: {
       color: "#333333",
