@@ -297,10 +297,20 @@ const Nutil = ({ token }) => {
           {" "}
           {isFetchingSegmentations ? (
             <ListItem>
-              <Box sx={{ width: "100%", textAlign: "center", py: 1 }}>
+              <Box
+                sx={{
+                  width: "100%",
+
+                  py: 1,
+                  flexDirection: "row",
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: 1,
+                }}
+              >
                 {" "}
                 <CircularProgress size={20} />
-                <Typography sx={{ mt: 0.5 }}>
+                <Typography sx={{ mr: 0.5 }}>
                   {" "}
                   Loading segmentations...
                 </Typography>

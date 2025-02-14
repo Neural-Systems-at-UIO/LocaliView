@@ -488,6 +488,7 @@ export default function QuintTable({ token, user }) {
                   rows={rows}
                   onBackClick={() => {
                     setSelectedProject(null);
+                    localStorage.removeItem("selectedProject");
                     setSelectedBrain(null);
                   }}
                   onAddBrainClick={handleOpenDialog}

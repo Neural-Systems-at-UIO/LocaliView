@@ -32,14 +32,14 @@ const BrainList = ({ rows, onBrainSelect }) => {
           justifyContent: "center",
           alignItems: "center",
           height: "100%",
-          flexDirection: "column",
+          flexDirection: "row",
         }}
       >
         <Icon
           component={FolderOffOutlinedIcon}
-          sx={{ fontSize: 100, color: "gray" }}
+          sx={{ fontSize: 25, color: "gray", mr: 2 }}
         />
-        <Typography variant="h6" color="black" gutterBottom>
+        <Typography variant="h6" color="gray" gutterBottom>
           No series were found, please add a series.
         </Typography>
       </Box>
