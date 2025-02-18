@@ -23,7 +23,6 @@ import {
   Calculate,
   Info,
   ImageOutlined,
-  Search,
 } from "@mui/icons-material";
 import { useState, useEffect } from "react";
 import mBrain from "../mBrain.ico";
@@ -265,19 +264,21 @@ const Nutil = ({ token }) => {
           justifyContent={"space-between"}
         >
           <Box>
-            <Button
-              startIcon={<Upload />}
-              size="small"
-              onClick={() => {
-                if (!selectedBrain) {
-                  alert("Please select a brain first");
-                } else {
-                  setUploadSegmentsOpen(true);
-                }
-              }}
-            >
-              Upload Segmentations
-            </Button>
+            <Tooltip title="Upload your own segmentations from Ilastik">
+              <Button
+                startIcon={<Upload />}
+                size="small"
+                onClick={() => {
+                  if (!selectedBrain) {
+                    alert("Please select a brain first");
+                  } else {
+                    setUploadSegmentsOpen(true);
+                  }
+                }}
+              >
+                Upload Segmentations
+              </Button>
+            </Tooltip>
             <Button startIcon={<Delete />} size="small" color="error">
               Delete
             </Button>
@@ -297,10 +298,20 @@ const Nutil = ({ token }) => {
           {" "}
           {isFetchingSegmentations ? (
             <ListItem>
-              <Box sx={{ width: "100%", textAlign: "center", py: 1 }}>
+              <Box
+                sx={{
+                  width: "100%",
+
+                  py: 1,
+                  flexDirection: "row",
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: 1,
+                }}
+              >
                 {" "}
                 <CircularProgress size={20} />
-                <Typography sx={{ mt: 0.5 }}>
+                <Typography sx={{ mr: 0.5 }}>
                   {" "}
                   Loading segmentations...
                 </Typography>

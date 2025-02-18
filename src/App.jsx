@@ -6,16 +6,39 @@ import { ThemeProvider } from "@mui/material/styles";
 
 const theme = createTheme({
   typography: {
-    fontFamily: [
-      "Open Sans, sans-serif",
-      "Dosis, sans-serif",
-      "Open Sans, sans-serif",
-      "Roboto, sans-serif",
-      "Arial, sans-serif",
-    ].join(","),
+    fontFamily: '"Open Sans", "Dosis", "Roboto", sans-serif',
+    h1: {
+      fontFamily: '"Open Sans", sans-serif',
+      fontWeight: 400,
+    },
+    h2: {
+      fontFamily: '"Open Sans", sans-serif',
+      fontWeight: 400,
+    },
+    h3: {
+      fontFamily: '"Open Sans", sans-serif',
+      fontWeight: 400,
+    },
+    h4: {
+      fontFamily: '"Open Sans", sans-serif',
+      fontWeight: 400,
+    },
+    body1: {
+      fontFamily: '"Open Sans", sans-serif',
+      fontWeight: 400,
+    },
+    body2: {
+      fontFamily: '"Open Sans", sans-serif',
+      fontWeight: 400,
+    },
+    button: {
+      fontFamily: '"Open Sans", sans-serif',
+      fontWeight: 400,
+    },
     allVariants: {
-      fontFamily: "Open Sans, sans-serif",
-      color: "#333333", // default text color for all variants
+      color: "#333333",
+      fontFamily: '"Open Sans", sans-serif',
+      fontWeight: 400,
     },
   },
   palette: {

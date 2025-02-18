@@ -205,7 +205,7 @@ const AdditionalInfo = ({
   const pyramidComplete = pyramidCount === brainStats.files;
 
   return (
-    <Box sx={{ overflow: "auto", height: "75%" }}>
+    <Box sx={{ height: "auto" }}>
       <Snackbar
         open={infoMessage.open}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}

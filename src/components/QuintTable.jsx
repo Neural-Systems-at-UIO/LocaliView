@@ -132,6 +132,12 @@ export default function QuintTable({ token, user }) {
   };
 
   const fetchAndUpdateProjects = (collabName) => {
+    setProjectIssue({
+      problem: false,
+      message: "",
+      severity: "info",
+      loading: true,
+    });
     fetchBucketDir(token, collabName, null, "/")
       .then((projects) => {
         if (projects.length === 0) {
@@ -140,6 +146,12 @@ export default function QuintTable({ token, user }) {
         }
         console.log(projects);
         setProjects(projects);
+        setProjectIssue({
+          problem: false,
+          message: "",
+          severity: "info",
+          loading: false,
+        });
       })
       .catch((error) => {
         console.error("Error fetching projects:", error);
@@ -397,7 +409,7 @@ export default function QuintTable({ token, user }) {
               </Box>
 
               <Box sx={{ display: "flex", gap: 2 }}>
-                {projectIssue.loading || projectIssue.problem ? (
+                {projectIssue.loading && !projectIssue.problem ? (
                   renderProjectContent()
                 ) : (
                   <List
@@ -429,14 +441,7 @@ export default function QuintTable({ token, user }) {
                         }}
                         onClick={() => handleProjectSelect(project)}
                       >
-                        <ListItemText
-                          primary={project.name}
-                          sx={{
-                            "& .MuiListItemText-primary": {
-                              fontWeight: 500,
-                            },
-                          }}
-                        />
+                        <ListItemText primary={project.name} />
                       </ListItem>
                     ))}
                   </List>
@@ -476,12 +481,15 @@ export default function QuintTable({ token, user }) {
                   rows={rows}
                   onBackClick={() => {
                     setSelectedProject(null);
+                    localStorage.removeItem("selectedProject");
                     setSelectedBrain(null);
                   }}
                   onAddBrainClick={handleOpenDialog}
                   onBrainSelect={handleBrainSelect}
                 />
-                <Box sx={{ width: "60%", ml: 2, flexGrow: 0.6 }}>
+                <Box
+                  sx={{ width: "60%", ml: 2, flexGrow: 0.6, height: "100%" }}
+                >
                   <AdditionalInfo
                     braininfo={selectedBrain}
                     stats={selectedBrainStats}

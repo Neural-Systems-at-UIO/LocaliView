@@ -3,6 +3,7 @@ import {
   AppBar,
   Button,
   Box,
+  CircularProgress,
   Drawer,
   List,
   ListItem,
@@ -17,6 +18,9 @@ import {
   Alert,
   IconButton,
   Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
@@ -88,6 +92,7 @@ const Header = () => {
 
   // Login alert
   const [loginAlert, setLoginAlert] = useState(true);
+  const [showDialog, setShowDialog] = useState(false);
 
   const handleLogin = () => {
     window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=${MY_URL}`;
@@ -158,6 +163,60 @@ const Header = () => {
     fetchUser();
   }, [token]);
 
+  // Brief timeout for UX qol
+  useEffect(() => {
+    if (!token) {
+      const timer = setTimeout(() => setShowDialog(true), 2000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowDialog(false);
+    }
+  }, [token]);
+
+  if (!token) {
+    if (!showDialog) {
+      return (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "100vh",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      );
+    }
+
+    return (
+      <Dialog
+        open={true}
+        PaperProps={{
+          sx: {
+            margin: "auto",
+            maxWidth: 400,
+            textAlign: "center",
+            padding: 2,
+          },
+        }}
+      >
+        <DialogTitle>Welcome to Rodent Workbench</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Please login to access the Rodent Workbench and the EBrains
+            services.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" onClick={handleLogin}>
+            Login
+          </Button>
+        </DialogActions>
+      </Dialog>
+    );
+  }
+
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar
@@ -196,13 +255,16 @@ const Header = () => {
                   opacity: 0.7,
                   transition: "opacity 0.1s",
                   color: "black",
-                  textTransform: "lowercase",
+                  textTransform: "none",
                   backgroundColor: "#e0e0e0",
                   borderTopLeftRadius: "4px",
                   borderTopRightRadius: "4px",
-                  clipPath: "polygon(90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%, 0 0)", // Arrow shape
-                  marginRight: "0px", // Spacing is 0 for now as arrows look to be fitting in
-
+                  clipPath:
+                    "polygon(90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%, 0 0)", // Arrow shape
+                  marginLeft: -0.5, // Spacing is 0 for now as arrows look to be fitting in
+                  "&:first-child": {
+                    marginLeft: 0,
+                  },
                   "&.Mui-selected": {
                     color: "white",
                     opacity: 1,
@@ -232,21 +294,21 @@ const Header = () => {
                         });
                         break;
                       case "WebAlign":
-                        let url =
+                      case "WebWarp": {
+                        const alignment = localStorage.getItem("alignment");
+                        const bucketName = localStorage.getItem("bucketName");
+
+                        if (!alignment || alignment === "") {
+                          alert("Please set a working alignment first");
+                          return;
+                        }
+
+                        const url =
                           tab.url +
-                          `?clb-collab-id=${localStorage.getItem(
-                            "bucketName"
-                          )}&filename=${localStorage.getItem("alignment")}`;
+                          `?clb-collab-id=${bucketName}&filename=${alignment}`;
                         handleFrameChange(url);
                         break;
-                      case "WebWarp":
-                        let warpurl =
-                          tab.url +
-                          `?clb-collab-id=${localStorage.getItem(
-                            "bucketName"
-                          )}&filename=${localStorage.getItem("alignment")}`;
-                        handleFrameChange(warpurl);
-                        break;
+                      }
                       case "WebNutil": {
                         setNativeSelection({
                           native: true,
