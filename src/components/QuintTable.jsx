@@ -19,10 +19,12 @@ import {
   fetchBrainStats,
   createProject,
   checkBucketExists,
+  downloadWalnJson,
 } from "../actions/handleCollabs.js";
 import CreationDialog from "./CreationDialog.jsx";
 import BrainTable from "./BrainTable.jsx";
-import AdditionalInfo from "./QuickActions.jsx";
+import QuickActions from "./QuickActions.jsx";
+import ProgressPanel from "./ProgressPanel.jsx";
 
 export default function QuintTable({ token, user }) {
   // Query helpers
@@ -81,6 +83,8 @@ export default function QuintTable({ token, user }) {
     severity: "info", // 'error' | 'warning' | 'info' available as of now
     loading: false,
   });
+
+  const [walnContent, setWalnContent] = React.useState(null);
 
   // Project state helper for conditional rendering
   const getProjectState = () => {
@@ -275,20 +279,40 @@ export default function QuintTable({ token, user }) {
 
   const handleBrainSelect = async (params) => {
     console.log("Params passed down", params);
+    setWalnContent(null);
     setSelectedBrain(params.row);
     setIsFetchingStats(true);
     console.log(`Selected brain: ${params.row.name}`);
     try {
       const stats = await fetchBrainStats(token, bucketName, params.row.path);
       setSelectedBrainStats(stats);
-      // To be passed along other items
       localStorage.setItem(
         "selectedBrain",
         JSON.stringify({ ...params.row, project: selectedProject.name })
       );
       console.log(`Selected brain stats:`, stats);
+
+      if (stats && stats[2]?.jsons?.[0]?.name) {
+        try {
+          const walnContent = await downloadWalnJson(
+            token,
+            bucketName,
+            stats[2].jsons[0].name
+          );
+          console.log("WALN Content:", walnContent);
+          setWalnContent(walnContent);
+        } catch (error) {
+          console.error("Failed to download WALN:", error);
+          setWalnContent(null);
+        }
+      } else {
+        console.log("No WALN file found in stats");
+        setWalnContent(null);
+      }
     } catch (error) {
       console.error("Error fetching brain stats:", error);
+      setSelectedBrainStats([]);
+      setWalnContent(null);
     } finally {
       setIsFetchingStats(false);
     }
@@ -327,7 +351,7 @@ export default function QuintTable({ token, user }) {
         display: "flex",
         flexDirection: "row",
         alignItems: "stretch",
-        height: "95%",
+        height: "99%",
         borderRadius: "4px",
         gap: 2,
       }}
@@ -488,9 +512,15 @@ export default function QuintTable({ token, user }) {
                   onBrainSelect={handleBrainSelect}
                 />
                 <Box
-                  sx={{ width: "60%", ml: 2, flexGrow: 0.6, height: "100%" }}
+                  sx={{
+                    width: "60%",
+                    ml: 2,
+                    flexGrow: 0.6,
+                    height: "100%",
+                    flexDirection: "column",
+                  }}
                 >
-                  <AdditionalInfo
+                  <QuickActions
                     braininfo={selectedBrain}
                     stats={selectedBrainStats}
                     isLoading={isFetchingStats}
@@ -499,6 +529,7 @@ export default function QuintTable({ token, user }) {
                     refreshBrain={refreshBrain}
                     refreshProjectBrains={refreshProjectBrains}
                   />
+                  <ProgressPanel walnContent={walnContent} />
                 </Box>
               </>
             )}

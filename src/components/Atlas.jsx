@@ -60,7 +60,7 @@ const createAtlas = async (atlasName, bucketName, dzips, token) => {
     projectName: split[0],
     brainName: split[1],
   };
-  brainAnnounce = uploadObj.brainName;
+  let brainAnnounce = uploadObj.brainName;
 
   try {
     const pathParts = dzips[0].name.split("/");

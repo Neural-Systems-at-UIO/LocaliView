@@ -55,7 +55,7 @@ const dateOptions = {
   year: "2-digit",
 };
 
-const AdditionalInfo = ({
+const QuickActions = ({
   braininfo,
   stats,
   isLoading,
@@ -361,7 +361,7 @@ const AdditionalInfo = ({
               },
             }}
           >
-            <CardContent>
+            <CardContent sx={{ p: 2 }}>
               <Box
                 sx={{
                   display: "flex",
@@ -682,10 +682,11 @@ const AdditionalInfo = ({
               alignItems: "center",
               justifyContent: "space-between",
               width: "100%",
+              p: 0,
             }}
           >
             <Card sx={{ boxShadow: "none", width: "100%" }}>
-              <CardContent>
+              <CardContent sx={{ p: 1 }}>
                 <Box
                   sx={{
                     display: "flex",
@@ -813,4 +814,4 @@ const AdditionalInfo = ({
   );
 };
 
-export default AdditionalInfo;
+export default QuickActions;

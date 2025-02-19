@@ -8,36 +8,35 @@ const Mainframe = ({ url, native, token, user }) => {
     <Box
       sx={{
         width: "100%",
-        height: "96vh",
+        flex: 1,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         position: "relative",
+        mt: 1,
       }}
     >
       {native.native ? (
         <Box
           sx={{
             width: "99%",
-            height: "98%",
+            height: "100%",
             border: "none",
             borderRadius: "4px",
           }}
         >
           {native.app === "workspace" ? (
-            // .app helps figure the native selections we have
             <QuintTable token={token} user={user} />
           ) : native.app === "nutil" ? (
             <Nutil token={token} user={user} />
-          ) : // TODO Sandbox here
-          null}
+          ) : null}
         </Box>
       ) : (
         <Box
           component="iframe"
           sx={{
             width: "99%",
-            height: "98%",
+            height: "100%",
             border: "none",
             bgcolor: "white",
             borderRadius: "4px",

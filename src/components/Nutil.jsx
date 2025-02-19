@@ -192,7 +192,7 @@ const Nutil = ({ token }) => {
     <Box
       sx={{
         display: "flex",
-        height: "96%",
+        height: "99%",
         backgroundColor: "#f6f6f6",
         borderRadius: "4px",
         gap: 2,

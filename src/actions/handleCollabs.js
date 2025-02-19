@@ -408,3 +408,38 @@ export async function checkBucketExists(token, searchTerm) {
         return false;
     }
 }
+
+// downloading waln to to memory to display further stats of the flow progress
+export const downloadWalnJson = async (token, bucketName, objectPath) => {
+    try {
+        // Step 1: Get the download URL
+        const response = await fetch(`${BUCKET_URL}${bucketName}/${objectPath}?redirect=false`, {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to get download URL');
+        }
+
+        const { url: downloadUrl } = await response.json();
+
+        // Step 2: Download the actual content
+        const contentResponse = await fetch(downloadUrl);
+
+        if (!contentResponse.ok) {
+            throw new Error('Failed to download WALN content');
+        }
+
+        // Parse and return the JSON content
+        const walnContent = await contentResponse.json();
+        return walnContent;
+
+    } catch (error) {
+        console.error('Error downloading WALN:', error);
+        throw error;
+    }
+};
