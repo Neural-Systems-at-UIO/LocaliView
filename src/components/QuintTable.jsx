@@ -327,7 +327,7 @@ export default function QuintTable({ token, user }) {
         display: "flex",
         flexDirection: "row",
         alignItems: "stretch",
-        height: "95%",
+        height: "99%",
         borderRadius: "4px",
         gap: 2,
       }}

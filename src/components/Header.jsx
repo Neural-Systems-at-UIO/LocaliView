@@ -218,7 +218,14 @@ const Header = () => {
   }
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box
+      sx={{
+        flexGrow: 1,
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <AppBar
         position="flex"
         sx={{
