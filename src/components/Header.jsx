@@ -264,7 +264,7 @@ const Header = () => {
                   color: "black",
                   textTransform: "none",
                   backgroundColor: "#e0e0e0",
-                  borderTopLeftRadius: "4px",
+
                   borderTopRightRadius: "4px",
                   clipPath:
                     "polygon(90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%, 0 0)", // Arrow shape
