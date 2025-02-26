@@ -5,17 +5,32 @@ import {
   Typography,
   Chip,
   Stack,
-  LinearProgress,
   Tooltip,
+  Button,
+  CircularProgress,
 } from "@mui/material";
+
+import { useTabContext } from "./TabContext";
+
+// Icons
 import ImageIcon from "@mui/icons-material/Image";
 import MapIcon from "@mui/icons-material/Map";
 import AspectRatioIcon from "@mui/icons-material/AspectRatio";
 import FolderZipIcon from "@mui/icons-material/FolderZip";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import SquareFootIcon from "@mui/icons-material/SquareFoot";
+import ArrowOutward from "@mui/icons-material/ArrowOutward";
+
+// This is the main atlas name dispalyed on top of the panel as waln containts the abbrev.
+const atlasNames = {
+  WHS_SD_Rat_v3_39um: "Waxholm Space Atlas of the Sprague Dawley rat v3",
+  WHS_SD_Rat_v4_39um: "Waxholm Space Atlas of the Sprague Dawley rat v4",
+  ABA_Mouse_CCFv3_2017_25um: "Allen Mouse Brain Atlas CCFv3 2017 25um",
+};
 
 export default function ProgressPanel({ walnContent }) {
+  const { navigateToWebAlign, navigateToWebWarp } = useTabContext();
+
   if (!walnContent) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", p: 1 }}>
@@ -42,6 +57,9 @@ export default function ProgressPanel({ walnContent }) {
   const sectionsWithMarkers = walnContent.sections.filter(
     (section) => section.markers && section.markers.length > 0
   ).length;
+
+  console.log("sections with OUV", sectionsWithOUV);
+  console.log("sections with markers", sectionsWithMarkers);
 
   return (
     <Paper
@@ -70,7 +88,7 @@ export default function ProgressPanel({ walnContent }) {
           <Stack direction="row" spacing={1} alignItems="center">
             <MapIcon color="primary" sx={{ fontSize: 18 }} />
             <Typography variant="subtitle2" color="primary" noWrap>
-              {walnContent.atlas}
+              {atlasNames[walnContent.atlas]}
             </Typography>
           </Stack>
           <Tooltip title="Total brain sections">
@@ -109,37 +127,245 @@ export default function ProgressPanel({ walnContent }) {
           </Stack>
         </Stack>
         <Stack spacing={1} sx={{ pt: 0.5 }}>
-          <Stack spacing={0.5}>
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <SquareFootIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-              <Typography variant="caption" color="text.secondary">
-                WebAlign Progress (QUICKNII) ({sectionsWithOUV}/{totalImages})
-              </Typography>
-            </Stack>
-            <Tooltip title={`${sectionsWithOUV} sections with OUV data`}>
-              <LinearProgress
-                variant="determinate"
-                value={(sectionsWithOUV / totalImages) * 100}
-                sx={{ height: 6, borderRadius: 1 }}
-              />
-            </Tooltip>
-          </Stack>
+          {/* Change direction to row to place cards side by side */}
+          <Stack direction="row" spacing={2} sx={{ width: "100%" }}>
+            {/* WebAlign Card */}
+            <Paper
+              elevation={0}
+              sx={{
+                flex: 1,
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: "rgba(25, 118, 210, 0.05)",
+              }}
+            >
+              <Stack spacing={1.5}>
+                <Stack
+                  direction="row"
+                  spacing={0.5}
+                  justifyContent="space-between"
+                  alignItems="center"
+                >
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <Typography
+                      variant="body2"
+                      fontWeight="medium"
+                      sx={{ ml: 0.8 }}
+                      color="primary.main"
+                    >
+                      WebAlign (QUICKNII)
+                    </Typography>
+                  </Box>
+                  <Tooltip title={`${sectionsWithOUV} sections with OUV data`}>
+                    <Chip
+                      label={`${sectionsWithOUV}/${totalImages}`}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                      sx={{ height: 22 }}
+                    />
+                  </Tooltip>
+                </Stack>
 
-          <Stack spacing={0.5}>
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <LocationOnIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-              <Typography variant="caption" color="text.secondary">
-                WebWarp Progress (VISUALIGN) ({sectionsWithMarkers}/
-                {totalImages})
-              </Typography>
-            </Stack>
-            <Tooltip title={`${sectionsWithMarkers} sections with markers`}>
-              <LinearProgress
-                variant="determinate"
-                value={(sectionsWithMarkers / totalImages) * 100}
-                sx={{ height: 6, borderRadius: 1 }}
-              />
-            </Tooltip>
+                <Box
+                  sx={{
+                    position: "relative",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    my: 1,
+                  }}
+                >
+                  <Box sx={{ position: "relative", display: "inline-flex" }}>
+                    <CircularProgress
+                      variant="determinate"
+                      value={(sectionsWithOUV / totalImages) * 100}
+                      size={60}
+                      thickness={2.5}
+                      sx={{ color: "primary.main" }}
+                    />
+                    <Box
+                      sx={{
+                        top: 0,
+                        left: 0,
+                        bottom: 0,
+                        right: 0,
+                        position: "absolute",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        component="div"
+                        color="text.secondary"
+                        fontWeight="bold"
+                      >
+                        {Math.round((sectionsWithOUV / totalImages) * 100)}%
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+
+                <Button
+                  size="small"
+                  variant="contained"
+                  endIcon={<ArrowOutward />}
+                  disableElevation
+                  onClick={navigateToWebAlign}
+                  disabled={!walnContent || sectionsWithOUV === totalImages}
+                  sx={{ fontSize: "0.8rem", mt: 0.5, textTransform: "none" }}
+                  fullWidth
+                >
+                  Continue in WebAlign
+                </Button>
+              </Stack>
+            </Paper>
+
+            {/* WebWarp Card */}
+            <Paper
+              elevation={0}
+              sx={{
+                flex: 1,
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: "rgba(46, 125, 50, 0.05)",
+              }}
+            >
+              <Stack spacing={1.5}>
+                <Stack
+                  direction="row"
+                  spacing={0.5}
+                  justifyContent="space-between"
+                  alignItems="center"
+                >
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <Typography
+                      variant="body2"
+                      fontWeight="medium"
+                      sx={{ ml: 0.8 }}
+                      color="success.main"
+                    >
+                      WebWarp (VISUALIGN)
+                    </Typography>
+                  </Box>
+                  <Tooltip
+                    title={`${sectionsWithMarkers} sections with markers`}
+                  >
+                    <Chip
+                      label={`${sectionsWithMarkers}/${totalImages}`}
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                      sx={{ height: 22 }}
+                    />
+                  </Tooltip>
+                </Stack>
+
+                <Box
+                  sx={{
+                    position: "relative",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    my: 1,
+                  }}
+                >
+                  <Box sx={{ position: "relative", display: "inline-flex" }}>
+                    <CircularProgress
+                      variant="determinate"
+                      value={(sectionsWithMarkers / totalImages) * 100}
+                      size={60}
+                      thickness={2.5}
+                      sx={{ color: "success.main" }}
+                    />
+                    <Box
+                      sx={{
+                        top: 0,
+                        left: 0,
+                        bottom: 0,
+                        right: 0,
+                        position: "absolute",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        component="div"
+                        color="text.secondary"
+                        fontWeight="bold"
+                      >
+                        {Math.round((sectionsWithMarkers / totalImages) * 100)}%
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+
+                <Button
+                  size="small"
+                  variant="contained"
+                  endIcon={<ArrowOutward />}
+                  disableElevation
+                  onClick={navigateToWebWarp}
+                  color="success"
+                  sx={{ fontSize: "0.8rem", mt: 0.5, textTransform: "none" }}
+                  fullWidth
+                >
+                  Continue in WebWarp
+                </Button>
+              </Stack>
+            </Paper>
+            <Paper
+              elevation={0}
+              sx={{
+                flex: 1,
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: "rgba(184, 110, 20, 0.05)",
+              }}
+            >
+              <Stack spacing={1.5}>
+                <Stack
+                  direction="row"
+                  spacing={0.5}
+                  justifyContent="space-between"
+                  alignItems="center"
+                >
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <Typography
+                      variant="body2"
+                      fontWeight="medium"
+                      sx={{ ml: 0.8 }}
+                    >
+                      WebIlastik
+                    </Typography>
+                  </Box>
+                  <Tooltip
+                    title={`${sectionsWithMarkers} sections with markers`}
+                  >
+                    <Chip
+                      label={`${sectionsWithMarkers}/${totalImages}`}
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                      sx={{ height: 22 }}
+                    />
+                  </Tooltip>
+                </Stack>
+              </Stack>
+            </Paper>
+            <Paper
+              elevation={0}
+              sx={{
+                flex: 1,
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: "rgba(25, 118, 210, 0.05)",
+              }}
+            ></Paper>
           </Stack>
         </Stack>
       </Stack>

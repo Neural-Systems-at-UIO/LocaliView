@@ -29,6 +29,7 @@ import FindInPageIcon from "@mui/icons-material/FindInPage";
 
 import Mainframe from "./Mainframe";
 import callUser from "../actions/createUser";
+import { useTabContext } from "./TabContext";
 
 // Variable loading for URLs
 const OIDC = import.meta.env.VITE_APP_OIDC;
@@ -82,17 +83,23 @@ const Header = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Control for the iframe, further divergence from an iframe can be done within the Mainframe component
   // Mainly for Native use of the applications and the webalign etc i frame ones
-  const [currentUrl, setCurrentUrl] = useState(null);
-  const [nativeSelection, setNativeSelection] = useState({
-    native: true,
-    app: "workspace", // Default app, but we can use nutil and results
-  });
-  const [tab, setTab] = useState(0);
+  const {
+    currentTab,
+    switchToTab,
+    navigateToWebAlign,
+    navigateToWebWarp,
+    nativeSelection,
+    setNativeSelection,
+    currentUrl,
+    handleFrameChange,
+  } = useTabContext();
   const [docsOpen, setDocsOpen] = useState(false);
 
   // Login alert
   const [loginAlert, setLoginAlert] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
+
+  // Tab context to interact
 
   const handleLogin = () => {
     window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=${MY_URL}`;
@@ -105,15 +112,6 @@ const Header = () => {
 
   const toggleDocs = () => {
     setDocsOpen(!docsOpen);
-  };
-
-  const handleFrameChange = (url) => {
-    console.log(`Changing frame to ${url}`);
-    setCurrentUrl(url);
-    setNativeSelection({
-      native: false,
-      app: "frame",
-    });
   };
 
   const sharedListItemSx = {
@@ -250,8 +248,8 @@ const Header = () => {
             }}
           >
             <Tabs
-              value={tab}
-              onChange={(event, newValue) => setTab(newValue)}
+              value={currentTab}
+              onChange={(event, newValue) => switchToTab(newValue)}
               sx={{
                 minHeight: "36px",
                 "& .MuiTab-root": {
@@ -301,21 +299,11 @@ const Header = () => {
                         });
                         break;
                       case "WebAlign":
-                      case "WebWarp": {
-                        const alignment = localStorage.getItem("alignment");
-                        const bucketName = localStorage.getItem("bucketName");
-
-                        if (!alignment || alignment === "") {
-                          alert("Please set a working alignment first");
-                          return;
-                        }
-
-                        const url =
-                          tab.url +
-                          `?clb-collab-id=${bucketName}&filename=${alignment}`;
-                        handleFrameChange(url);
+                        navigateToWebAlign();
                         break;
-                      }
+                      case "WebWarp":
+                        navigateToWebWarp();
+                        break;
                       case "WebNutil": {
                         setNativeSelection({
                           native: true,

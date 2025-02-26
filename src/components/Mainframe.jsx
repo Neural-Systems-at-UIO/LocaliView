@@ -2,8 +2,10 @@ import React from "react";
 import { Box } from "@mui/material";
 import QuintTable from "./QuintTable";
 import Nutil from "./Nutil";
+import { useTabContext } from "./TabContext";
 
-const Mainframe = ({ url, native, token, user }) => {
+const Mainframe = ({ token, user }) => {
+  const { currentUrl, nativeSelection } = useTabContext();
   return (
     <Box
       sx={{
@@ -16,7 +18,7 @@ const Mainframe = ({ url, native, token, user }) => {
         mt: 1,
       }}
     >
-      {native.native ? (
+      {nativeSelection.native ? (
         <Box
           sx={{
             width: "99%",
@@ -25,9 +27,9 @@ const Mainframe = ({ url, native, token, user }) => {
             borderRadius: "4px",
           }}
         >
-          {native.app === "workspace" ? (
+          {nativeSelection.app === "workspace" ? (
             <QuintTable token={token} user={user} />
-          ) : native.app === "nutil" ? (
+          ) : nativeSelection.app === "nutil" ? (
             <Nutil token={token} user={user} />
           ) : null}
         </Box>
@@ -41,7 +43,7 @@ const Mainframe = ({ url, native, token, user }) => {
             bgcolor: "white",
             borderRadius: "4px",
           }}
-          src={url || ""}
+          src={currentUrl || ""}
           title="Mainframe Content"
           allowFullScreen
         />
