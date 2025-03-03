@@ -61,6 +61,36 @@ export const TabProvider = ({ children }) => {
     return true;
   };
 
+  const navigateToWebIlastik = () => {
+    const alignment = localStorage.getItem("alignment");
+    const bucketName = localStorage.getItem("bucketName");
+
+    if (!alignment || alignment === "") {
+      alert("Please set a working alignment first");
+      return false;
+    }
+
+    // Tab index 3 is for WebIlastik
+    setCurrentTab(3);
+
+    // The current URL is not up for it so its empty
+    const url = `https://webilastik.apps.ebrains.eu/webilastik.php?clb-collab-id=${bucketName}&filename=${alignment}`;
+    handleFrameChange(url);
+
+    return true;
+  };
+
+  const navigateToWebNutil = () => {
+    // Tab index 4 is for WebNutil
+    setCurrentTab(4);
+    // Construct URL and set iframe
+    setNativeSelection({
+      native: true,
+      app: "nutil",
+    });
+    return true;
+  };
+
   return (
     <TabContext.Provider
       value={{
@@ -72,6 +102,8 @@ export const TabProvider = ({ children }) => {
         setNativeSelection,
         currentUrl,
         handleFrameChange,
+        navigateToWebIlastik,
+        navigateToWebNutil,
       }}
     >
       {children}
