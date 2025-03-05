@@ -387,7 +387,7 @@ const QuickActions = ({
                         variant="body2"
                         sx={{ fontWeight: 500, textAlign: "left" }}
                       >
-                        Tiff files to be processed:{" "}
+                        Image files to be processed:{" "}
                         {Math.max(
                           0,
                           brainStats.files - (stats[1]?.zips.length || 0)

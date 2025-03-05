@@ -173,7 +173,14 @@ export const fetchBrainStats = async (token, bucketName, brainPrefix, optional =
             // Workdir relevant keys
 
             if (workDir === 'raw_images') {
-                stats.tiffs = data.objects.filter(obj => obj.name.endsWith('.tif'))
+                stats.tiffs = data.objects.filter(obj => {
+                    const name = obj.name.toLowerCase();
+                    return name.endsWith('.tif') ||
+                        name.endsWith('.tiff') ||
+                        name.endsWith('.png') ||
+                        name.endsWith('.jpg') ||
+                        name.endsWith('.jpeg');
+                });
             } else if (workDir === 'zipped_images') {
                 stats.zips = data.objects.filter(obj => obj.name.endsWith('.dzip'))
             } else if (workDir === 'jsons') {
