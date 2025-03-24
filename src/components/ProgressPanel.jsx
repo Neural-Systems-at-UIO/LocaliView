@@ -40,13 +40,12 @@ export default function ProgressPanel({ walnContent }) {
   if (!walnContent) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", p: 1 }}>
-        <Typography variant="body2" color="text.secondary">
-          WIP ATLAS STATS WILL NOT BE DISPLAYED IF ATLAS MISSING
-        </Typography>
+        <Typography variant="body2" color="text.secondary"></Typography>
       </Box>
     );
   }
 
+  // Helpers for getting the WALN content
   const totalImages = walnContent.sections.length;
   const avgDims = `${Math.round(
     walnContent.sections.reduce((acc, section) => acc + section.width, 0) /
@@ -64,6 +63,8 @@ export default function ProgressPanel({ walnContent }) {
     (section) => section.markers && section.markers.length > 0
   ).length;
 
+  // Verbose logging
+  console.log("total images", totalImages);
   console.log("sections with OUV", sectionsWithOUV);
   console.log("sections with markers", sectionsWithMarkers);
 

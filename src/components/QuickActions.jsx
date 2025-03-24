@@ -167,10 +167,10 @@ const QuickActions = ({
         }}
       >
         <Typography variant="h5" color="textSecondary">
-          Choose a series on the left to view additional information
+          Choose an image series to view additional information.
           <br />
           If there are none, add a new series by clicking on the 'Add/Edit
-          Series' button
+          Series' button.
         </Typography>
       </Box>
     );
@@ -300,7 +300,8 @@ const QuickActions = ({
                 />
               </ListItem>
             </List>
-            <Box
+            {/** 
+            * <Box
               sx={{
                 display: "flex",
                 justifyContent: "flex-start",
@@ -348,6 +349,7 @@ const QuickActions = ({
                 Share
               </Button>
             </Box>
+           */}
           </Card>
         </Grid>
         <Grid size={9}>
@@ -381,13 +383,23 @@ const QuickActions = ({
                     justifyContent: "space-between",
                   }}
                 >
+                  <Typography
+                    sx={{
+                      textWrap: "wrap",
+                      textAlign: "left",
+                      fontSize: 20,
+                      mb: 2,
+                    }}
+                  >
+                    Convert images to DZI format
+                  </Typography>
                   <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
                     <Box sx={{ flex: 1 }}>
                       <Typography
                         variant="body2"
                         sx={{ fontWeight: 500, textAlign: "left" }}
                       >
-                        Image files to be processed:{" "}
+                        Images to be converted:{" "}
                         {Math.max(
                           0,
                           brainStats.files - (stats[1]?.zips.length || 0)
@@ -468,8 +480,7 @@ const QuickActions = ({
                         variant="body2"
                         sx={{ fontWeight: 500, textAlign: "left" }}
                       >
-                        Currently in processed files:{" "}
-                        {stats[1]?.zips.length || 0}
+                        Converted images: {stats[1]?.zips.length || 0}
                       </Typography>
                       <Box
                         sx={{
@@ -591,8 +602,7 @@ const QuickActions = ({
                         color: "text.secondary",
                       }}
                     >
-                      Progress: {pyramidCount} / {brainStats.files || 0} files
-                      processed
+                      Progress: {pyramidCount} / {brainStats.files || 0} images
                     </Typography>
                     <LinearProgress
                       variant="determinate"
@@ -640,8 +650,8 @@ const QuickActions = ({
                       {pyramidComplete
                         ? "Complete"
                         : isProcessing
-                        ? "Processing..."
-                        : "Process"}
+                        ? "Converting..."
+                        : "Convert"}
                     </Button>
                   </Box>
                 </Box>

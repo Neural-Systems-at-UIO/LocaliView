@@ -294,7 +294,7 @@ const Nutil = ({ token }) => {
           </Button>
         </Stack>
 
-        <List dense sx={{ overflow: "auto", height: "calc(96% - 48px)" }}>
+        <List dense sx={{ overflow: "hidden", height: "calc(96% - 48px)" }}>
           {" "}
           {isFetchingSegmentations ? (
             <ListItem>

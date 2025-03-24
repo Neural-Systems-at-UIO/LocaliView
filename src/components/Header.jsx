@@ -26,6 +26,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import HelpRoundedIcon from "@mui/icons-material/HelpRounded";
 import FindInPageIcon from "@mui/icons-material/FindInPage";
+import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 
 import Mainframe from "./Mainframe";
 import callUser from "../actions/createUser";
@@ -40,7 +41,13 @@ const MY_URL = import.meta.env.VITE_APP_MY_URL;
 
 const tabs = [
   {
+    icon: <HomeRoundedIcon />,
     label: "Projects",
+    url: null,
+    disabled: false,
+  },
+  {
+    label: "Project",
     url: null,
     disabled: false,
   },
@@ -269,6 +276,7 @@ const Header = () => {
                   marginLeft: -0.5, // Spacing is 0 for now as arrows look to be fitting in
                   "&:first-child": {
                     marginLeft: 0,
+                    clipPath: "polygon(90% 0, 100% 50%, 90% 100%,)", // Arrow shape
                   },
                   "&.Mui-selected": {
                     color: "white",
@@ -288,7 +296,7 @@ const Header = () => {
               {tabs.map((tab, index) => (
                 <Tab
                   key={index}
-                  label={tab.label}
+                  label={tab.icon || tab.label}
                   disabled={!token && tab.label !== "Projects"}
                   onClick={() => {
                     switch (tab.label) {
