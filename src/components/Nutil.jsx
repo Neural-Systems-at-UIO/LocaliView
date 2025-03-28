@@ -507,7 +507,7 @@ const Nutil = ({ token }) => {
 
             <Box sx={{ display: "flex", gap: 1 }}>
               <Button size="small" startIcon={<Calculate />} fullWidth>
-                Get Statistics
+                Get plots
               </Button>
               <Button size="small" startIcon={<SaveAlt />} fullWidth>
                 Export Results

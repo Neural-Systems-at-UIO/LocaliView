@@ -63,7 +63,7 @@ const tabs = [
   },
   {
     label: "WebIlastik",
-    url: null,
+    url: "https://app.ilastik.org/public/nehuba/index.html#!%7B%22layout%22:%22xy%22%7D",
     disabled: false,
   },
 
@@ -75,7 +75,7 @@ const tabs = [
   {
     label: "Sandbox",
     url: null,
-    disabled: false,
+    disabled: true,
   },
 ];
 
@@ -275,8 +275,8 @@ const Header = () => {
                     "polygon(90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%, 0 0)", // Arrow shape
                   marginLeft: -0.5, // Spacing is 0 for now as arrows look to be fitting in
                   "&:first-child": {
-                    marginLeft: 0,
-                    clipPath: "polygon(90% 0, 100% 50%, 90% 100%,)", // Arrow shape
+                    clipPath:
+                      "polygon(90% 0, 100% 50%, 90% 100%, 0 100%, 0 0, 0 0)", // First tab shape with normal left edge
                   },
                   "&.Mui-selected": {
                     color: "white",
