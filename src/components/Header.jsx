@@ -26,6 +26,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import HelpRoundedIcon from "@mui/icons-material/HelpRounded";
 import FindInPageIcon from "@mui/icons-material/FindInPage";
+import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 
 import Mainframe from "./Mainframe";
 import callUser from "../actions/createUser";
@@ -39,11 +40,22 @@ const TOKEN_URL = import.meta.env.VITE_APP_TOKEN_URL;
 const MY_URL = import.meta.env.VITE_APP_MY_URL;
 
 const tabs = [
+  /*
+  {
+    icon: <HomeRoundedIcon />,
+    label: "Projects",
+    url: null,
+    disabled: false,
+  },
+  // To be implemented once the project context is ready
+  {
+  */
   {
     label: "Projects",
     url: null,
     disabled: false,
   },
+
   {
     label: "WebAlign",
     url: "https://webalign.apps.ebrains.eu/index.php",
@@ -56,10 +68,9 @@ const tabs = [
   },
   {
     label: "WebIlastik",
-    url: null,
+    url: "https://app.ilastik.org/public/nehuba/index.html#!%7B%22layout%22:%22xy%22%7D",
     disabled: false,
   },
-
   {
     label: "WebNutil",
     url: null,
@@ -68,7 +79,7 @@ const tabs = [
   {
     label: "Sandbox",
     url: null,
-    disabled: false,
+    disabled: true,
   },
 ];
 
@@ -180,9 +191,15 @@ const Header = () => {
             justifyContent: "center",
             alignItems: "center",
             minHeight: "100vh",
+            backgroundColor: "#f0f0f0",
+            flexDirection: "column",
           }}
         >
-          <CircularProgress />
+          <Typography variant="body" fontSize={20} color="text.primary" mb={15}>
+            Rodent Workbench
+          </Typography>
+
+          <CircularProgress size={25} />
         </Box>
       );
     }
@@ -262,13 +279,14 @@ const Header = () => {
                   color: "black",
                   textTransform: "none",
                   backgroundColor: "#e0e0e0",
-
-                  borderTopRightRadius: "4px",
                   clipPath:
                     "polygon(90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%, 0 0)", // Arrow shape
                   marginLeft: -0.5, // Spacing is 0 for now as arrows look to be fitting in
                   "&:first-child": {
-                    marginLeft: 0,
+                    clipPath:
+                      "polygon(90% 0, 100% 50%, 90% 100%, 0 100%, 0 0, 0 0)", // First tab shape with normal left edge
+                    borderRadius: "2px",
+                    marginLeft: -0.5,
                   },
                   "&.Mui-selected": {
                     color: "white",
@@ -288,7 +306,7 @@ const Header = () => {
               {tabs.map((tab, index) => (
                 <Tab
                   key={index}
-                  label={tab.label}
+                  label={tab.icon || tab.label}
                   disabled={!token && tab.label !== "Projects"}
                   onClick={() => {
                     switch (tab.label) {

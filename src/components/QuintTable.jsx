@@ -1,4 +1,4 @@
-import * as React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -28,9 +28,10 @@ import ProgressPanel from "./ProgressPanel.jsx";
 
 export default function QuintTable({ token, user }) {
   // Query helpers
-  const [bucketName, setBucketName] = React.useState("");
-  const [projects, setProjects] = React.useState([]);
-  const [selectedProject, setSelectedProject] = React.useState(() => {
+  const [bucketName, setBucketName] = useState("");
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState(null);
+  /* useState(() => {
     try {
       if (token !== null) {
         const storedProject = localStorage.getItem("selectedProject");
@@ -42,10 +43,10 @@ export default function QuintTable({ token, user }) {
       console.error("Error parsing selectedProject:", error);
       return null;
     }
-  });
-  const [selectedBrain, setSelectedBrain] = React.useState(null);
-  const [selectedBrainStats, setSelectedBrainStats] = React.useState([]);
-  const [projectBrainEntries, setProjectBrainEntries] = React.useState(() => {
+  }); */
+  const [selectedBrain, setSelectedBrain] = useState(null);
+  const [selectedBrainStats, setSelectedBrainStats] = useState([]);
+  const [projectBrainEntries, setProjectBrainEntries] = useState(() => {
     try {
       const storedEntries = localStorage.getItem("projectBrainEntries");
       return storedEntries ? JSON.parse(storedEntries) : [];
@@ -55,7 +56,7 @@ export default function QuintTable({ token, user }) {
     }
   });
   // Other stuff
-  const [rows, setRows] = React.useState(() => {
+  const [rows, setRows] = useState(() => {
     try {
       const storedEntries = localStorage.getItem("projectBrainEntries");
       const entries = storedEntries ? JSON.parse(storedEntries) : [];
@@ -70,21 +71,21 @@ export default function QuintTable({ token, user }) {
       return [];
     }
   });
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [isFetchingStats, setIsFetchingStats] = React.useState(false);
-  const [updatingBrains, setUpdatingBrains] = React.useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isFetchingStats, setIsFetchingStats] = useState(false);
+  const [updatingBrains, setUpdatingBrains] = useState(false);
   // To create a new project state
-  const [newProjectName, setNewProjectName] = React.useState("");
+  const [newProjectName, setNewProjectName] = useState("");
 
   // Project view issues
-  const [projectIssue, setProjectIssue] = React.useState({
+  const [projectIssue, setProjectIssue] = useState({
     problem: false,
     message: "",
     severity: "info", // 'error' | 'warning' | 'info' available as of now
     loading: false,
   });
 
-  const [walnContent, setWalnContent] = React.useState(null);
+  const [walnContent, setWalnContent] = useState(null);
 
   // Project state helper for conditional rendering
   const getProjectState = () => {
@@ -162,7 +163,7 @@ export default function QuintTable({ token, user }) {
       });
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     try {
       const userName = user.username;
       console.log("User info received by table:", user);
@@ -227,7 +228,7 @@ export default function QuintTable({ token, user }) {
   }, [user, token]); // only token hook here to avoid infinite loop
 
   // Second effect: Fetch projects when we have both token and bucketName
-  React.useEffect(() => {
+  useEffect(() => {
     if (token && bucketName && projects.length === 0) {
       localStorage.setItem("bucketName", bucketName);
       fetchAndUpdateProjects(bucketName);
@@ -504,6 +505,7 @@ export default function QuintTable({ token, user }) {
                   selectedProject={selectedProject}
                   rows={rows}
                   onBackClick={() => {
+                    setWalnContent(null);
                     setSelectedProject(null);
                     localStorage.removeItem("selectedProject");
                     setSelectedBrain(null);
