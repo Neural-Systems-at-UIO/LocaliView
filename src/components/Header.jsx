@@ -40,17 +40,22 @@ const TOKEN_URL = import.meta.env.VITE_APP_TOKEN_URL;
 const MY_URL = import.meta.env.VITE_APP_MY_URL;
 
 const tabs = [
+  /*
   {
     icon: <HomeRoundedIcon />,
     label: "Projects",
     url: null,
     disabled: false,
   },
+  // To be implemented once the project context is ready
   {
-    label: "Project",
+  */
+  {
+    label: "Projects",
     url: null,
     disabled: false,
   },
+
   {
     label: "WebAlign",
     url: "https://webalign.apps.ebrains.eu/index.php",
@@ -66,7 +71,6 @@ const tabs = [
     url: "https://app.ilastik.org/public/nehuba/index.html#!%7B%22layout%22:%22xy%22%7D",
     disabled: false,
   },
-
   {
     label: "WebNutil",
     url: null,
@@ -187,9 +191,15 @@ const Header = () => {
             justifyContent: "center",
             alignItems: "center",
             minHeight: "100vh",
+            backgroundColor: "#f0f0f0",
+            flexDirection: "column",
           }}
         >
-          <CircularProgress />
+          <Typography variant="body" fontSize={20} color="text.primary" mb={15}>
+            Rodent Workbench
+          </Typography>
+
+          <CircularProgress size={25} />
         </Box>
       );
     }
@@ -269,14 +279,14 @@ const Header = () => {
                   color: "black",
                   textTransform: "none",
                   backgroundColor: "#e0e0e0",
-
-                  borderTopRightRadius: "4px",
                   clipPath:
                     "polygon(90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%, 0 0)", // Arrow shape
                   marginLeft: -0.5, // Spacing is 0 for now as arrows look to be fitting in
                   "&:first-child": {
                     clipPath:
                       "polygon(90% 0, 100% 50%, 90% 100%, 0 100%, 0 0, 0 0)", // First tab shape with normal left edge
+                    borderRadius: "2px",
+                    marginLeft: -0.5,
                   },
                   "&.Mui-selected": {
                     color: "white",

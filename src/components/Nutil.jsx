@@ -102,7 +102,83 @@ const Nutil = ({ token }) => {
   const [registration, setRegistration] = useState({
     atlas: null,
     last_modified: null,
+    alignment_json_path: null,
   });
+  const [objectColor, setObjectColor] = useState("#000000");
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const requestNutil = async () => {
+    if (
+      !selectedBrain ||
+      !registration.atlas ||
+      selectedSegmentations.length === 0
+    ) {
+      console.error("Missing required data for Nutil analysis");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const collabName = localStorage.getItem("bucketName");
+      const brainPath = `${collabName}/${selectedBrain.path}`;
+
+      // Extract the segmentation folder path from the selected segmentation
+      const segmentationPath =
+        selectedSegmentations[0].name.split("/").slice(0, -1).join("/") + "/";
+
+      // Format object color from hex to RGB array
+      const hexToRgb = (hex) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return [r, g, b];
+      };
+
+      // Create timestamp-based output folder
+      const now = new Date();
+      const dateStr = `${now.getDate()}_${now.getMonth() + 1}_${now
+        .getFullYear()
+        .toString()
+        .slice(2)}`;
+      const outputPath = `${brainPath}pynutil_results/${dateStr}`;
+
+      // Create the request payload
+      const payload = {
+        segmentation_path: segmentationPath,
+        alignment_json_path: `${collabName}/${registration.alignment_json_path}`,
+        colour: hexToRgb(objectColor),
+        output_path: outputPath,
+        token: token,
+      };
+
+      console.log("Nutil analysis request payload:", payload);
+
+      // Uncomment the following code to actually send the request
+      /*
+      const response = await fetch('YOUR_API_ENDPOINT_HERE', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      // Get the returned task id here, add to workspace context after implementation
+      console.log("Nutil analysis result:", result);
+      */
+    } catch (error) {
+      console.error("Error requesting Nutil analysis:", error);
+      setError("Failed to process Nutil analysis request");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -155,6 +231,14 @@ const Nutil = ({ token }) => {
   const handleBrainSelect = async (brain) => {
     try {
       setSelectedBrain(brain);
+      // Resetting the segmentations and registration state when a new brain is selected
+      // Much faster response time for the user
+      setRegistration({
+        atlas: null,
+        last_modified: null,
+        alignment_json_path: null,
+      });
+      setSegmentations([]);
       localStorage.setItem("selectedBrain", JSON.stringify(brain));
       await getSegmentations(brain);
       let seriesDescriptor = await fetchBrainStats(
@@ -173,8 +257,9 @@ const Nutil = ({ token }) => {
         await setRegistration({
           atlas: atlas,
           last_modified: lastModified,
+          alignment_json_path: filePath,
         });
-        console.log("Atlas registration found:", registration);
+        console.log("Atlas registration found:", filePath);
       } else {
         console.log("No atlas registration found");
         await setRegistration({
@@ -294,7 +379,7 @@ const Nutil = ({ token }) => {
           </Button>
         </Stack>
 
-        <List dense sx={{ overflow: "hidden", height: "calc(96% - 48px)" }}>
+        <List dense sx={{ overflow: "auto", height: "85vh" }}>
           {" "}
           {isFetchingSegmentations ? (
             <ListItem>
@@ -394,11 +479,10 @@ const Nutil = ({ token }) => {
                 disableElevation
                 size="small"
                 startIcon={<Analytics />}
-                disabled={!registration.atlas}
-                // Checking whether the atlas registration is complete
-                // implies only segmentations aren't enough and we need further info detailed in the registration file
+                disabled={!registration.atlas || isProcessing}
+                onClick={requestNutil}
               >
-                Run analysis
+                {isProcessing ? "Processing..." : "Run analysis"}
               </Button>
             </Box>
             <Box
@@ -443,7 +527,7 @@ const Nutil = ({ token }) => {
               }}
             >
               <Box sx={{ flex: 1 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                {/*<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <Typography variant="caption">Output</Typography>
                   <Tooltip title="Select whether to display object counts or area fraction (percentage) of objects within atlas regions">
                     <Info
@@ -453,6 +537,7 @@ const Nutil = ({ token }) => {
                     />
                   </Tooltip>
                 </Box>
+                
                 <FormControl fullWidth size="small">
                   <Select
                     value={outputType}
@@ -464,6 +549,7 @@ const Nutil = ({ token }) => {
                     <MenuItem value="areaFraction">Area Fraction</MenuItem>
                   </Select>
                 </FormControl>
+                */}
               </Box>
               <Box sx={{ flex: 1 }}>
                 <Typography variant="caption" display="block" gutterBottom>
@@ -474,6 +560,7 @@ const Nutil = ({ token }) => {
                   size="small"
                   fullWidth
                   defaultValue="#000000"
+                  onChange={(e) => setObjectColor(e.target.value)}
                   sx={{
                     '& input[type="color"]': {
                       padding: "2px",
@@ -507,7 +594,7 @@ const Nutil = ({ token }) => {
 
             <Box sx={{ display: "flex", gap: 1 }}>
               <Button size="small" startIcon={<Calculate />} fullWidth>
-                Get plots
+                Plotting and Viewers
               </Button>
               <Button size="small" startIcon={<SaveAlt />} fullWidth>
                 Export Results
