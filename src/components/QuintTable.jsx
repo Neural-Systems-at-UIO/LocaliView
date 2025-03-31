@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -505,6 +505,7 @@ export default function QuintTable({ token, user }) {
                   selectedProject={selectedProject}
                   rows={rows}
                   onBackClick={() => {
+                    setWalnContent(null);
                     setSelectedProject(null);
                     localStorage.removeItem("selectedProject");
                     setSelectedBrain(null);

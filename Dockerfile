@@ -17,8 +17,8 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 RUN echo 'server { \
     listen 3000; \
     \
-    # Handle requests at /myapp \
-    location /new { \
+    # Handle requests at root / \
+    location / { \
     alias /usr/share/nginx/html/; \
     try_files $uri $uri/ /index.html; \
     \
