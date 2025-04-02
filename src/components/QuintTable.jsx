@@ -506,7 +506,6 @@ export default function QuintTable({ token, user }) {
                   rows={rows}
                   onBackClick={() => {
                     setWalnContent(null);
-                    setSelectedProject(null);
                     localStorage.removeItem("selectedProject");
                     setSelectedBrain(null);
                   }}
