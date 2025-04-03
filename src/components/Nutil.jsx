@@ -189,7 +189,7 @@ const Nutil = ({ token }) => {
 
       // Create the request payload
       const payload = {
-        segmentation_path: segmentationPath,
+        segmentation_path: `${collabName}/${segmentationPath}`,
         alignment_json_path: `${collabName}/${registration.alignment_json_path}`,
         colour: hexToRgb(objectColor),
         output_path: outputPath,
@@ -266,6 +266,34 @@ const Nutil = ({ token }) => {
     }
   };
 
+  const fetchCompletedResults = async () => {
+    if (!selectedBrain) return;
+
+    try {
+      const collabName = localStorage.getItem("bucketName");
+      const brainPath = `${collabName}/${selectedBrain.path}`;
+      const resultsPath = `${brainPath}pynutil_results`;
+
+      // This would be your actual API call to fetch the results
+      // For now, I'm just showing a placeholder
+      // const response = await fetchBrainData(token, collabName, resultsPath);
+      // setCompletedResults(response);
+
+      // Placeholder for demonstration - replace with actual API call
+      console.log("Fetching completed results from:", resultsPath);
+      // setCompletedResults([]); // This would be populated from your API
+    } catch (error) {
+      console.error("Error fetching completed results:", error);
+    }
+  };
+
+  // Call this when a brain is selected to fetch existing results
+  useEffect(() => {
+    if (selectedBrain) {
+      fetchCompletedResults();
+    }
+  }, [selectedBrain]);
+
   useEffect(() => {
     let pollingInterval;
 
@@ -296,6 +324,7 @@ const Nutil = ({ token }) => {
               ) {
                 // Task just completed or failed
                 fetchCompletedResults(); // Refresh results list
+                // TODO Add fetch here for the pynutil outputs folder.
               }
 
               return {
