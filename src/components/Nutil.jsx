@@ -35,6 +35,7 @@ import mBrain from "../mBrain.ico";
 import {
   fetchBrainSegmentations,
   fetchBrainStats,
+  fetchPyNutilResults,
 } from "../actions/handleCollabs";
 import UploadSegments from "./UploadSegments";
 
@@ -271,19 +272,41 @@ const Nutil = ({ token }) => {
 
     try {
       const collabName = localStorage.getItem("bucketName");
-      const brainPath = `${collabName}/${selectedBrain.path}`;
-      const resultsPath = `${brainPath}pynutil_results`;
+      const resultsPath = `${selectedBrain.path}`;
 
-      // This would be your actual API call to fetch the results
-      // For now, I'm just showing a placeholder
-      // const response = await fetchBrainData(token, collabName, resultsPath);
-      // setCompletedResults(response);
-
-      // Placeholder for demonstration - replace with actual API call
       console.log("Fetching completed results from:", resultsPath);
-      // setCompletedResults([]); // This would be populated from your API
+
+      const response = await fetchPyNutilResults(
+        token,
+        collabName,
+        resultsPath
+      );
+
+      console.log("Raw response structure:", JSON.stringify(response));
+
+      if (response && response.length > 0) {
+        const folderData = response[0];
+
+        if (folderData.images && folderData.images.length > 0) {
+          // Process the deeply nested structure properly
+          const results = folderData.images.map((item) => ({
+            name:
+              item.subdir || item.name || `Result ${item.hash || "Unknown"}`,
+            created: item.last_modified || new Date().toISOString(),
+            path: item.name || item.subdir, // Use subdir as a fallback for path
+            status: "completed",
+          }));
+          setCompletedResults(results);
+          console.log("Processed results:", results);
+        } else {
+          setCompletedResults([]);
+        }
+      } else {
+        setCompletedResults([]);
+      }
     } catch (error) {
       console.error("Error fetching completed results:", error);
+      setCompletedResults([]);
     }
   };
 
@@ -750,7 +773,11 @@ const Nutil = ({ token }) => {
           <Box
             sx={{ p: 1.5, flex: 1, display: "flex", flexDirection: "column" }}
           >
-            <Typography variant="body2" gutterBottom>
+            <Typography
+              variant="body2"
+              gutterBottom
+              sx={{ mb: 1, textAlign: "left" }}
+            >
               Results
             </Typography>
             <Box
@@ -765,7 +792,11 @@ const Nutil = ({ token }) => {
               }}
             >
               {/* Task Status Section */}
-              <Typography variant="subtitle2" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                gutterBottom
+                sx={{ textAlign: "left" }}
+              >
                 Job Status
               </Typography>
 
@@ -842,6 +873,7 @@ const Nutil = ({ token }) => {
                           sx={{ mt: 1.5 }}
                           onClick={() => {
                             // Add logic to view results
+                            // TODO Use a to sandbox link to open the results
                           }}
                         >
                           View Results
@@ -864,14 +896,18 @@ const Nutil = ({ token }) => {
                 <Typography
                   variant="body2"
                   color="text.secondary"
-                  sx={{ p: 2, textAlign: "center" }}
+                  sx={{ p: 2, textAlign: "left" }}
                 >
                   No active jobs
                 </Typography>
               )}
 
               {/* Completed Results Section */}
-              <Typography variant="subtitle2" gutterBottom sx={{ mt: 3 }}>
+              <Typography
+                variant="subtitle2"
+                gutterBottom
+                sx={{ mt: 3, textAlign: "left" }}
+              >
                 Available Results
               </Typography>
 
@@ -887,28 +923,48 @@ const Nutil = ({ token }) => {
                       backgroundColor: "white",
                     }}
                   >
-                    <Typography variant="body2" sx={{ fontWeight: "medium" }}>
-                      {result.name.split("/").pop()}
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: "medium", textAlign: "left" }}
+                    >
+                      {(() => {
+                        if (!result.name) return "Unnamed Result";
+                        const cleanPath = result.name.endsWith("/")
+                          ? result.name.slice(0, -1)
+                          : result.name;
+                        return cleanPath.split("/").pop() || "Unnamed Result";
+                      })()}
                     </Typography>
                     <Typography
                       variant="caption"
                       display="block"
                       color="text.secondary"
+                      sx={{ mt: 1, textAlign: "left" }}
                     >
-                      {new Date(result.created).toLocaleString()}
+                      {result.created
+                        ? new Date(result.created).toLocaleString()
+                        : "No date available"}
                     </Typography>
-                    <Button
-                      size="small"
-                      sx={{ mt: 1 }}
-                      startIcon={<Analytics />}
-                      variant="outlined"
-                    >
-                      View Results
-                    </Button>
+                    <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                      <Button
+                        size="small"
+                        startIcon={<Calculate />}
+                        sx={{ fontSize: "0.75rem", py: 0.5 }}
+                      >
+                        Plot
+                      </Button>
+                      <Button
+                        size="small"
+                        startIcon={<SaveAlt />}
+                        sx={{ fontSize: "0.75rem", py: 0.5 }}
+                      >
+                        Export
+                      </Button>
+                    </Box>
                   </Box>
                 ))
               ) : (
-                <Box sx={{ p: 2, textAlign: "center" }}>
+                <Box sx={{ p: 2, textAlign: "left" }}>
                   <Typography variant="body2" color="text.secondary">
                     No completed results available
                   </Typography>
@@ -919,6 +975,8 @@ const Nutil = ({ token }) => {
               )}
             </Box>
 
+            {/*
+            // These are the old placement for buttons
             <Box sx={{ display: "flex", gap: 1 }}>
               <Button size="small" startIcon={<Calculate />} fullWidth>
                 Plotting and Viewers
@@ -926,7 +984,7 @@ const Nutil = ({ token }) => {
               <Button size="small" startIcon={<SaveAlt />} fullWidth>
                 Export Results
               </Button>
-            </Box>
+            </Box>*/}
           </Box>
         </Box>
       </Box>

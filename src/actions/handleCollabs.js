@@ -248,6 +248,48 @@ export const fetchBrainSegmentations = async (token, bucketName, brainPrefix) =>
     }
 }
 
+export const fetchPyNutilResults = async (token, bucketName, brainPrefix) => {
+    try {
+        let url = `https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}?`
+        const workDir = 'pynutil_results'
+
+        const params = new URLSearchParams()
+        if (brainPrefix) params.append('prefix', `${brainPrefix}${workDir}/`)
+        params.append('limit', 1000)
+        params.append('delimiter', '/')
+        const workDirUrl = `${url}${params.toString()}`
+
+        const response = await fetch(workDirUrl, {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+                'Authorization': 'Bearer ' + token
+            }
+        })
+        if (!response.ok) {
+            throw new Error(`Failed to fetch bucket directory for ${workDir}`)
+        }
+
+        const data = await response.json()
+
+        if (!data.objects || data.objects.length === 0) {
+            return []
+        }
+
+        const stats = {
+            "name": brainPrefix + workDir,
+            "files": data.objects.length,
+            "size": data.objects.reduce((acc, obj) => acc + obj.bytes, 0),
+            "images": data.objects,
+        }
+
+        return [stats]
+
+    } catch (error) {
+        console.error('Error fetching bucket directory:', error)
+        throw error
+    }
+}
 
 // For upload to paths, subdirs are added upon calling in the params eg "brain/raw_images/"
 export const uploadToPath = async (token, bucketName, projectName, uploadPath, file) => {
