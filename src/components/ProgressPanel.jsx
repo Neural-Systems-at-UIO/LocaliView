@@ -15,8 +15,6 @@ import { useTabContext } from "./TabContext";
 // Icons
 import ImageIcon from "@mui/icons-material/Image";
 import MapIcon from "@mui/icons-material/Map";
-import AspectRatioIcon from "@mui/icons-material/AspectRatio";
-import FolderZipIcon from "@mui/icons-material/FolderZip";
 import ArrowOutward from "@mui/icons-material/ArrowOutward";
 
 // This is the main atlas name dispalyed on top of the panel as waln containts the abbrev.
@@ -46,21 +44,15 @@ export default function ProgressPanel({ walnContent }) {
   }
 
   // Helpers for getting the WALN content
-  const totalImages = walnContent.sections.length;
-  const avgDims = `${Math.round(
-    walnContent.sections.reduce((acc, section) => acc + section.width, 0) /
-      totalImages
-  )}×${Math.round(
-    walnContent.sections.reduce((acc, section) => acc + section.height, 0) /
-      totalImages
-  )}px`;
+  const sections = walnContent?.sections || [];
+  const totalImages = sections.length;
 
   // Calculate sections with OUV and markers
-  const sectionsWithOUV = walnContent.sections.filter(
-    (section) => section.ouv && section.ouv.length > 0
+  const sectionsWithOUV = sections.filter(
+    (section) => section?.ouv && section.ouv.length > 0
   ).length;
-  const sectionsWithMarkers = walnContent.sections.filter(
-    (section) => section.markers && section.markers.length > 0
+  const sectionsWithMarkers = sections.filter(
+    (section) => section?.markers && section.markers.length > 0
   ).length;
 
   // Verbose logging
@@ -109,29 +101,6 @@ export default function ProgressPanel({ walnContent }) {
           </Tooltip>
         </Stack>
 
-        <Stack
-          direction="row"
-          spacing={2}
-          alignItems="center"
-          sx={{
-            pt: 0.5,
-            borderTop: "1px solid #f0f0f0",
-          }}
-        >
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <AspectRatioIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-            <Typography variant="caption" color="text.secondary">
-              {avgDims}
-            </Typography>
-          </Stack>
-
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <FolderZipIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-            <Typography variant="caption" color="text.secondary">
-              {walnContent.sections[0].format}
-            </Typography>
-          </Stack>
-        </Stack>
         <Stack spacing={1} sx={{ pt: 0.5 }}>
           <Stack direction="row" spacing={2} sx={{ width: "100%" }}>
             {/* WebAlign Card */}

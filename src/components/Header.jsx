@@ -355,7 +355,12 @@ const Header = () => {
           >
             <Tooltip title="Docs">
               <IconButton
-                onClick={toggleDocs}
+                onClick={() =>
+                  window.open(
+                    "https://quint-webtools.readthedocs.io/en/latest/",
+                    "_blank"
+                  )
+                }
                 size="small"
                 sx={{
                   color: "black",

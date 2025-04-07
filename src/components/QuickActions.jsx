@@ -117,11 +117,12 @@ const QuickActions = ({
 
   const processTiffFiles = async () => {
     if (!braininfo || !stats[0]?.tiffs?.length) {
-      setInfoMessage({
+      /*setInfoMessage({
         open: true,
         message: "No TIFF files found to process",
         severity: "warning",
-      });
+      });*/
+      alert("No TIFF files found to process, please upload some.");
       return;
     }
 
@@ -139,18 +140,20 @@ const QuickActions = ({
       });
 
       await Promise.all(promises);
-      setInfoMessage({
+      /*setInfoMessage({
         open: true,
         message: "All TIFF files submitted for processing",
         severity: "success",
-      });
+      });*/
+      alert("All TIFF files submitted for processing");
     } catch (error) {
       console.error("Error processing TIFF files:", error);
-      setInfoMessage({
+      /*setInfoMessage({
         open: true,
         message: "Error processing TIFF files. Check the console for details.",
         severity: "error",
-      });
+      });*/
+      alert("Error processing TIFF files. Check the console for details.");
     } finally {
       setIsProcessing(false);
     }
