@@ -72,25 +72,36 @@ export default function CreationDialog({
     if (filesToUpload.length > 0) {
       try {
         let completedUploads = 0;
+        const batchSize = 4; // Process 4 files at a time
+        const allResults = [];
 
-        // All the files in the array
-        const uploadPromises = filesToUpload.map(async (file) => {
-          const result = await uploadToPath(
-            token,
-            collabName,
-            project.name,
-            name + "/raw_images/",
-            file
+        // Process files in batches of 4
+        for (let i = 0; i < filesToUpload.length; i += batchSize) {
+          // Get the current batch of files
+          const batch = filesToUpload.slice(i, i + batchSize);
+
+          // Upload this batch in parallel
+          const batchPromises = batch.map((file) =>
+            uploadToPath(
+              token,
+              collabName,
+              project.name,
+              name + "/raw_images/",
+              file
+            ).then((result) => {
+              // Increment completed count and update progress
+              completedUploads++;
+              setUploadProgress(
+                (completedUploads / filesToUpload.length) * 100
+              );
+              return { ...result, originalFile: file };
+            })
           );
-          // This might appear jagged
-          completedUploads++;
-          setUploadProgress((completedUploads / filesToUpload.length) * 100);
 
-          return { ...result, originalFile: file };
-        });
-
-        // Wait for all uploads to complete in parallel
-        const uploadedFiles = await Promise.all(uploadPromises);
+          // Wait for current batch to complete before moving to next batch
+          const batchResults = await Promise.all(batchPromises);
+          allResults.push(...batchResults);
+        }
 
         setIsUploading(false);
         setInfoMessage({
@@ -98,7 +109,7 @@ export default function CreationDialog({
           message: "Files uploaded successfully",
           severity: "success",
         });
-        return uploadedFiles;
+        return allResults;
       } catch (error) {
         setIsUploading(false);
         console.error("Error uploading files:", error);

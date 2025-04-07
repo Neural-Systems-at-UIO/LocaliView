@@ -79,6 +79,9 @@ const QuickActions = ({
     severity: "info",
   });
 
+  const [taskStatus, setTaskStatus] = useState({});
+  const [pollingInterval, setPollingInterval] = useState(null);
+
   useEffect(() => {
     try {
       const userInfo = JSON.parse(localStorage.getItem("userInfo"));
@@ -88,6 +91,14 @@ const QuickActions = ({
       console.error("Error parsing userInfo:", error);
     }
   }, [token, stats]);
+
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
 
   const processImage = async (imageFile, bucket, targetPath, token) => {
     try {
@@ -108,7 +119,14 @@ const QuickActions = ({
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      return {
+        fileName: imageFile.name,
+        filePath: imageFile.path,
+        taskId: data.task_id,
+        statusEndpoint: data.status_endpoint,
+        status: data.status,
+      };
     } catch (error) {
       console.error(`Error processing file ${imageFile.name}:`, error);
       throw error;
@@ -117,46 +135,156 @@ const QuickActions = ({
 
   const processTiffFiles = async () => {
     if (!braininfo || !stats[0]?.tiffs?.length) {
-      /*setInfoMessage({
-        open: true,
-        message: "No TIFF files found to process",
-        severity: "warning",
-      });*/
-      alert("No TIFF files found to process, please upload some.");
+      alert("No TIFF files found to process");
       return;
     }
 
     setIsProcessing(true);
-    const sourceBrain = braininfo.path; // e.g. "project/brain1/"
+    const sourceBrain = braininfo.path;
     const imageFiles = stats[0].tiffs.map((tiffObj) => ({
       path: tiffObj.name,
       name: tiffObj.name.split("/").pop(),
     }));
 
     try {
-      const promises = imageFiles.map((imageFile) => {
-        const targetPath = `${sourceBrain}zipped_images/`;
-        return processImage(imageFile, bucketName, targetPath, token);
+      // Initialize task status for each file
+      const initialStatus = {};
+      imageFiles.forEach((file) => {
+        initialStatus[file.path] = { status: "pending", progress: 0 };
+      });
+      setTaskStatus(initialStatus);
+
+      // Start processing and collect task info
+      const tasks = await Promise.all(
+        imageFiles.map((imageFile) => {
+          const targetPath = `${sourceBrain}zipped_images/`;
+          return processImage(imageFile, bucketName, targetPath, token);
+        })
+      );
+
+      // Store the tasks information
+      const tasksInfo = {};
+      tasks.forEach((task) => {
+        tasksInfo[task.filePath] = {
+          taskId: task.taskId,
+          fileName: task.fileName,
+          statusEndpoint: task.statusEndpoint,
+          status: task.status,
+          progress: 0,
+        };
       });
 
-      await Promise.all(promises);
-      /*setInfoMessage({
-        open: true,
-        message: "All TIFF files submitted for processing",
-        severity: "success",
-      });*/
-      alert("All TIFF files submitted for processing");
+      setTaskStatus(tasksInfo);
+
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+
+      // Set up polling for all tasks - using a ref to track completion
+      let completionCheck = false;
+
+      const interval = setInterval(async () => {
+        // Get the CURRENT task status (not from closure)
+        const currentTaskStatus = { ...tasksInfo }; // Start with initial tasks
+        let allCompleted = true;
+        let hasActiveTask = false;
+
+        // Check each task's current status
+        for (const [filePath, taskInfo] of Object.entries(currentTaskStatus)) {
+          if (taskInfo.statusEndpoint) {
+            try {
+              const status = await pollTaskStatus(
+                taskInfo.statusEndpoint,
+                filePath
+              );
+
+              // If any task is still processing, we're not done
+              if (status.status !== "completed" && status.status !== "error") {
+                allCompleted = false;
+                hasActiveTask = true;
+              }
+            } catch (error) {
+              console.error(`Error polling task ${filePath}:`, error);
+            }
+          }
+        }
+
+        // Only stop and refresh if we had tasks and they're all done
+        if (
+          allCompleted &&
+          !completionCheck &&
+          Object.keys(currentTaskStatus).length > 0
+        ) {
+          completionCheck = true;
+          clearInterval(interval);
+          setPollingInterval(null);
+          setIsProcessing(false);
+
+          // Small delay to ensure final status updates are reflected in UI
+          setTimeout(() => {
+            refreshBrain(); // Refresh to show new files
+          }, 1000);
+        }
+      }, 5000); // Poll every 5 seconds
+
+      setPollingInterval(interval);
+
+      alert(`Processing ${imageFiles.length} files - see progress below`);
     } catch (error) {
       console.error("Error processing TIFF files:", error);
-      /*setInfoMessage({
-        open: true,
-        message: "Error processing TIFF files. Check the console for details.",
-        severity: "error",
-      });*/
       alert("Error processing TIFF files. Check the console for details.");
-    } finally {
       setIsProcessing(false);
     }
+  };
+
+  const pollTaskStatus = async (statusEndpoint, filePath) => {
+    try {
+      const response = await fetch(
+        `https://deepzoom.apps.ebrains.eu${statusEndpoint}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const statusData = await response.json();
+
+      setTaskStatus((prevStatus) => ({
+        ...prevStatus,
+        [filePath]: statusData,
+      }));
+
+      return statusData;
+    } catch (error) {
+      console.error(`Error polling status:`, error);
+      setTaskStatus((prevStatus) => ({
+        ...prevStatus,
+        [filePath]: {
+          status: "error",
+          error: error.message,
+          progress: 0,
+        },
+      }));
+      return { status: "error", error: error.message };
+    }
+  };
+
+  const calculateOverallProgress = () => {
+    if (!isProcessing || Object.keys(taskStatus).length === 0) {
+      return (pyramidCount / (brainStats.files || 1)) * 100;
+    }
+
+    const tasks = Object.values(taskStatus);
+    const totalProgress = tasks.reduce(
+      (sum, task) => sum + (task.progress || 0),
+      0
+    );
+    return Math.round(totalProgress / tasks.length);
   };
 
   if (!braininfo) {
@@ -419,62 +547,130 @@ const QuickActions = ({
                         }}
                       >
                         <List>
-                          {brainStats.tiffs?.map((tiff, index) => (
-                            <ListItem
-                              key={index}
-                              sx={{
-                                transition: "all 0.2s ease",
-                                "&:hover": {
-                                  backgroundColor: "action.hover",
-                                },
+                          {brainStats.tiffs?.map((tiff, index) => {
+                            const filePath = tiff.name;
+                            const fileStatus = taskStatus[filePath];
 
-                                "&:last-child": {
-                                  borderBottom: "none",
-                                },
-                                justifyContent: "space-between",
-                              }}
-                            >
-                              <ListItemIcon>
-                                <ImageSharp />
-                              </ListItemIcon>
-                              <Typography
+                            return (
+                              <ListItem
+                                key={index}
                                 sx={{
-                                  fontWeight: 500,
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  fontSize: 12,
+                                  transition: "all 0.2s ease",
+                                  "&:hover": {
+                                    backgroundColor: "action.hover",
+                                  },
+                                  "&:last-child": {
+                                    borderBottom: "none",
+                                  },
+                                  justifyContent: "space-between",
+                                  flexDirection: "column",
+                                  alignItems: "flex-start",
+                                  py: 1,
                                 }}
                               >
-                                {tiff.name.split("/").slice(-1)[0]}
-                              </Typography>
-                              <Typography
-                                sx={{
-                                  fontWeight: 500,
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  fontSize: 12,
-                                }}
-                              >
-                                {formatFileSize(tiff.bytes)}
-                              </Typography>
-                              <Typography
-                                sx={{
-                                  fontWeight: 500,
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  fontSize: 12,
-                                }}
-                              >
-                                {new Date(tiff.last_modified).toLocaleString(
-                                  "en-GB",
-                                  dateOptions
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    width: "100%",
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <ListItemIcon>
+                                      <ImageSharp />
+                                    </ListItemIcon>
+                                    <Typography
+                                      sx={{
+                                        fontWeight: 500,
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                        fontSize: 12,
+                                      }}
+                                    >
+                                      {tiff.name.split("/").slice(-1)[0]}
+                                    </Typography>
+                                  </Box>
+
+                                  <Box sx={{ display: "flex", gap: 2 }}>
+                                    <Typography sx={{ fontSize: 12 }}>
+                                      {formatFileSize(tiff.bytes)}
+                                    </Typography>
+                                    <Typography sx={{ fontSize: 12 }}>
+                                      {new Date(
+                                        tiff.last_modified
+                                      ).toLocaleString("en-GB", dateOptions)}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+
+                                {/* Show progress when processing */}
+                                {isProcessing && fileStatus && (
+                                  <Box sx={{ width: "100%", mt: 0.5 }}>
+                                    {fileStatus.status === "pending" && (
+                                      <Typography
+                                        variant="caption"
+                                        sx={{ color: "text.secondary" }}
+                                      >
+                                        Waiting to process...
+                                      </Typography>
+                                    )}
+                                    {fileStatus.status === "accepted" ||
+                                    fileStatus.status === "processing" ? (
+                                      <>
+                                        <Box
+                                          sx={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            mb: 0.5,
+                                          }}
+                                        >
+                                          <Typography
+                                            variant="caption"
+                                            sx={{ color: "primary.main" }}
+                                          >
+                                            {fileStatus.current_step ||
+                                              "Processing..."}
+                                          </Typography>
+                                          <Typography variant="caption">
+                                            {fileStatus.progress || 0}%
+                                          </Typography>
+                                        </Box>
+                                        <LinearProgress
+                                          variant="determinate"
+                                          value={fileStatus.progress || 0}
+                                          sx={{ height: 3, borderRadius: 1 }}
+                                        />
+                                      </>
+                                    ) : fileStatus.status === "completed" ? (
+                                      <Typography
+                                        variant="caption"
+                                        sx={{ color: "success.main" }}
+                                      >
+                                        Completed ✓
+                                      </Typography>
+                                    ) : (
+                                      fileStatus.status === "error" && (
+                                        <Typography
+                                          variant="caption"
+                                          sx={{ color: "error.main" }}
+                                        >
+                                          Error:{" "}
+                                          {fileStatus.error ||
+                                            "Processing failed"}
+                                        </Typography>
+                                      )
+                                    )}
+                                  </Box>
                                 )}
-                              </Typography>
-                            </ListItem>
-                          ))}
+                              </ListItem>
+                            );
+                          })}
                         </List>
                       </Box>
                     </Box>
@@ -609,7 +805,7 @@ const QuickActions = ({
                     </Typography>
                     <LinearProgress
                       variant="determinate"
-                      value={(pyramidCount / (brainStats.files || 1)) * 100}
+                      value={calculateOverallProgress()}
                       sx={{
                         height: 8,
                         borderRadius: 4,
