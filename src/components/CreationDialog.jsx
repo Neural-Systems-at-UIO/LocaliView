@@ -71,9 +71,10 @@ export default function CreationDialog({
 
     if (filesToUpload.length > 0) {
       try {
-        const uploadedFiles = [];
-        for (let i = 0; i < filesToUpload.length; i++) {
-          const file = filesToUpload[i];
+        let completedUploads = 0;
+
+        // All the files in the array
+        const uploadPromises = filesToUpload.map(async (file) => {
           const result = await uploadToPath(
             token,
             collabName,
@@ -81,10 +82,16 @@ export default function CreationDialog({
             name + "/raw_images/",
             file
           );
-          console.log("uploading", result);
-          uploadedFiles.push({ ...result, originalFile: file });
-          setUploadProgress(((i + 1) / filesToUpload.length) * 100);
-        }
+          // This might appear jagged
+          completedUploads++;
+          setUploadProgress((completedUploads / filesToUpload.length) * 100);
+
+          return { ...result, originalFile: file };
+        });
+
+        // Wait for all uploads to complete in parallel
+        const uploadedFiles = await Promise.all(uploadPromises);
+
         setIsUploading(false);
         setInfoMessage({
           open: true,

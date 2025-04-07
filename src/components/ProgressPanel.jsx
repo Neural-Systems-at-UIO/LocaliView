@@ -158,7 +158,7 @@ export default function ProgressPanel({ walnContent }) {
                       sx={{ ml: 0.8 }}
                       color="primary.main"
                     >
-                      WebAlign
+                      Register
                     </Typography>
                   </Box>
                   <Tooltip title={`${sectionsWithOUV} sections with OUV data`}>
@@ -252,7 +252,7 @@ export default function ProgressPanel({ walnContent }) {
                       sx={{ ml: 0.8 }}
                       color="success.main"
                     >
-                      WebWarp
+                      Refine
                     </Typography>
                   </Box>
                   <Tooltip
@@ -349,7 +349,7 @@ export default function ProgressPanel({ walnContent }) {
                       sx={{ ml: 0.8 }}
                       color="warning.main"
                     >
-                      WebIlastik
+                      Extract
                     </Typography>
                   </Box>
                   <Tooltip title={`WebIlastik tooltip`}>
@@ -447,7 +447,7 @@ export default function ProgressPanel({ walnContent }) {
                       sx={{ ml: 0.8 }}
                       color="secondary.main"
                     >
-                      WebNutil
+                      Quantify
                     </Typography>
                   </Box>
                   <Tooltip title={`Pynutil tooltip`}>
