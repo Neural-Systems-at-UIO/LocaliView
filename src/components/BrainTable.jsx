@@ -9,13 +9,23 @@ import {
   ListItemText,
   ListItemIcon,
   Icon,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import ArrowBack from "@mui/icons-material/ArrowBack";
 import Add from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
 import FolderOffOutlinedIcon from "@mui/icons-material/FolderOffOutlined";
 import mBrain from "../mBrain.ico";
+import { deleteItem } from "../actions/handleCollabs.js";
 
-const BrainList = ({ rows, onBrainSelect }) => {
+const BrainList = ({
+  rows,
+  onBrainSelect,
+  token,
+  bucketName,
+  onDeleteComplete,
+}) => {
   const [selectedBrain, setSelectedBrain] = React.useState(null);
 
   // Choose brains to fetch stats for upon click
@@ -60,14 +70,18 @@ const BrainList = ({ rows, onBrainSelect }) => {
         <ListItem
           key={brain.id}
           disablePadding
+          selected={selectedBrain && selectedBrain.id === brain.id}
           sx={{
             borderBottom: "1px solid #e0e0e0",
             "&:last-child": { borderBottom: "none" },
+            display: "flex",
+            justifyContent: "space-between",
           }}
         >
           <ListItemButton
             selected={selectedBrain && selectedBrain.id === brain.id}
             onClick={() => handleBrainSelect(brain)}
+            sx={{ flex: 1 }}
           >
             <ListItemIcon>
               <img
@@ -76,8 +90,56 @@ const BrainList = ({ rows, onBrainSelect }) => {
                 style={{ width: "1.75rem", height: "1.75rem" }}
               />
             </ListItemIcon>
-            <ListItemText primary={brain.name} />
+            <ListItemText
+              primary={brain.name}
+              primaryTypographyProps={{
+                sx: {
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                },
+              }}
+            />
           </ListItemButton>
+          <Tooltip title="Delete series">
+            <IconButton
+              edge="end"
+              aria-label="delete"
+              sx={{
+                mr: 1,
+                "&:hover": {
+                  color: "error.main",
+                  transform: "scale(1.1)",
+                  backgroundColor: "transparent",
+                },
+              }}
+              onClick={(e) => {
+                e.stopPropagation(); // Stop event propagation
+                const confirmation = prompt(
+                  `Type "${brain.name}" to confirm deletion:`,
+                  ""
+                );
+                if (confirmation === brain.name) {
+                  const deletingPath = `${bucketName}/${brain.path}`;
+
+                  deleteItem(deletingPath, token)
+                    .then(() => {
+                      setTimeout(() => {
+                        onDeleteComplete();
+                      }, 1500);
+                    })
+                    .catch((error) => {
+                      console.error("Error deleting series:", error);
+                      alert("Failed to delete series");
+                    });
+                } else if (confirmation !== null) {
+                  alert("Series name didn't match. Deletion cancelled.");
+                }
+              }}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
         </ListItem>
       ))}
     </List>
@@ -90,6 +152,9 @@ const BrainTable = ({
   onBackClick,
   onAddBrainClick,
   onBrainSelect,
+  token,
+  bucketName,
+  refreshProjectBrains,
 }) => {
   return (
     <Box
@@ -135,7 +200,13 @@ const BrainTable = ({
           </Button>
         </Box>
       </Box>
-      <BrainList rows={rows} onBrainSelect={onBrainSelect} />
+      <BrainList
+        rows={rows}
+        onBrainSelect={onBrainSelect}
+        token={token}
+        bucketName={bucketName}
+        onDeleteComplete={refreshProjectBrains}
+      />
     </Box>
   );
 };

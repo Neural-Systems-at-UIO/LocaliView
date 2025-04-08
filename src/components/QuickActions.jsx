@@ -373,12 +373,14 @@ const QuickActions = ({
               gutterBottom
               sx={{
                 fontWeight: "bold",
-                textWrap: "wrap",
+                wordBreak: "break-word", // Allows breaking long words if needed, this is the case/solution for now
+                overflow: "hidden",
+                textOverflow: "ellipsis", // Show ellipsis for text that still overflows
                 borderBottom: "1px solid #e0e0e0",
+                padding: 2,
+                width: "100%",
               }}
-              width={1}
               textAlign="left"
-              padding={2}
             >
               {braininfo.name}
             </Typography>
@@ -895,7 +897,14 @@ const QuickActions = ({
             }}
           >
             <Card sx={{ boxShadow: "none", width: "100%" }}>
-              <CardContent sx={{ p: 1 }}>
+              <CardContent
+                sx={{
+                  p: 1,
+                  "&:last-child": {
+                    pb: 1, // Override the default padding-bottom
+                  },
+                }}
+              >
                 <Box
                   sx={{
                     display: "flex",
@@ -916,7 +925,7 @@ const QuickActions = ({
                       {walnJson.jsons?.[0]?.name.split("/").slice(-1)[0] ||
                         "None"}
                     </Typography>
-                    <Typography
+                    {/*<Typography
                       variant="caption"
                       sx={{ color: "text.secondary" }}
                     >
@@ -925,7 +934,7 @@ const QuickActions = ({
                             walnJson.jsons[0].last_modified
                           ).toLocaleString()}`
                         : ""}
-                    </Typography>
+                    </Typography>*/}
                   </Box>
 
                   <Box sx={{ display: "flex", gap: 2 }}>
@@ -965,6 +974,7 @@ const QuickActions = ({
                       </IconButton>
                     </Tooltip>
 
+                    {/* Button not used for now
                     <Tooltip title="Overwrite alignment">
                       <IconButton
                         size="small"
@@ -975,7 +985,7 @@ const QuickActions = ({
                       >
                         <SaveIcon fontSize="small" />
                       </IconButton>
-                    </Tooltip>
+                    </Tooltip> */}
 
                     <Tooltip title="Set this registration to use as working alignment">
                       <Button

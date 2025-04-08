@@ -261,6 +261,7 @@ export default function QuintTable({ token, user }) {
   };
 
   const refreshProjectBrains = () => {
+    setWalnContent(null);
     handleProjectSelect(selectedProject);
     setSelectedBrain(null);
     // Initially project change updates the brain list
@@ -542,8 +543,11 @@ export default function QuintTable({ token, user }) {
                     setSelectedProject(null);
                     setSelectedBrain(null);
                   }}
+                  bucketName={bucketName}
+                  token={token}
                   onAddBrainClick={handleOpenDialog}
                   onBrainSelect={handleBrainSelect}
+                  refreshProjectBrains={refreshProjectBrains}
                 />
                 <Box
                   sx={{
