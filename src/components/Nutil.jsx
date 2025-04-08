@@ -28,6 +28,7 @@ import {
   Help,
   Visibility,
   ImageOutlined,
+  ThreeDRotationOutlined,
 } from "@mui/icons-material";
 import { useState, useEffect } from "react";
 import mBrain from "../mBrain.ico";
@@ -41,6 +42,7 @@ import UploadSegments from "./UploadSegments";
 
 // Nutil endpoint, one for submitting and one for polling the status
 const NUTIL_URL = "https://pynutil.apps.ebrains.eu/";
+const MESH_URL = "https://meshview.apps.ebrains.eu/";
 
 // Shared styles object
 const styles = {
@@ -91,6 +93,39 @@ const styles = {
     height: "100%",
     transition: "all 0.3s ease",
   },
+};
+
+const atlasLookup = {
+  aba_mouse_ccfv3_2017_25um: "ABA_Mouse_CCFv3_2017_25um",
+  whs_sd_rat_v3_39um: "WHS_SD_Rat_v3_39um",
+  whs_sd_rat_v4_39um: "WHS_SD_Rat_v4_39um",
+};
+
+const MeshviewButton = ({ atlas, clouds }) => {
+  // Mesh View viewer route
+  // Supports a single json for now,
+  // TODO allow multiple jsons to be passed in the url after private bucket is resolved
+  const handleClick = () => {
+    const urlPrefix = "https://data-proxy.ebrains.eu/api/v1/public/buckets/";
+    const collabName = localStorage.getItem("bucketName");
+    const url = `${MESH_URL}?atlas=${atlasLookup[atlas]}&clouds=${urlPrefix}${collabName}/${clouds}whole_series_meshview/objects_meshview.json`;
+    window.open(url, "_blank");
+  };
+  return (
+    <Button
+      size="small"
+      startIcon={<ThreeDRotationOutlined />}
+      onClick={handleClick}
+      sx={{
+        fontSize: "0.75rem",
+        py: 0.5,
+
+        borderRadius: 1,
+      }}
+    >
+      View in Meshview
+    </Button>
+  );
 };
 
 // Implementation for the Nutil over the web
@@ -180,12 +215,15 @@ const Nutil = ({ token }) => {
       };
 
       // Create timestamp-based output folder
-      // the name of can be reworked
+      // the name of can be reworked. Update: The rework has been done to reflect the time of the analysis rather than just the date
       const now = new Date();
-      const dateStr = `${now.getDate()}_${now.getMonth() + 1}_${now
-        .getFullYear()
-        .toString()
-        .slice(2)}`;
+      const dateStr = `${now.getFullYear()}_${String(
+        now.getMonth() + 1
+      ).padStart(2, "0")}_${String(now.getDate()).padStart(2, "0")}_${String(
+        now.getHours()
+      ).padStart(2, "0")}_${String(now.getMinutes()).padStart(2, "0")}_${String(
+        now.getSeconds()
+      ).padStart(2, "0")}`;
       const outputPath = `${brainPath}pynutil_results/${dateStr}`;
 
       // Create the request payload
@@ -728,26 +766,6 @@ const Nutil = ({ token }) => {
               <Box sx={{ flex: 1 }}>
                 {/*<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <Typography variant="caption">Output</Typography>
-                  <Tooltip title="Select whether to display object counts or area fraction (percentage) of objects within atlas regions">
-                    <Info
-                      fontSize="small"
-                      sx={{ fontSize: 14 }}
-                      color="action"
-                    />
-                  </Tooltip>
-                </Box>
-                
-                <FormControl fullWidth size="small">
-                  <Select
-                    value={outputType}
-                    onChange={(e) => setOutputType(e.target.value)}
-                    variant="standard"
-                    sx={{ minHeight: "32px" }}
-                  >
-                    <MenuItem value="counts">Counts</MenuItem>
-                    <MenuItem value="areaFraction">Area Fraction</MenuItem>
-                  </Select>
-                </FormControl>
                 */}
               </Box>
               <Box sx={{ flex: 1 }}>
@@ -935,7 +953,7 @@ const Nutil = ({ token }) => {
                         return cleanPath.split("/").pop() || "Unnamed Result";
                       })()}
                     </Typography>
-                    <Typography
+                    {/*<Typography
                       variant="caption"
                       display="block"
                       color="text.secondary"
@@ -945,6 +963,7 @@ const Nutil = ({ token }) => {
                         ? new Date(result.created).toLocaleString()
                         : "No date available"}
                     </Typography>
+                    */}
                     <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
                       <Button
                         size="small"
@@ -960,6 +979,10 @@ const Nutil = ({ token }) => {
                       >
                         Export
                       </Button>
+                      <MeshviewButton
+                        atlas={registration.atlas}
+                        clouds={[result.path]}
+                      />
                     </Box>
                   </Box>
                 ))
