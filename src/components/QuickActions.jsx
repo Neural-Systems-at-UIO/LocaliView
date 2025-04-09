@@ -15,6 +15,13 @@ import {
   Alert,
   Snackbar,
   ListItemIcon,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import InfoIcon from "@mui/icons-material/Info";
@@ -22,7 +29,7 @@ import InfoIcon from "@mui/icons-material/Info";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SaveIcon from "@mui/icons-material/Save";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 import Atlas from "./Atlas";
 // Icons
@@ -31,6 +38,9 @@ import {
   ImageSharp,
   FolderOff,
   Share,
+  CheckCircleOutline,
+  Error,
+  PendingOutlined,
 } from "@mui/icons-material";
 
 import { deleteItem } from "../actions/handleCollabs";
@@ -64,6 +74,48 @@ const QuickActions = ({
   refreshBrain,
   refreshProjectBrains,
 }) => {
+  // Generate unified file list from raw and processed images
+  const unifiedFiles = useMemo(() => {
+    if (!stats || stats.length < 2) return [];
+
+    const rawImages = stats[0]?.tiffs || [];
+    const zippedImages = stats[1]?.zips || [];
+
+    // Create a map of zipped images for quick lookup
+    const zippedMap = new Map();
+    zippedImages.forEach((zip) => {
+      // Extract the base name from the path
+      // The name format is as .tif -> .tif.dzip
+      const baseName = zip.name.split("/").pop().replace(".dzip", "");
+      zippedMap.set(baseName, zip);
+    });
+
+    console.log("Zipped images map:", zippedMap);
+
+    // Create unified records
+    return rawImages.map((raw) => {
+      // Extract the base name for matching
+
+      const rawBaseName = raw.name.split("/").pop();
+      const matchingZip = zippedMap.get(rawBaseName);
+
+      return {
+        id: raw.name, // Use full path as unique ID
+        fileName: rawBaseName,
+        rawPath: raw.name,
+        rawSize: raw.bytes,
+        rawLastModified: raw.last_modified,
+        isProcessed: !!matchingZip,
+        processedPath: matchingZip?.name || null,
+        processedSize: matchingZip?.bytes || null,
+        processedLastModified: matchingZip?.last_modified || null,
+        compressionRatio: matchingZip
+          ? (((raw.bytes - matchingZip.bytes) / raw.bytes) * 100).toFixed(1)
+          : null,
+      };
+    });
+  }, [stats]);
+
   let pyramidCount = stats[1]?.zips.length || 0;
   const [user, setUser] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -134,29 +186,38 @@ const QuickActions = ({
   };
 
   const processTiffFiles = async () => {
-    if (!braininfo || !stats[0]?.tiffs?.length) {
+    if (!braininfo || !unifiedFiles.length) {
       alert("No TIFF files found to process");
+      return;
+    }
+
+    // Only process unprocessed files
+    const filesToProcess = unifiedFiles
+      .filter((file) => !file.isProcessed)
+      .map((file) => ({
+        path: file.rawPath,
+        name: file.fileName,
+      }));
+
+    if (filesToProcess.length === 0) {
+      alert("All files have already been processed");
       return;
     }
 
     setIsProcessing(true);
     const sourceBrain = braininfo.path;
-    const imageFiles = stats[0].tiffs.map((tiffObj) => ({
-      path: tiffObj.name,
-      name: tiffObj.name.split("/").pop(),
-    }));
 
     try {
       // Initialize task status for each file
       const initialStatus = {};
-      imageFiles.forEach((file) => {
+      filesToProcess.forEach((file) => {
         initialStatus[file.path] = { status: "pending", progress: 0 };
       });
       setTaskStatus(initialStatus);
 
       // Start processing and collect task info
       const tasks = await Promise.all(
-        imageFiles.map((imageFile) => {
+        filesToProcess.map((imageFile) => {
           const targetPath = `${sourceBrain}zipped_images/`;
           return processImage(imageFile, bucketName, targetPath, token);
         })
@@ -229,7 +290,9 @@ const QuickActions = ({
 
       setPollingInterval(interval);
 
-      alert(`Processing ${imageFiles.length} files - see progress below`);
+      alert(
+        `Scheduled ${filesToProcess.length} files for conversion - you can leave this page.`
+      );
     } catch (error) {
       console.error("Error processing TIFF files:", error);
       alert("Error processing TIFF files. Check the console for details.");
@@ -276,7 +339,7 @@ const QuickActions = ({
 
   const calculateOverallProgress = () => {
     if (!isProcessing || Object.keys(taskStatus).length === 0) {
-      return (pyramidCount / (brainStats.files || 1)) * 100;
+      return (pyramidCount / (stats[0]?.files || 1)) * 100;
     }
 
     const tasks = Object.values(taskStatus);
@@ -373,9 +436,9 @@ const QuickActions = ({
               gutterBottom
               sx={{
                 fontWeight: "bold",
-                wordBreak: "break-word", // Allows breaking long words if needed, this is the case/solution for now
+                wordBreak: "break-word",
                 overflow: "hidden",
-                textOverflow: "ellipsis", // Show ellipsis for text that still overflows
+                textOverflow: "ellipsis",
                 borderBottom: "1px solid #e0e0e0",
                 padding: 2,
                 width: "100%",
@@ -433,56 +496,6 @@ const QuickActions = ({
                 />
               </ListItem>
             </List>
-            {/** 
-            * <Box
-              sx={{
-                display: "flex",
-                justifyContent: "flex-start",
-                gap: 2,
-                p: 2,
-                borderTop: "1px solid #e0e0e0",
-              }}
-            >
-              <Button
-                size="small"
-                color="error"
-                startIcon={<DeleteIcon />}
-                onClick={async (e) => {
-                  try {
-                    e.preventDefault();
-
-                    setInfoMessage({
-                      open: true,
-                      message: "Deleting series...",
-                      severity: "info",
-                    });
-                    console.log("Deleting", bucketName + "/" + braininfo.path);
-                    await deleteItem(bucketName + "/" + braininfo.path, token);
-                    await setTimeout(() => {
-                      refreshProjectBrains();
-                      setInfoMessage({
-                        open: true,
-                        message: "Series deleted successfully",
-                        severity: "success",
-                      });
-                    }, 2000);
-                  } catch (error) {
-                    console.error("Error deleting item:", error);
-                    setInfoMessage({
-                      open: true,
-                      message: "Error deleting series",
-                      severity: "error",
-                    });
-                  }
-                }}
-              >
-                Delete
-              </Button>
-              <Button size="small" startIcon={<Share />} disabled={true}>
-                Share
-              </Button>
-            </Box>
-           */}
           </Card>
         </Grid>
         <Grid size={9}>
@@ -526,275 +539,236 @@ const QuickActions = ({
                   >
                     Convert images to DZI format
                   </Typography>
-                  <Box sx={{ display: "flex", gap: 2, width: "100%" }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: 500, textAlign: "left" }}
-                      >
-                        Images to be converted:{" "}
-                        {Math.max(
-                          0,
-                          brainStats.files - (stats[1]?.zips.length || 0)
-                        )}
-                      </Typography>
-                      <Box
-                        sx={{
-                          flex: 1,
-                          maxHeight: 200,
-                          overflow: "auto",
-                          border: "1px solid #e0e0e0",
-                          borderRadius: 1,
-                          mt: 1,
-                        }}
-                      >
-                        <List>
-                          {brainStats.tiffs?.map((tiff, index) => {
-                            const filePath = tiff.name;
-                            const fileStatus = taskStatus[filePath];
+
+                  {/* Unified Image Table */}
+                  <TableContainer
+                    component={Paper}
+                    sx={{
+                      maxHeight: 300,
+                      border: "1px solid #e0e0e0",
+                      borderRadius: 1,
+                      boxShadow: "none",
+                    }}
+                  >
+                    <Table stickyHeader size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>File Name</TableCell>
+                          <TableCell>Raw Image Size</TableCell>
+                          <TableCell>Last Modified</TableCell>
+                          <TableCell>Status</TableCell>
+                          <TableCell>DZIP Size</TableCell>
+                          <TableCell>Compression</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {unifiedFiles.length > 0 ? (
+                          unifiedFiles.map((file) => {
+                            const fileStatus = taskStatus[file.rawPath];
 
                             return (
-                              <ListItem
-                                key={index}
+                              <TableRow
+                                key={file.id}
                                 sx={{
-                                  transition: "all 0.2s ease",
-                                  "&:hover": {
-                                    backgroundColor: "action.hover",
+                                  "&:last-child td, &:last-child th": {
+                                    border: 0,
                                   },
-                                  "&:last-child": {
-                                    borderBottom: "none",
-                                  },
-                                  justifyContent: "space-between",
-                                  flexDirection: "column",
-                                  alignItems: "flex-start",
-                                  py: 1,
+                                  bgcolor: file.isProcessed
+                                    ? "rgba(76, 175, 80, 0.08)"
+                                    : "inherit",
                                 }}
                               >
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    width: "100%",
-                                  }}
-                                >
+                                <TableCell>
                                   <Box
                                     sx={{
                                       display: "flex",
                                       alignItems: "center",
+                                      gap: 1,
                                     }}
                                   >
-                                    <ListItemIcon>
-                                      <ImageSharp />
-                                    </ListItemIcon>
-                                    <Typography
-                                      sx={{
-                                        fontWeight: 500,
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                        whiteSpace: "nowrap",
-                                        fontSize: 12,
-                                      }}
-                                    >
-                                      {tiff.name.split("/").slice(-1)[0]}
-                                    </Typography>
-                                  </Box>
-
-                                  <Box sx={{ display: "flex", gap: 2 }}>
-                                    <Typography sx={{ fontSize: 12 }}>
-                                      {formatFileSize(tiff.bytes)}
-                                    </Typography>
-                                    <Typography sx={{ fontSize: 12 }}>
-                                      {new Date(
-                                        tiff.last_modified
-                                      ).toLocaleString("en-GB", dateOptions)}
-                                    </Typography>
-                                  </Box>
-                                </Box>
-
-                                {/* Show progress when processing */}
-                                {isProcessing && fileStatus && (
-                                  <Box sx={{ width: "100%", mt: 0.5 }}>
-                                    {fileStatus.status === "pending" && (
-                                      <Typography
-                                        variant="caption"
-                                        sx={{ color: "text.secondary" }}
-                                      >
-                                        Waiting to process...
-                                      </Typography>
+                                    {file.isProcessed ? (
+                                      <AutoAwesomeMotionSharp fontSize="small" />
+                                    ) : (
+                                      <ImageSharp fontSize="small" />
                                     )}
-                                    {fileStatus.status === "accepted" ||
-                                    fileStatus.status === "processing" ? (
-                                      <>
+                                    <Typography variant="body2">
+                                      {file.fileName}
+                                    </Typography>
+                                  </Box>
+                                </TableCell>
+                                <TableCell>
+                                  {formatFileSize(file.rawSize)}
+                                </TableCell>
+                                <TableCell>
+                                  {new Date(
+                                    file.rawLastModified
+                                  ).toLocaleString("en-GB", dateOptions)}
+                                </TableCell>
+                                <TableCell>
+                                  {isProcessing && fileStatus ? (
+                                    <Box sx={{ width: "100%" }}>
+                                      {fileStatus.status === "pending" &&
+                                        "Waiting..."}
+                                      {(fileStatus.status === "accepted" ||
+                                        fileStatus.status === "processing") && (
                                         <Box
                                           sx={{
                                             display: "flex",
-                                            justifyContent: "space-between",
-                                            mb: 0.5,
+                                            alignItems: "center",
+                                            gap: 1,
                                           }}
                                         >
+                                          <PendingOutlined
+                                            fontSize="small"
+                                            color="primary"
+                                          />
+                                          <Box sx={{ width: "100%" }}>
+                                            <Typography variant="caption">
+                                              {fileStatus.progress || 0}%
+                                            </Typography>
+                                            <LinearProgress
+                                              variant="determinate"
+                                              value={fileStatus.progress || 0}
+                                              sx={{
+                                                height: 3,
+                                                borderRadius: 1,
+                                              }}
+                                            />
+                                          </Box>
+                                        </Box>
+                                      )}
+                                      {fileStatus.status === "completed" && (
+                                        <Box
+                                          sx={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 1,
+                                          }}
+                                        >
+                                          <CheckCircleOutline
+                                            fontSize="small"
+                                            color="success"
+                                          />
                                           <Typography
                                             variant="caption"
-                                            sx={{ color: "primary.main" }}
+                                            color="success.main"
                                           >
-                                            {fileStatus.current_step ||
-                                              "Processing..."}
-                                          </Typography>
-                                          <Typography variant="caption">
-                                            {fileStatus.progress || 0}%
+                                            Complete
                                           </Typography>
                                         </Box>
-                                        <LinearProgress
-                                          variant="determinate"
-                                          value={fileStatus.progress || 0}
-                                          sx={{ height: 3, borderRadius: 1 }}
-                                        />
-                                      </>
-                                    ) : fileStatus.status === "completed" ? (
-                                      <Typography
-                                        variant="caption"
-                                        sx={{ color: "success.main" }}
-                                      >
-                                        Completed ✓
-                                      </Typography>
-                                    ) : (
-                                      fileStatus.status === "error" && (
-                                        <Typography
-                                          variant="caption"
-                                          sx={{ color: "error.main" }}
+                                      )}
+                                      {fileStatus.status === "error" && (
+                                        <Box
+                                          sx={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 1,
+                                          }}
                                         >
-                                          Error:{" "}
-                                          {fileStatus.error ||
-                                            "Processing failed"}
-                                        </Typography>
-                                      )
-                                    )}
-                                  </Box>
-                                )}
-                              </ListItem>
-                            );
-                          })}
-                        </List>
-                      </Box>
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: 500, textAlign: "left" }}
-                      >
-                        Converted images: {stats[1]?.zips.length || 0}
-                      </Typography>
-                      <Box
-                        sx={{
-                          flex: 1,
-                          maxHeight: 200,
-                          overflow: "auto",
-                          border: "1px solid #e0e0e0",
-                          borderRadius: 1,
-                          mt: 1,
-                        }}
-                      >
-                        <List>
-                          {stats[1]?.zips?.length > 0 ? (
-                            stats[1]?.zips?.map((zip, index) => (
-                              <ListItem
-                                key={index}
-                                sx={{
-                                  transition: "all 0.2s ease",
-                                  "&:hover": {
-                                    backgroundColor: "action.hover",
-                                  },
-                                  "&:last-child": {
-                                    borderBottom: "none",
-                                  },
-                                  justifyContent: "space-between",
-                                }}
-                              >
-                                <ListItemIcon>
-                                  <AutoAwesomeMotionSharp />
-                                </ListItemIcon>
-                                <Typography
-                                  variant="body2"
-                                  sx={{
-                                    fontWeight: 500,
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                    fontSize: 12,
-                                    textAlign: "left",
-                                  }}
-                                >
-                                  {zip.name.split("/").slice(-1)[0]}
-                                </Typography>
-                                <Typography
-                                  sx={{
-                                    fontWeight: 500,
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                    fontSize: 12,
-                                  }}
-                                >
-                                  {formatFileSize(zip.bytes)}
-                                </Typography>
-                                <Typography
-                                  sx={{
-                                    fontWeight: 500,
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                    fontSize: 12,
-                                  }}
-                                >
-                                  {new Date(zip.last_modified).toLocaleString(
-                                    "en-GB",
-                                    dateOptions
+                                          <Error
+                                            fontSize="small"
+                                            color="error"
+                                          />
+                                          <Typography
+                                            variant="caption"
+                                            color="error"
+                                          >
+                                            Error
+                                          </Typography>
+                                        </Box>
+                                      )}
+                                    </Box>
+                                  ) : (
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 1,
+                                      }}
+                                    >
+                                      {file.isProcessed ? (
+                                        <>
+                                          <CheckCircleOutline
+                                            fontSize="small"
+                                            color="success"
+                                          />
+                                          <Typography
+                                            variant="caption"
+                                            color="success.main"
+                                          >
+                                            Processed
+                                          </Typography>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <PendingOutlined
+                                            fontSize="small"
+                                            color="action"
+                                          />
+                                          <Typography
+                                            variant="caption"
+                                            color="text.secondary"
+                                          >
+                                            Not processed
+                                          </Typography>
+                                        </>
+                                      )}
+                                    </Box>
                                   )}
-                                </Typography>
-                              </ListItem>
-                            ))
-                          ) : (
-                            <ListItem
-                              sx={{
-                                height: "100%",
-                                minHeight: 200, // Ensures minimum height
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                flexDirection: "column",
-                                gap: 1,
-                                opacity: 0.8,
-                              }}
-                            >
-                              <ListItemIcon>
-                                <FolderOff sx={{ fontSize: "2rem" }} />
-                              </ListItemIcon>
-                              <Typography
-                                variant="body2"
+                                </TableCell>
+                                <TableCell>
+                                  {file.processedSize
+                                    ? formatFileSize(file.processedSize)
+                                    : "-"}
+                                </TableCell>
+                                <TableCell>
+                                  {file.compressionRatio
+                                    ? `${file.compressionRatio}%`
+                                    : "-"}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={6} align="center">
+                              <Box
                                 sx={{
-                                  color: "text.secondary",
-                                  textAlign: "center",
+                                  p: 4,
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "center",
+                                  gap: 2,
                                 }}
                               >
-                                No processed files
-                                <br />
-                                Click the process button to start
-                              </Typography>
-                            </ListItem>
-                          )}
-                        </List>
-                      </Box>
-                    </Box>
-                  </Box>
+                                <FolderOff
+                                  sx={{
+                                    fontSize: "2rem",
+                                    color: "text.disabled",
+                                  }}
+                                />
+                                <Typography color="text.secondary">
+                                  No images found
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
                 </Box>
+
                 <Box
                   sx={{
                     display: "flex",
                     gap: 2,
                     width: "100%",
                     justifyContent: "space-between",
+                    mt: 2,
                   }}
                 >
-                  <Box sx={{ mt: 3, width: "100%" }}>
+                  <Box sx={{ mt: 1, width: "100%" }}>
                     <Typography
                       variant="body2"
                       sx={{
@@ -845,7 +819,6 @@ const QuickActions = ({
                           backgroundColor: (theme) =>
                             theme.palette.action.hover,
                         },
-                        mt: 3,
                       }}
                     >
                       {pyramidComplete
@@ -925,16 +898,6 @@ const QuickActions = ({
                       {walnJson.jsons?.[0]?.name.split("/").slice(-1)[0] ||
                         "None"}
                     </Typography>
-                    {/*<Typography
-                      variant="caption"
-                      sx={{ color: "text.secondary" }}
-                    >
-                      {walnJson.jsons?.[0]?.last_modified
-                        ? `Last modified: ${new Date(
-                            walnJson.jsons[0].last_modified
-                          ).toLocaleString()}`
-                        : ""}
-                    </Typography>*/}
                   </Box>
 
                   <Box sx={{ display: "flex", gap: 2 }}>
@@ -974,24 +937,10 @@ const QuickActions = ({
                       </IconButton>
                     </Tooltip>
 
-                    {/* Button not used for now
-                    <Tooltip title="Overwrite alignment">
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          // Handle overwrite
-                        }}
-                        disabled={!walnJson.jsons?.[0]}
-                      >
-                        <SaveIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip> */}
-
                     <Tooltip title="Set this registration to use as working alignment">
                       <Button
                         size="small"
                         sx={{
-                          // Visiblity change if selected color agnostic
                           backgroundColor:
                             alignment === walnJson.jsons?.[0]?.name
                               ? "primary.main"
@@ -1002,8 +951,6 @@ const QuickActions = ({
                               : "primary.main",
                         }}
                         onClick={() => {
-                          // TODO: Wrap this guy in try soon
-
                           setInfoMessage({
                             open: true,
                             message: "Alignment set",
