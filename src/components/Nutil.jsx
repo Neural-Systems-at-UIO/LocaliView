@@ -114,6 +114,7 @@ const MeshviewButton = ({ atlas, clouds }) => {
   return (
     <Button
       size="small"
+      disabled={!atlas}
       startIcon={<ThreeDRotationOutlined />}
       onClick={handleClick}
       sx={{
@@ -920,7 +921,10 @@ const Nutil = ({ token }) => {
                 </Typography>
               )}
 
-              {/* Completed Results Section */}
+              {/* Completed Results Section
+              -> Listing all the directories within pynutils_results
+              
+              */}
               <Typography
                 variant="subtitle2"
                 gutterBottom
