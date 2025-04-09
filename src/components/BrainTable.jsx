@@ -62,7 +62,7 @@ const BrainList = ({
         width: "100%",
         bgcolor: "background.paper",
         borderRadius: 1,
-        border: "1px solid #e0e0e0",
+        border: "none",
       }}
       dense
     >
@@ -72,7 +72,7 @@ const BrainList = ({
           disablePadding
           selected={selectedBrain && selectedBrain.id === brain.id}
           sx={{
-            borderBottom: "1px solid #e0e0e0",
+            // borderBottom: "1px solid #e0e0e0",
             "&:last-child": { borderBottom: "none" },
             display: "flex",
             justifyContent: "space-between",
@@ -81,7 +81,7 @@ const BrainList = ({
           <ListItemButton
             selected={selectedBrain && selectedBrain.id === brain.id}
             onClick={() => handleBrainSelect(brain)}
-            sx={{ flex: 1 }}
+            sx={{ flex: 1, borderRadius: 2, m: 0.5 }}
           >
             <ListItemIcon>
               <img
