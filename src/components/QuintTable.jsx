@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
 import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 // Project handling
 import {
@@ -20,6 +21,7 @@ import {
   createProject,
   checkBucketExists,
   downloadWalnJson,
+  deleteItem,
 } from "../actions/handleCollabs.js";
 import CreationDialog from "./CreationDialog.jsx";
 import BrainTable from "./BrainTable.jsx";
@@ -31,19 +33,6 @@ export default function QuintTable({ token, user }) {
   const [bucketName, setBucketName] = useState("");
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
-  /* useState(() => {
-    try {
-      if (token !== null) {
-        const storedProject = localStorage.getItem("selectedProject");
-        return storedProject ? JSON.parse(storedProject) : null;
-      } else {
-        return null;
-      }
-    } catch (error) {
-      console.error("Error parsing selectedProject:", error);
-      return null;
-    }
-  }); */
   const [selectedBrain, setSelectedBrain] = useState(null);
   const [selectedBrainStats, setSelectedBrainStats] = useState([]);
   const [projectBrainEntries, setProjectBrainEntries] = useState(() => {
@@ -272,6 +261,7 @@ export default function QuintTable({ token, user }) {
   };
 
   const refreshProjectBrains = () => {
+    setWalnContent(null);
     handleProjectSelect(selectedProject);
     setSelectedBrain(null);
     // Initially project change updates the brain list
@@ -382,6 +372,7 @@ export default function QuintTable({ token, user }) {
                   mb: 2,
                 }}
               >
+                {/* Main header with the bucket title as rwb-username */}
                 <Typography variant="h5" align="left">
                   Projects in {bucketName}
                 </Typography>
@@ -464,6 +455,49 @@ export default function QuintTable({ token, user }) {
                           px: 2,
                           py: 1,
                         }}
+                        secondaryAction={
+                          <IconButton
+                            edge="end"
+                            aria-label="delete"
+                            sx={{
+                              "&:hover": {
+                                color: "error.main",
+                                transform: "scale(1.1)",
+                                backgroundColor: "transparent",
+                              },
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation(); // Stop event propagation
+                              const confirmation = prompt(
+                                `Type "${project.name}" to confirm deletion:`,
+                                ""
+                              );
+                              if (confirmation === project.name) {
+                                let deletingPath = `${bucketName}/${project.name}/`;
+
+                                deleteItem(deletingPath, token)
+                                  .then(() => {
+                                    setTimeout(() => {
+                                      fetchAndUpdateProjects(bucketName);
+                                    }, 1500);
+                                  })
+                                  .catch((error) => {
+                                    console.error(
+                                      "Error deleting project:",
+                                      error
+                                    );
+                                    alert("Failed to delete project");
+                                  });
+                              } else if (confirmation !== null) {
+                                alert(
+                                  "Project name didn't match. Deletion cancelled."
+                                );
+                              }
+                            }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        }
                         onClick={() => handleProjectSelect(project)}
                       >
                         <ListItemText primary={project.name} />
@@ -507,11 +541,13 @@ export default function QuintTable({ token, user }) {
                   onBackClick={() => {
                     setWalnContent(null);
                     setSelectedProject(null);
-                    localStorage.removeItem("selectedProject");
                     setSelectedBrain(null);
                   }}
+                  bucketName={bucketName}
+                  token={token}
                   onAddBrainClick={handleOpenDialog}
                   onBrainSelect={handleBrainSelect}
+                  refreshProjectBrains={refreshProjectBrains}
                 />
                 <Box
                   sx={{

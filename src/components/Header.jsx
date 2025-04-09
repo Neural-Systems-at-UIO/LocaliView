@@ -172,63 +172,42 @@ const Header = () => {
     fetchUser();
   }, [token]);
 
-  // Brief timeout for UX qol
+  // Auto-redirect to login if no token is present after a short delay
   useEffect(() => {
-    if (!token) {
-      const timer = setTimeout(() => setShowDialog(true), 2000);
-      return () => clearTimeout(timer);
-    } else {
-      setShowDialog(false);
+    // Only redirect if we're not in the middle of a token exchange (no code in URL)
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+
+    if (!token && !code) {
+      const redirectTimer = setTimeout(() => {
+        handleLogin();
+      }, 4000);
+
+      return () => clearTimeout(redirectTimer);
     }
   }, [token]);
 
   if (!token) {
-    if (!showDialog) {
-      return (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            minHeight: "100vh",
-            backgroundColor: "#f0f0f0",
-            flexDirection: "column",
-          }}
-        >
-          <Typography variant="body" fontSize={20} color="text.primary" mb={15}>
-            Rodent Workbench
-          </Typography>
-
-          <CircularProgress size={25} />
-        </Box>
-      );
-    }
-
     return (
-      <Dialog
-        open={true}
-        PaperProps={{
-          sx: {
-            margin: "auto",
-            maxWidth: 400,
-            textAlign: "center",
-            padding: 2,
-          },
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+          backgroundColor: "#f0f0f0",
+          flexDirection: "column",
+          gap: 2,
         }}
       >
-        <DialogTitle>Welcome to Rodent Workbench</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Please login to access the Rodent Workbench and the EBrains
-            services.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button variant="contained" onClick={handleLogin}>
-            Login
-          </Button>
-        </DialogActions>
-      </Dialog>
+        <Typography variant="h5" color="text.primary">
+          Rodent Workbench
+        </Typography>
+        <CircularProgress size={30} />
+        <Typography variant="body2" color="text.secondary">
+          Connecting to EBRAINS services...
+        </Typography>
+      </Box>
     );
   }
 
@@ -284,14 +263,14 @@ const Header = () => {
                   marginLeft: -0.5, // Spacing is 0 for now as arrows look to be fitting in
                   "&:first-child": {
                     clipPath:
-                      "polygon(90% 0, 100% 50%, 90% 100%, 0 100%, 0 0, 0 0)", // First tab shape with normal left edge
+                      "polygon(90% 0, 100% 50%, 90% 100%, 0 100%, 0 0, 0 0)",
                     borderRadius: "2px",
                     marginLeft: -0.5,
                   },
                   "&.Mui-selected": {
                     color: "white",
                     opacity: 1,
-                    backgroundColor: "primary.main", // Selected tab background
+                    backgroundColor: "primary.main",
                   },
                   "&:hover": {
                     opacity: 1,
@@ -376,7 +355,12 @@ const Header = () => {
           >
             <Tooltip title="Docs">
               <IconButton
-                onClick={toggleDocs}
+                onClick={() =>
+                  window.open(
+                    "https://quint-webtools.readthedocs.io/en/latest/",
+                    "_blank"
+                  )
+                }
                 size="small"
                 sx={{
                   color: "black",
@@ -398,7 +382,7 @@ const Header = () => {
                   cursor: "pointer",
                   fontWeight: "bold",
                   color: "text.primary",
-                  textTransform: "none", // Prevents default button text uppercase
+                  textTransform: "none",
                   padding: 0,
                   "& .MuiTypography-root": {
                     variant: "body2",

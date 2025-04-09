@@ -6,9 +6,7 @@ import {
   ListItemIcon,
   TextField,
   Button,
-  FormControl,
-  Select,
-  MenuItem,
+  LinearProgress,
   Typography,
   Stack,
   CircularProgress,
@@ -21,8 +19,16 @@ import {
   SaveAlt,
   Compare,
   Calculate,
-  Info,
+  CloudDownload,
+  CloudUpload,
+  CheckCircle,
+  Error,
+  HourglassEmpty,
+  BarChart,
+  Help,
+  Visibility,
   ImageOutlined,
+  ThreeDRotationOutlined,
 } from "@mui/icons-material";
 import { useState, useEffect } from "react";
 import mBrain from "../mBrain.ico";
@@ -30,8 +36,13 @@ import mBrain from "../mBrain.ico";
 import {
   fetchBrainSegmentations,
   fetchBrainStats,
+  fetchPyNutilResults,
 } from "../actions/handleCollabs";
 import UploadSegments from "./UploadSegments";
+
+// Nutil endpoint, one for submitting and one for polling the status
+const NUTIL_URL = "https://pynutil.apps.ebrains.eu/";
+const MESH_URL = "https://meshview.apps.ebrains.eu/";
 
 // Shared styles object
 const styles = {
@@ -84,6 +95,40 @@ const styles = {
   },
 };
 
+const atlasLookup = {
+  aba_mouse_ccfv3_2017_25um: "ABA_Mouse_CCFv3_2017_25um",
+  whs_sd_rat_v3_39um: "WHS_SD_Rat_v3_39um",
+  whs_sd_rat_v4_39um: "WHS_SD_Rat_v4_39um",
+};
+
+const MeshviewButton = ({ atlas, clouds }) => {
+  // Mesh View viewer route
+  // Supports a single json for now,
+  // TODO allow multiple jsons to be passed in the url after private bucket is resolved
+  const handleClick = () => {
+    const urlPrefix = "https://data-proxy.ebrains.eu/api/v1/public/buckets/";
+    const collabName = localStorage.getItem("bucketName");
+    const url = `${MESH_URL}?atlas=${atlasLookup[atlas]}&clouds=${urlPrefix}${collabName}/${clouds}whole_series_meshview/objects_meshview.json`;
+    window.open(url, "_blank");
+  };
+  return (
+    <Button
+      size="small"
+      disabled={!atlas}
+      startIcon={<ThreeDRotationOutlined />}
+      onClick={handleClick}
+      sx={{
+        fontSize: "0.75rem",
+        py: 0.5,
+
+        borderRadius: 1,
+      }}
+    >
+      View in Meshview
+    </Button>
+  );
+};
+
 // Implementation for the Nutil over the web
 const Nutil = ({ token }) => {
   const [brainEntries, setBrainEntries] = useState([]);
@@ -97,8 +142,6 @@ const Nutil = ({ token }) => {
 
   // Uploading segments window for custom images
   const [uploadSegmentsOpen, setUploadSegmentsOpen] = useState(false);
-  // Object splitting
-  const [outputType, setOutputType] = useState("counts");
   const [registration, setRegistration] = useState({
     atlas: null,
     last_modified: null,
@@ -106,6 +149,44 @@ const Nutil = ({ token }) => {
   });
   const [objectColor, setObjectColor] = useState("#000000");
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const [tasks, setTasks] = useState([]);
+  const [completedResults, setCompletedResults] = useState([]);
+  const [isPolling, setIsPolling] = useState(false);
+
+  // Color/jsx helper
+  const getStatusInfo = (status) => {
+    switch (status) {
+      case "completed":
+        return {
+          color: "success.light",
+          icon: <CheckCircle fontSize="small" />,
+        };
+      case "failed":
+        return { color: "error.light", icon: <Error fontSize="small" /> };
+      case "pending":
+        return {
+          color: "warning.light",
+          icon: <HourglassEmpty fontSize="small" />,
+        };
+      case "downloading json":
+        return {
+          color: "info.light",
+          icon: <CloudDownload fontSize="small" />,
+        };
+      case "downloading segments":
+        return {
+          color: "info.light",
+          icon: <CloudDownload fontSize="small" />,
+        };
+      case "quantifying":
+        return { color: "info.light", icon: <BarChart fontSize="small" /> };
+      case "uploading":
+        return { color: "info.light", icon: <CloudUpload fontSize="small" /> };
+      default:
+        return { color: "warning.light", icon: <Help fontSize="small" /> };
+    }
+  };
 
   const requestNutil = async () => {
     if (
@@ -135,16 +216,20 @@ const Nutil = ({ token }) => {
       };
 
       // Create timestamp-based output folder
+      // the name of can be reworked. Update: The rework has been done to reflect the time of the analysis rather than just the date
       const now = new Date();
-      const dateStr = `${now.getDate()}_${now.getMonth() + 1}_${now
-        .getFullYear()
-        .toString()
-        .slice(2)}`;
+      const dateStr = `${now.getFullYear()}_${String(
+        now.getMonth() + 1
+      ).padStart(2, "0")}_${String(now.getDate()).padStart(2, "0")}_${String(
+        now.getHours()
+      ).padStart(2, "0")}_${String(now.getMinutes()).padStart(2, "0")}_${String(
+        now.getSeconds()
+      ).padStart(2, "0")}`;
       const outputPath = `${brainPath}pynutil_results/${dateStr}`;
 
       // Create the request payload
       const payload = {
-        segmentation_path: segmentationPath,
+        segmentation_path: `${collabName}/${segmentationPath}`,
         alignment_json_path: `${collabName}/${registration.alignment_json_path}`,
         colour: hexToRgb(objectColor),
         output_path: outputPath,
@@ -153,25 +238,41 @@ const Nutil = ({ token }) => {
 
       console.log("Nutil analysis request payload:", payload);
 
-      // Uncomment the following code to actually send the request
-      /*
-      const response = await fetch('YOUR_API_ENDPOINT_HERE', {
-        method: 'POST',
+      // Send the request to the PyNutil endpoint
+      const response = await fetch("https://pynutil.apps.ebrains.eu/pynutil", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
-      
+
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
-      
+
       const result = await response.json();
-      // Get the returned task id here, add to workspace context after implementation
       console.log("Nutil analysis result:", result);
-      */
+
+      // Add the new task to the tasks list with initial status
+      if (result && result.task_id) {
+        const newTask = {
+          id: result.task_id,
+          status: "pending",
+          message: "Task submitted and processing...",
+          createdAt: new Date(),
+          brainName: selectedBrain.name,
+          outputPath: outputPath,
+        };
+
+        setTasks((prev) => [...prev, newTask]);
+
+        // Start polling for this task
+        if (!isPolling) {
+          setIsPolling(true);
+        }
+      }
     } catch (error) {
       console.error("Error requesting Nutil analysis:", error);
       setError("Failed to process Nutil analysis request");
@@ -179,6 +280,143 @@ const Nutil = ({ token }) => {
       setIsProcessing(false);
     }
   };
+
+  // To keep updating the results after submittion
+  const pollTaskStatus = async (taskId) => {
+    try {
+      const response = await fetch(
+        `https://pynutil.apps.ebrains.eu/status/${taskId}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error fetching task status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error(`Error polling task ${taskId}:`, error);
+      return { status: "error", message: error.message };
+    }
+  };
+
+  const fetchCompletedResults = async () => {
+    if (!selectedBrain) return;
+
+    try {
+      const collabName = localStorage.getItem("bucketName");
+      const resultsPath = `${selectedBrain.path}`;
+
+      console.log("Fetching completed results from:", resultsPath);
+
+      const response = await fetchPyNutilResults(
+        token,
+        collabName,
+        resultsPath
+      );
+
+      console.log("Raw response structure:", JSON.stringify(response));
+
+      if (response && response.length > 0) {
+        const folderData = response[0];
+
+        if (folderData.images && folderData.images.length > 0) {
+          // Process the deeply nested structure properly
+          const results = folderData.images.map((item) => ({
+            name:
+              item.subdir || item.name || `Result ${item.hash || "Unknown"}`,
+            created: item.last_modified || new Date().toISOString(),
+            path: item.name || item.subdir, // Use subdir as a fallback for path
+            status: "completed",
+          }));
+          setCompletedResults(results);
+          console.log("Processed results:", results);
+        } else {
+          setCompletedResults([]);
+        }
+      } else {
+        setCompletedResults([]);
+      }
+    } catch (error) {
+      console.error("Error fetching completed results:", error);
+      setCompletedResults([]);
+    }
+  };
+
+  // Call this when a brain is selected to fetch existing results
+  useEffect(() => {
+    if (selectedBrain) {
+      fetchCompletedResults();
+    }
+  }, [selectedBrain]);
+
+  useEffect(() => {
+    let pollingInterval;
+
+    if (tasks.length > 0 && isPolling) {
+      pollingInterval = setInterval(async () => {
+        let shouldContinuePolling = false;
+
+        const updatedTasks = await Promise.all(
+          tasks.map(async (task) => {
+            // Continue polling for all statuses except completed and failed
+            if (task.status !== "completed" && task.status !== "failed") {
+              const statusResult = await pollTaskStatus(task.id);
+
+              // Check if we need to continue polling
+              if (
+                statusResult.status !== "completed" &&
+                statusResult.status !== "failed"
+              ) {
+                shouldContinuePolling = true;
+              }
+
+              // If the task just completed or failed, add it to completed results
+              if (
+                (statusResult.status === "completed" ||
+                  statusResult.status === "failed") &&
+                task.status !== "completed" &&
+                task.status !== "failed"
+              ) {
+                // Task just completed or failed
+                fetchCompletedResults(); // Refresh results list
+                // TODO Add fetch here for the pynutil outputs folder.
+              }
+
+              return {
+                ...task,
+                status: statusResult.status,
+                message: statusResult.message || task.message,
+                completedAt:
+                  statusResult.status === "completed" ||
+                  statusResult.status === "failed"
+                    ? new Date()
+                    : null,
+              };
+            }
+            return task;
+          })
+        );
+
+        setTasks(updatedTasks);
+
+        // If no tasks are still in progress, stop polling
+        if (!shouldContinuePolling) {
+          setIsPolling(false);
+        }
+      }, 3000); // Poll every 3 seconds - Eg to be discussed in a meeting
+    }
+
+    return () => {
+      if (pollingInterval) clearInterval(pollingInterval);
+    };
+  }, [tasks, isPolling, token]);
 
   useEffect(() => {
     try {
@@ -529,26 +767,6 @@ const Nutil = ({ token }) => {
               <Box sx={{ flex: 1 }}>
                 {/*<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <Typography variant="caption">Output</Typography>
-                  <Tooltip title="Select whether to display object counts or area fraction (percentage) of objects within atlas regions">
-                    <Info
-                      fontSize="small"
-                      sx={{ fontSize: 14 }}
-                      color="action"
-                    />
-                  </Tooltip>
-                </Box>
-                
-                <FormControl fullWidth size="small">
-                  <Select
-                    value={outputType}
-                    onChange={(e) => setOutputType(e.target.value)}
-                    variant="standard"
-                    sx={{ minHeight: "32px" }}
-                  >
-                    <MenuItem value="counts">Counts</MenuItem>
-                    <MenuItem value="areaFraction">Area Fraction</MenuItem>
-                  </Select>
-                </FormControl>
                 */}
               </Box>
               <Box sx={{ flex: 1 }}>
@@ -574,7 +792,11 @@ const Nutil = ({ token }) => {
           <Box
             sx={{ p: 1.5, flex: 1, display: "flex", flexDirection: "column" }}
           >
-            <Typography variant="body2" gutterBottom>
+            <Typography
+              variant="body2"
+              gutterBottom
+              sx={{ mb: 1, textAlign: "left" }}
+            >
               Results
             </Typography>
             <Box
@@ -585,13 +807,203 @@ const Nutil = ({ token }) => {
                 p: 1.5,
                 backgroundColor: "grey.50",
                 mb: 1.5,
+                overflowY: "auto",
               }}
             >
-              <Typography variant="caption" color="text.secondary">
-                Analysis results will appear here
+              {/* Task Status Section */}
+              <Typography
+                variant="subtitle2"
+                gutterBottom
+                sx={{ textAlign: "left" }}
+              >
+                Job Status
               </Typography>
+
+              {tasks.length > 0 ? (
+                tasks.map((task) => {
+                  const statusInfo = getStatusInfo(task.status);
+                  return (
+                    <Box
+                      key={task.id}
+                      sx={{
+                        border: "1px solid #e0e0e0",
+                        borderRadius: 1,
+                        p: 1.5,
+                        mb: 1.5,
+                        backgroundColor: "white",
+                        position: "relative",
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: "medium" }}
+                        >
+                          Task: {task.id.substring(0, 8)}...
+                        </Typography>
+                        <Box
+                          sx={{
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: 1,
+                            backgroundColor: statusInfo.color,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                          }}
+                        >
+                          {statusInfo.icon}
+                          <Typography
+                            variant="caption"
+                            sx={{ fontWeight: "medium" }}
+                          >
+                            {task.status.toUpperCase()}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Typography
+                        variant="caption"
+                        display="block"
+                        sx={{ mt: 1 }}
+                      >
+                        {task.message ||
+                          `Processing ${task.brainName.split("/").pop()}`}
+                      </Typography>
+
+                      {task.status !== "completed" &&
+                        task.status !== "failed" && (
+                          <LinearProgress
+                            sx={{ mt: 1.5, height: 6, borderRadius: 3 }}
+                          />
+                        )}
+
+                      {task.status === "completed" && (
+                        <Button
+                          size="small"
+                          startIcon={<Visibility />}
+                          variant="outlined"
+                          sx={{ mt: 1.5 }}
+                          onClick={() => {
+                            // Add logic to view results
+                            // TODO Use a to sandbox link to open the results
+                          }}
+                        >
+                          View Results
+                        </Button>
+                      )}
+
+                      {task.completedAt && (
+                        <Typography
+                          variant="caption"
+                          display="block"
+                          sx={{ mt: 1, color: "text.secondary" }}
+                        >
+                          Completed at: {task.completedAt.toLocaleString()}
+                        </Typography>
+                      )}
+                    </Box>
+                  );
+                })
+              ) : (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ p: 2, textAlign: "left" }}
+                >
+                  No active jobs
+                </Typography>
+              )}
+
+              {/* Completed Results Section
+              -> Listing all the directories within pynutils_results
+              
+              */}
+              <Typography
+                variant="subtitle2"
+                gutterBottom
+                sx={{ mt: 3, textAlign: "left" }}
+              >
+                Available Results
+              </Typography>
+
+              {completedResults && completedResults.length > 0 ? (
+                completedResults.map((result, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      border: "1px solid #e0e0e0",
+                      borderRadius: 1,
+                      p: 1.5,
+                      mb: 1.5,
+                      backgroundColor: "white",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: "medium", textAlign: "left" }}
+                    >
+                      {(() => {
+                        if (!result.name) return "Unnamed Result";
+                        const cleanPath = result.name.endsWith("/")
+                          ? result.name.slice(0, -1)
+                          : result.name;
+                        return cleanPath.split("/").pop() || "Unnamed Result";
+                      })()}
+                    </Typography>
+                    {/*<Typography
+                      variant="caption"
+                      display="block"
+                      color="text.secondary"
+                      sx={{ mt: 1, textAlign: "left" }}
+                    >
+                      {result.created
+                        ? new Date(result.created).toLocaleString()
+                        : "No date available"}
+                    </Typography>
+                    */}
+                    <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                      <Button
+                        size="small"
+                        startIcon={<Calculate />}
+                        sx={{ fontSize: "0.75rem", py: 0.5 }}
+                      >
+                        Plot
+                      </Button>
+                      <Button
+                        size="small"
+                        startIcon={<SaveAlt />}
+                        sx={{ fontSize: "0.75rem", py: 0.5 }}
+                      >
+                        Export
+                      </Button>
+                      <MeshviewButton
+                        atlas={registration.atlas}
+                        clouds={[result.path]}
+                      />
+                    </Box>
+                  </Box>
+                ))
+              ) : (
+                <Box sx={{ p: 2, textAlign: "left" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No completed results available
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Submit a job to generate results
+                  </Typography>
+                </Box>
+              )}
             </Box>
 
+            {/*
+            // These are the old placement for buttons
             <Box sx={{ display: "flex", gap: 1 }}>
               <Button size="small" startIcon={<Calculate />} fullWidth>
                 Plotting and Viewers
@@ -599,7 +1011,7 @@ const Nutil = ({ token }) => {
               <Button size="small" startIcon={<SaveAlt />} fullWidth>
                 Export Results
               </Button>
-            </Box>
+            </Box>*/}
           </Box>
         </Box>
       </Box>
