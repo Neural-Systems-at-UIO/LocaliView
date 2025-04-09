@@ -87,6 +87,8 @@ const QuickActions = ({
       // Extract the base name from the path
       // The name format is as .tif -> .tif.dzip
       const baseName = zip.name.split("/").pop().replace(".dzip", "");
+      // add the zipped image modification time
+      zip.last_modified = new Date(zip.last_modified).getTime();
       zippedMap.set(baseName, zip);
     });
 
@@ -105,13 +107,11 @@ const QuickActions = ({
         rawPath: raw.name,
         rawSize: raw.bytes,
         rawLastModified: raw.last_modified,
+        zipLastModified: matchingZip?.last_modified || null,
         isProcessed: !!matchingZip,
         processedPath: matchingZip?.name || null,
         processedSize: matchingZip?.bytes || null,
         processedLastModified: matchingZip?.last_modified || null,
-        compressionRatio: matchingZip
-          ? (((raw.bytes - matchingZip.bytes) / raw.bytes) * 100).toFixed(1)
-          : null,
       };
     });
   }, [stats]);
@@ -555,10 +555,10 @@ const QuickActions = ({
                         <TableRow>
                           <TableCell>File Name</TableCell>
                           <TableCell>Raw Image Size</TableCell>
-                          <TableCell>Last Modified</TableCell>
+                          <TableCell>Uploaded at</TableCell>
                           <TableCell>Status</TableCell>
+                          <TableCell>Created at</TableCell>
                           <TableCell>DZIP Size</TableCell>
-                          <TableCell>Compression</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -717,13 +717,16 @@ const QuickActions = ({
                                   )}
                                 </TableCell>
                                 <TableCell>
-                                  {file.processedSize
-                                    ? formatFileSize(file.processedSize)
+                                  {file.isProcessed
+                                    ? new Date(
+                                        file.zipLastModified
+                                      ).toLocaleString("en-GB", dateOptions)
                                     : "-"}
                                 </TableCell>
+
                                 <TableCell>
-                                  {file.compressionRatio
-                                    ? `${file.compressionRatio}%`
+                                  {file.processedSize
+                                    ? formatFileSize(file.processedSize)
                                     : "-"}
                                 </TableCell>
                               </TableRow>
