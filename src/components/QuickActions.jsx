@@ -27,7 +27,6 @@ import Grid from "@mui/material/Grid2";
 import InfoIcon from "@mui/icons-material/Info";
 // Icons
 import DeleteIcon from "@mui/icons-material/Delete";
-import SaveIcon from "@mui/icons-material/Save";
 
 import { useState, useEffect, useMemo } from "react";
 
@@ -65,15 +64,7 @@ const dateOptions = {
   year: "2-digit",
 };
 
-const QuickActions = ({
-  braininfo,
-  stats,
-  isLoading,
-  token,
-  setSelectedBrain,
-  refreshBrain,
-  refreshProjectBrains,
-}) => {
+const QuickActions = ({ braininfo, stats, isLoading, token, refreshBrain }) => {
   // Generate unified file list from raw and processed images
   const unifiedFiles = useMemo(() => {
     if (!stats || stats.length < 2) return [];
@@ -96,8 +87,6 @@ const QuickActions = ({
 
     // Create unified records
     return rawImages.map((raw) => {
-      // Extract the base name for matching
-
       const rawBaseName = raw.name.split("/").pop();
       const matchingZip = zippedMap.get(rawBaseName);
 

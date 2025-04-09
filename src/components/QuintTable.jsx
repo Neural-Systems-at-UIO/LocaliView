@@ -353,7 +353,7 @@ export default function QuintTable({ token, user }) {
             <Box
               sx={{
                 flexDirection: "column",
-                flexGrow: 1,
+                width: "50%",
                 border: "1px solid #e0e0e0",
                 borderRadius: "8px",
                 padding: 2,
@@ -511,8 +511,7 @@ export default function QuintTable({ token, user }) {
               component="iframe"
               src="https://quint-webtools.readthedocs.io/en/latest/"
               sx={{
-                display: "flex",
-                flexGrow: 1.5,
+                width: "50%",
                 borderRadius: "8px",
                 border: "1px solid #e0e0e0",
               }}

@@ -58,6 +58,12 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
   const [atlasProgress, setAtlasProgress] = useState(0);
 
   const createAtlas = async (atlasName, bucketName, dzips, token) => {
+    console.log("Creating atlas with the following parameters:");
+    console.log("Atlas Name:", atlasName);
+    console.log("Bucket Name:", bucketName);
+    console.log("DZIPs:", dzips);
+    console.log("Token:", token);
+
     const sortedDzips = [...dzips].sort((a, b) => a.name.localeCompare(b.name));
     const split = dzips[0].name.split("/");
     const uploadObj = {
@@ -66,7 +72,7 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
       projectName: split[0],
       brainName: split[1],
     };
-    let brainAnnounce = uploadObj.brainName;
+    let brainAnnounce = uploadObj.brainName; // find a use for this
 
     try {
       const pathParts = dzips[0].name.split("/");
@@ -224,6 +230,27 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
                     message: `Please select an atlas`,
                     severity: "error",
                   });
+                  return;
+                }
+                if (!bucketName || !dzips || !token) {
+                  updateInfo({
+                    open: true,
+                    message: `Missing required parameters for createAtlas`,
+                    severity: "error",
+                  });
+
+                  console.error("Missing required parameters for createAtlas");
+                  return;
+                }
+                if (dzips.length === 0) {
+                  updateInfo({
+                    open: true,
+                    message: `No DZIPs provided for atlas creation`,
+                    severity: "error",
+                  });
+                  // Reset creating state to false
+                  // moved to logic onclick as the button carried onto execute refreshBrain
+                  console.error("No DZIPs provided for atlas creation");
                   return;
                 }
 
