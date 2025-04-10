@@ -134,10 +134,6 @@ export default function QuintTable({ token, user }) {
     });
     fetchBucketDir(token, collabName, null, "/")
       .then((projects) => {
-        if (projects.length === 0) {
-          console.log("No projects found");
-          return;
-        }
         console.log(projects);
         setProjects(projects);
         setProjectIssue({
@@ -149,6 +145,12 @@ export default function QuintTable({ token, user }) {
       })
       .catch((error) => {
         console.error("Error fetching projects:", error);
+        setProjectIssue({
+          problem: true,
+          message: "Error fetching projects",
+          severity: "error",
+          loading: false,
+        });
       });
   };
 
