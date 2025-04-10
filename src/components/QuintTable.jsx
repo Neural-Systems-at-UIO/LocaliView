@@ -565,8 +565,9 @@ export default function QuintTable({ token, user }) {
                     setSelectedBrain={setSelectedBrain}
                     refreshBrain={refreshBrain}
                     refreshProjectBrains={refreshProjectBrains}
+                    walnContent={walnContent}
                   />
-                  <ProgressPanel walnContent={walnContent} />
+                  {/*<ProgressPanel walnContent={walnContent} />*/}
                 </Box>
               </>
             )}

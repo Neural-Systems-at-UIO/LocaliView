@@ -27,7 +27,7 @@ const atlasNames = {
 
 // TODO - Get the vanilla atlas screen from QuickActions to here
 
-export default function ProgressPanel({ walnContent }) {
+export default function ProgressPanel({ walnContent, currentRegistration }) {
   const {
     navigateToWebAlign,
     navigateToWebWarp,
@@ -187,7 +187,7 @@ export default function ProgressPanel({ walnContent }) {
                   variant="contained"
                   endIcon={<ArrowOutward />}
                   disableElevation
-                  onClick={navigateToWebAlign}
+                  onClick={() => navigateToWebAlign(currentRegistration)}
                   disabled={!walnContent || sectionsWithOUV === totalImages}
                   sx={{ fontSize: "0.8rem", mt: 0.5, textTransform: "none" }}
                   fullWidth
@@ -283,7 +283,7 @@ export default function ProgressPanel({ walnContent }) {
                   variant="contained"
                   endIcon={<ArrowOutward />}
                   disableElevation
-                  onClick={navigateToWebWarp}
+                  onClick={() => navigateToWebWarp(currentRegistration)}
                   color="success"
                   sx={{ fontSize: "0.8rem", mt: 0.5, textTransform: "none" }}
                   fullWidth

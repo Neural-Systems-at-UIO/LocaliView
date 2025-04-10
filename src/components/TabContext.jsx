@@ -23,13 +23,21 @@ export const TabProvider = ({ children }) => {
     setCurrentTab(tabIndex);
   };
 
-  const navigateToWebAlign = () => {
-    const alignment = localStorage.getItem("alignment");
+  const navigateToWebAlign = (customAlignment) => {
+    const alignment = customAlignment || localStorage.getItem("alignment");
     const bucketName = localStorage.getItem("bucketName");
 
     if (!alignment || alignment === "") {
       alert("Please set a working alignment first");
       return false;
+    }
+
+    // Updating localstorage in case the registrations are not the same
+    if (
+      customAlignment &&
+      customAlignment !== localStorage.getItem("alignment")
+    ) {
+      localStorage.setItem("alignment", customAlignment);
     }
 
     // Tab index 1 is for WebAlign
@@ -42,13 +50,21 @@ export const TabProvider = ({ children }) => {
     return true;
   };
 
-  const navigateToWebWarp = () => {
-    const alignment = localStorage.getItem("alignment");
+  const navigateToWebWarp = (customAlignment) => {
+    const alignment = customAlignment || localStorage.getItem("alignment");
     const bucketName = localStorage.getItem("bucketName");
 
     if (!alignment || alignment === "") {
       alert("Please set a working alignment first");
       return false;
+    }
+
+    // Updating localstorage in case the registrations are not the same
+    if (
+      customAlignment &&
+      customAlignment !== localStorage.getItem("alignment")
+    ) {
+      localStorage.setItem("alignment", customAlignment);
     }
 
     // Tab index 2 is for WebWarp
