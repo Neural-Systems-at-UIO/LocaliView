@@ -30,7 +30,7 @@ import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 
 import Mainframe from "./Mainframe";
 import callUser from "../actions/createUser";
-import { useTabContext } from "./TabContext";
+import { useTabContext } from "../contexts/TabContext";
 
 // Variable loading for URLs
 const OIDC = import.meta.env.VITE_APP_OIDC;

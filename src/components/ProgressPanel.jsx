@@ -10,7 +10,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 
-import { useTabContext } from "./TabContext";
+import { useTabContext } from "../contexts/TabContext";
 
 // Icons
 import ImageIcon from "@mui/icons-material/Image";

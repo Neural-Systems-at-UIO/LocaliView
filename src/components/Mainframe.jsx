@@ -2,7 +2,7 @@ import React from "react";
 import { Box } from "@mui/material";
 import QuintTable from "./QuintTable";
 import Nutil from "./Nutil";
-import { useTabContext } from "./TabContext";
+import { useTabContext } from "../contexts/TabContext";
 
 const Mainframe = ({ token, user }) => {
   const { currentUrl, nativeSelection } = useTabContext();

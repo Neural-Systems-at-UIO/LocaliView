@@ -471,7 +471,8 @@ export default function QuintTable({ token, user }) {
                             onClick={(e) => {
                               e.stopPropagation(); // Stop event propagation
                               const confirmation = prompt(
-                                `Type "${project.name}" to confirm deletion:`,
+                                `This action is irreversible!\nAre you sure you want to delete the project "${project.name}"?\n\n` +
+                                  `\nType "${project.name}" to confirm deletion:`,
                                 ""
                               );
                               if (confirmation === project.name) {

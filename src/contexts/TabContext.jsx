@@ -89,8 +89,11 @@ export const TabProvider = ({ children }) => {
     // Tab index 3 is for WebIlastik
     setCurrentTab(3);
 
-    // The current URL is not up for it so its empty
-    const url = `https://webilastik.apps.ebrains.eu/webilastik.php?clb-collab-id=${bucketName}&filename=${alignment}`;
+    // The current URL is app.ilastik.org
+    // TODO Work on webilastik and enable the picking up of workspaces
+    // eg. bucketname, prefix
+    const url =
+      "https://app.ilastik.org/public/nehuba/index.html#!%7B%22layout%22:%22xy%22%7D";
     handleFrameChange(url);
 
     return true;
@@ -103,6 +106,17 @@ export const TabProvider = ({ children }) => {
     setNativeSelection({
       native: true,
       app: "nutil",
+    });
+    return true;
+  };
+
+  const natvigateToSandBox = () => {
+    // Tab index 5 is for SandBox
+    setCurrentTab(5);
+    // Construct URL and set iframe
+    setNativeSelection({
+      native: true,
+      app: "sandbox",
     });
     return true;
   };
