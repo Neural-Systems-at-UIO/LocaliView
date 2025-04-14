@@ -42,7 +42,7 @@ import UploadSegments from "./UploadSegments";
 
 // Nutil endpoint, one for submitting and one for polling the status
 const NUTIL_URL = "https://pynutil.apps.ebrains.eu/";
-const MESH_URL = "https://meshview.apps.ebrains.eu/";
+const MESH_URL = "https://meshview.apps.ebrains.eu/collab.php";
 
 // Shared styles object
 const styles = {
@@ -108,7 +108,7 @@ const MeshviewButton = ({ atlas, clouds }) => {
   const handleClick = () => {
     const urlPrefix = "https://data-proxy.ebrains.eu/api/v1/public/buckets/";
     const collabName = localStorage.getItem("bucketName");
-    const url = `${MESH_URL}?atlas=${atlasLookup[atlas]}&clouds=${urlPrefix}${collabName}/${clouds}whole_series_meshview/objects_meshview.json`;
+    const url = `${MESH_URL}?atlas=${atlasLookup[atlas]}&cloud=${urlPrefix}${collabName}/${clouds}whole_series_meshview/objects_meshview.json`;
     window.open(url, "_blank");
   };
   return (

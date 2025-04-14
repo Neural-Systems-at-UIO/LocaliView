@@ -312,7 +312,7 @@ const Header = () => {
                       case "Sandbox":
                         setNativeSelection({
                           native: true,
-                          app: "results",
+                          app: "sandbox",
                         });
                         break;
                       default:

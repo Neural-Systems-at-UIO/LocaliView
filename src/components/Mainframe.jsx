@@ -2,6 +2,7 @@ import React from "react";
 import { Box } from "@mui/material";
 import QuintTable from "./QuintTable";
 import Nutil from "./Nutil";
+import Sandbox from "./Sandbox";
 import { useTabContext } from "../contexts/TabContext";
 
 const Mainframe = ({ token, user }) => {
@@ -31,6 +32,8 @@ const Mainframe = ({ token, user }) => {
             <QuintTable token={token} user={user} />
           ) : nativeSelection.app === "nutil" ? (
             <Nutil token={token} user={user} />
+          ) : nativeSelection.app === "sandbox" ? (
+            <Sandbox token={token} />
           ) : null}
         </Box>
       ) : (

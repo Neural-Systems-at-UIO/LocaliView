@@ -26,7 +26,6 @@ import {
 import CreationDialog from "./CreationDialog.jsx";
 import BrainTable from "./BrainTable.jsx";
 import QuickActions from "./QuickActions.jsx";
-import ProgressPanel from "./ProgressPanel.jsx";
 
 export default function QuintTable({ token, user }) {
   // Query helpers
