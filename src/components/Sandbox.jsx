@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Plot from "react-plotly.js";
 import Papa from "papaparse";
 import {
-  Button,
+  TextField,
   Box,
   CircularProgress,
   Typography,
@@ -13,7 +13,6 @@ import {
   Stack,
   Card,
   CardContent,
-  Divider,
   Grid2 as Grid,
   Paper,
   IconButton,
@@ -65,6 +64,7 @@ const Sandbox = ({ token }) => {
   const [graphMetrics, setGraphMetrics] = useState(["area_fraction"]);
   const [summary, setSummary] = useState({});
   const [availableCsvs, setAvailableCsvs] = useState([]);
+  const [topN, setTopN] = useState(20);
 
   const availableMetrics = [
     { value: "area_fraction", label: "Area Fraction" },
@@ -133,7 +133,12 @@ const Sandbox = ({ token }) => {
           }
           console.log("Parsed CSV data:", results.data);
           setRawData(results.data);
-          generateAllGraphs(results.data, graphMetrics, visualizationType);
+          generateAllGraphs(
+            results.data,
+            graphMetrics,
+            visualizationType,
+            topN
+          );
         },
         error: (err) => {
           throw new Error(`CSV Parsing Failed: ${err.message}`);
@@ -148,7 +153,7 @@ const Sandbox = ({ token }) => {
     }
   };
 
-  const generateAllGraphs = (data, metrics, plotType) => {
+  const generateAllGraphs = (data, metrics, plotType, currentTopN) => {
     const allPlotData = [];
     const allLayouts = [];
     const summaryData = {};
@@ -158,7 +163,8 @@ const Sandbox = ({ token }) => {
         data,
         metric,
         plotType,
-        index
+        index,
+        currentTopN
       );
       allPlotData.push(plotDataItem);
       allLayouts.push(layout);
@@ -170,10 +176,13 @@ const Sandbox = ({ token }) => {
     setSummary(summaryData);
   };
 
-  const generatePlot = (data, sortField, plotType, index) => {
+  const generatePlot = (data, sortField, plotType, index, currentTopN) => {
     // Filter out rows with no data
     const filteredData = data.filter(
       (row) =>
+        // Certain meta rows are excluded from the analysis
+        row.name !== "Clear Label" &&
+        row.name !== "root" &&
         row[sortField] !== undefined &&
         row[sortField] !== null &&
         row[sortField] !== 0
@@ -190,7 +199,7 @@ const Sandbox = ({ token }) => {
     );
 
     // Take top 20 results for better visualization
-    const topData = sortedData.slice(0, 20);
+    const topData = sortedData.slice(0, currentTopN);
 
     const names = topData.map((row) => row.name);
     const values = topData.map((row) => row[sortField]);
@@ -198,7 +207,7 @@ const Sandbox = ({ token }) => {
     // Generate colors from RGB values in the data
     const colors = topData.map(
       (row) => `rgba(${row.r}, ${row.g}, ${row.b}, 0.8)`
-    );
+    ); // Alpha can be adjusted later on
 
     let plotDataItem;
     if (plotType === "bar") {
@@ -279,7 +288,7 @@ const Sandbox = ({ token }) => {
   const handleVisualizationTypeChange = (e) => {
     setVisualizationType(e.target.value);
     if (rawData.length > 0) {
-      generateAllGraphs(rawData, graphMetrics, e.target.value);
+      generateAllGraphs(rawData, graphMetrics, e.target.value, topN);
     }
   };
 
@@ -288,7 +297,15 @@ const Sandbox = ({ token }) => {
     setGraphMetrics(selectedMetrics);
 
     if (rawData.length > 0) {
-      generateAllGraphs(rawData, selectedMetrics, visualizationType);
+      generateAllGraphs(rawData, selectedMetrics, visualizationType, topN);
+    }
+  };
+
+  const handleTopNChange = (event) => {
+    const newTopN = event.target.value;
+    setTopN(newTopN);
+    if (rawData.length > 0) {
+      generateAllGraphs(rawData, graphMetrics, visualizationType, newTopN);
     }
   };
 
@@ -314,13 +331,23 @@ const Sandbox = ({ token }) => {
               alignItems="left"
               sx={{ mb: 1 }}
             >
+              <Typography variant="body2" textAlign={"left"}>
+                Plotting and Analysis Summary for brain.name
+              </Typography>
+
               <Box
-                sx={{ display: "flex", alignItems: "center", maxWidth: "100%" }}
+                sx={{
+                  borderTop: "1px dashed #ccc",
+                  pt: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 1,
+                  maxWidth: "100%",
+                }}
               >
-                <FormControl
-                  size="small"
-                  sx={{ minWidth: 120, maxWidth: "45%" }}
-                >
+                <FormControl size="small" sx={{ minWidth: 120, flexGrow: 1 }}>
                   <InputLabel>Chart Type</InputLabel>
                   <Select
                     value={visualizationType}
@@ -332,6 +359,18 @@ const Sandbox = ({ token }) => {
                     <MenuItem value="pie">Pie Chart</MenuItem>
                     <MenuItem value="treemap">Treemap</MenuItem>
                   </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 80, flexGrow: 1 }}>
+                  <TextField
+                    label="Top N"
+                    type="number"
+                    value={topN}
+                    onChange={handleTopNChange}
+                    size="small"
+                    InputProps={{ inputProps: { min: 1 } }}
+                    disabled={isLoading || rawData.length === 0}
+                    sx={{ maxWidth: "80px" }}
+                  />
                 </FormControl>
                 <Tooltip title="Load Data">
                   <IconButton
@@ -399,15 +438,6 @@ const Sandbox = ({ token }) => {
           <Grid size={4}>
             <Card variant="outlined" sx={{ height: "100%" }}>
               <CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
-                <Typography
-                  variant="subtitle2"
-                  color="text.secondary"
-                  gutterBottom
-                  textAlign={"left"}
-                >
-                  Analysis Summary for brain.name
-                </Typography>
-                <Divider sx={{ mb: 1 }} />
                 <Box
                   sx={{
                     fontFamily: "monospace",
