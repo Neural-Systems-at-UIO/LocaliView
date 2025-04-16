@@ -344,19 +344,18 @@ export default function QuintTable({ token, user }) {
         flexDirection: "row",
         alignItems: "stretch",
         height: "99%",
-        borderRadius: "4px",
         gap: 2,
       }}
     >
       <Box sx={{ display: "flex", flexGrow: 1, minHeight: 0 }}>
         {selectedProject === null ? (
-          <Box sx={{ flex: 1, display: "flex", flexDirection: "row", gap: 2 }}>
+          <Box sx={{ flex: 1, display: "flex", flexDirection: "row", gap: 1 }}>
             <Box
               sx={{
                 flexDirection: "column",
                 width: "50%",
                 border: "1px solid #e0e0e0",
-                borderRadius: "8px",
+                borderRadius: 1,
                 padding: 2,
                 backgroundColor: "white",
               }}
@@ -514,7 +513,7 @@ export default function QuintTable({ token, user }) {
               src="https://quint-webtools.readthedocs.io/en/latest/"
               sx={{
                 width: "50%",
-                borderRadius: "8px",
+                borderRadius: 1,
                 border: "1px solid #e0e0e0",
               }}
             ></Box>

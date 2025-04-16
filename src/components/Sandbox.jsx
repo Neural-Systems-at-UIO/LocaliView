@@ -198,7 +198,6 @@ const Sandbox = ({ token }) => {
       (a, b) => b[sortField] - a[sortField]
     );
 
-    // Take top 20 results for better visualization
     const topData = sortedData.slice(0, currentTopN);
 
     const names = topData.map((row) => row.name);
@@ -315,7 +314,7 @@ const Sandbox = ({ token }) => {
   }, []);
 
   return (
-    <Box sx={{ padding: 1, borderRadius: 1, backgroundColor: "#fff" }}>
+    <Box sx={{ padding: 1, backgroundColor: "#fff" }}>
       <Paper elevation={0} sx={{ p: 2, mb: 2, borderRadius: 1 }}>
         <Grid container spacing={2} sx={{ mb: 2 }}>
           <Grid size={4}>

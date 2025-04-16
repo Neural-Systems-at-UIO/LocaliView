@@ -108,7 +108,6 @@ const Header = () => {
 
   // Login alert
   const [loginAlert, setLoginAlert] = useState(true);
-  const [showDialog, setShowDialog] = useState(false);
 
   // Tab context to interact
 
@@ -223,9 +222,10 @@ const Header = () => {
       <AppBar
         position="flex"
         sx={{
-          backgroundColor: "#f0f0f0",
+          backgroundColor: "rgba(24, 29, 26, 0.8)",
           color: "black",
           boxShadow: "none",
+          borderBottom: "1px solid #ccc",
         }}
       >
         <Toolbar
@@ -251,13 +251,13 @@ const Header = () => {
                 "& .MuiTab-root": {
                   minHeight: "36px",
                   fontSize: "0.875rem",
-                  padding: "0 16px",
+                  padding: "0 14px",
                   minWidth: "auto",
-                  opacity: 0.7,
+                  opacity: 1,
                   transition: "opacity 0.1s",
                   color: "black",
                   textTransform: "none",
-                  backgroundColor: "#e0e0e0",
+                  backgroundColor: "rgba(255, 255, 255, 0.72)",
                   clipPath:
                     "polygon(90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%, 0 0)", // Arrow shape
                   marginLeft: -0.5, // Spacing is 0 for now as arrows look to be fitting in
@@ -274,7 +274,8 @@ const Header = () => {
                   },
                   "&:hover": {
                     opacity: 1,
-                    backgroundColor: "darkgray",
+                    backgroundColor: "transparent",
+                    color: "white",
                   },
                 },
                 "& .MuiTabs-indicator": {
@@ -338,6 +339,7 @@ const Header = () => {
             <Typography
               sx={{
                 fontSize: "0.875rem",
+                color: "white",
               }}
             >
               rodent workbench
@@ -363,7 +365,7 @@ const Header = () => {
                 }
                 size="small"
                 sx={{
-                  color: "black",
+                  color: "white",
                   padding: 0,
                   "&:hover": {
                     backgroundColor: "transparent",
@@ -381,7 +383,7 @@ const Header = () => {
                   textAlign: "right",
                   cursor: "pointer",
                   fontWeight: "bold",
-                  color: "text.primary",
+                  color: "white",
                   textTransform: "none",
                   padding: 0,
                   "& .MuiTypography-root": {

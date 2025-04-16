@@ -16,16 +16,14 @@ const Mainframe = ({ token, user }) => {
         justifyContent: "center",
         alignItems: "center",
         position: "relative",
-        mt: 1,
       }}
     >
       {nativeSelection.native ? (
         <Box
           sx={{
-            width: "99%",
+            width: "100%",
             height: "100%",
             border: "none",
-            borderRadius: "4px",
           }}
         >
           {nativeSelection.app === "workspace" ? (
@@ -40,11 +38,10 @@ const Mainframe = ({ token, user }) => {
         <Box
           component="iframe"
           sx={{
-            width: "99%",
+            width: "100%",
             height: "100%",
             border: "none",
             bgcolor: "white",
-            borderRadius: "4px",
           }}
           src={currentUrl || ""}
           title="Mainframe Content"

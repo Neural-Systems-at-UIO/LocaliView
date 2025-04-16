@@ -49,7 +49,7 @@ const styles = {
   listContainer: {
     backgroundColor: "white",
     border: "1px solid #e0e0e0",
-    borderRadius: "4px",
+    borderRadius: 1,
     height: "100%",
   },
   listItem: {
@@ -89,7 +89,7 @@ const styles = {
     position: "relative",
     backgroundColor: "white",
     border: "1px solid #e0e0e0",
-    borderRadius: "4px",
+    borderRadius: 1,
     height: "100%",
     transition: "all 0.3s ease",
   },
@@ -515,10 +515,9 @@ const Nutil = ({ token }) => {
     <Box
       sx={{
         display: "flex",
-        height: "99%",
+        height: "100%",
         backgroundColor: "#f6f6f6",
-        borderRadius: "4px",
-        gap: 2,
+        gap: 1,
         padding: 1,
       }}
     >
