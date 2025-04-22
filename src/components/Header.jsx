@@ -386,7 +386,7 @@ const Header = () => {
                 color: "white",
               }}
             >
-              rodent workbench
+              quint online
             </Typography>
           </Box>
           <Box
@@ -530,7 +530,6 @@ const Header = () => {
           title="Rodent Workbench Documentation"
         />
       </Dialog>
-      {/* Render Mainframe only if authenticated */}
       {auth && user && (
         <Mainframe
           url={currentUrl}
@@ -539,7 +538,7 @@ const Header = () => {
           user={user}
         />
       )}
-      {/* Snackbar logic remains the same, but loginAlert is now false by default */}
+
       <Snackbar
         open={loginAlert}
         autoHideDuration={5000}
