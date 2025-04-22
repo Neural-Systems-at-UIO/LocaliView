@@ -14,13 +14,8 @@ import {
   Toolbar,
   Tooltip,
   Typography,
-  Snackbar,
-  Alert,
   IconButton,
   Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
 } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
@@ -538,22 +533,6 @@ const Header = () => {
           user={user}
         />
       )}
-
-      <Snackbar
-        open={loginAlert}
-        autoHideDuration={5000}
-        onClose={() => setLoginAlert(false)} // Allow closing the snackbar
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          severity="info"
-          sx={{ width: "100%" }}
-          elevation={6}
-          onClose={() => setLoginAlert(false)} // Add close button
-        >
-          Please login to access the Rodent Workbench and the EBrains services
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };
