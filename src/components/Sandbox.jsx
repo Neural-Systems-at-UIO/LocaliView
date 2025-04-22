@@ -21,6 +21,8 @@ import {
   ListItem,
   Chip,
   OutlinedInput,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -65,6 +67,7 @@ const Sandbox = ({ token }) => {
   const [summary, setSummary] = useState({});
   const [availableCsvs, setAvailableCsvs] = useState([]);
   const [topN, setTopN] = useState(20);
+  const [sorted, setSorted] = useState(false);
 
   const availableMetrics = [
     { value: "area_fraction", label: "Area Fraction" },
@@ -198,8 +201,9 @@ const Sandbox = ({ token }) => {
       (a, b) => b[sortField] - a[sortField]
     );
 
-    const topData = sortedData.slice(0, currentTopN);
-
+    const topData = sorted
+      ? sortedData.slice(0, currentTopN)
+      : filteredData.slice(0, currentTopN);
     const names = topData.map((row) => row.name);
     const values = topData.map((row) => row[sortField]);
 
@@ -210,16 +214,20 @@ const Sandbox = ({ token }) => {
 
     let plotDataItem;
     if (plotType === "bar") {
-      plotDataItem = {
-        x: names,
-        y: values,
+      plotDataItem = names.map((name, i) => ({
+        y: [name],
+        x: [values[i]],
         type: "bar",
-        marker: { color: colors },
+        orientation: "h",
+        marker: { color: colors[i] },
+        name: name, // This will show in the legend
         hovertemplate:
           "<b>%{x}</b><br>" +
           `${sortField}: %{y}<br>` +
           "RGB: %{marker.color}<extra></extra>",
-      };
+        showlegend: true,
+        legendgroup: name,
+      }));
     } else if (plotType === "pie") {
       plotDataItem = {
         labels: names,
@@ -241,23 +249,39 @@ const Sandbox = ({ token }) => {
       };
     }
 
+    // the labels for the regions aren't visible when they are in bar chart format
+    const leftMargin = plotType === "bar" ? 250 : 50;
+
     const metricLabel =
       availableMetrics.find((m) => m.value === sortField)?.label || sortField;
     const layout = {
-      title: `${metricLabel} Distribution`,
+      title: { text: `${metricLabel} Distribution` },
+      automargin: true,
       xaxis: {
         title: "",
-        tickangle: -45,
+        tickangle: 0,
         showgrid: false,
       },
       yaxis: {
         title: metricLabel,
         showgrid: true,
       },
-      showlegend: false,
+      showlegend: true,
+      /*legend: {
+        orientation: "v",
+        x: 1.02,
+        y: 1,
+        xanchor: "left",
+        yanchor: "top",
+        font: { size: 12 },
+        bgcolor: "rgba(255,255,255,0.7)",
+        bordercolor: "#ccc",
+        borderwidth: 1,
+        borderRadius: 5,
+      },*/
       autosize: true,
       margin: {
-        l: 50,
+        l: leftMargin,
         r: 50,
         b: 130,
         t: 50,
@@ -284,6 +308,7 @@ const Sandbox = ({ token }) => {
     return { plotDataItem, layout, metricSummary };
   };
 
+  // Bunch of handlers for the UI elements
   const handleVisualizationTypeChange = (e) => {
     setVisualizationType(e.target.value);
     if (rawData.length > 0) {
@@ -305,6 +330,14 @@ const Sandbox = ({ token }) => {
     setTopN(newTopN);
     if (rawData.length > 0) {
       generateAllGraphs(rawData, graphMetrics, visualizationType, newTopN);
+    }
+  };
+
+  const handleSortChange = (event) => {
+    const newSort = event.target.checked;
+    setSorted(newSort);
+    if (rawData.length > 0) {
+      generateAllGraphs(rawData, graphMetrics, visualizationType, topN);
     }
   };
 
@@ -359,6 +392,16 @@ const Sandbox = ({ token }) => {
                     <MenuItem value="treemap">Treemap</MenuItem>
                   </Select>
                 </FormControl>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      onChange={handleSortChange}
+                      defaultChecked={sorted}
+                    />
+                  }
+                  label="Sorted"
+                ></FormControlLabel>
+
                 <FormControl size="small" sx={{ minWidth: 80, flexGrow: 1 }}>
                   <TextField
                     label="Top N"
@@ -545,7 +588,7 @@ const Sandbox = ({ token }) => {
             >
               <Paper elevation={0} sx={{ p: 2 }}>
                 <Plot
-                  data={[dataItem]}
+                  data={Array.isArray(dataItem) ? dataItem : [dataItem]}
                   layout={plotLayouts[index]}
                   useResizeHandler={true}
                   style={{
