@@ -729,13 +729,14 @@ const Nutil = ({ token }) => {
                 p: 1.5,
                 mb: 1.5,
                 backgroundColor: "grey.50",
+                textAlign: "left",
               }}
             >
               <Typography variant="caption" color="text.secondary">
                 Reference Atlas
               </Typography>
               <Typography variant="body2" sx={{ mt: 0.5 }}>
-                {registration.atlas || "No atlas selected"}
+                {atlasLookup[registration.atlas] || "No atlas selected"}
               </Typography>
               <Typography
                 variant="caption"

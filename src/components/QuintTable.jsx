@@ -524,7 +524,7 @@ export default function QuintTable({ token, user }) {
               <Box
                 sx={{
                   display: "flex",
-                  gap: 2,
+                  gap: 1,
                   justifyContent: "center",
                   width: "100%",
                   alignItems: "center",
@@ -552,7 +552,7 @@ export default function QuintTable({ token, user }) {
                 <Box
                   sx={{
                     width: "60%",
-                    ml: 2,
+                    ml: 1,
                     flexGrow: 0.6,
                     height: "100%",
                     flexDirection: "column",

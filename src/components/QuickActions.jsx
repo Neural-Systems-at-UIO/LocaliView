@@ -361,7 +361,7 @@ const QuickActions = ({
   const brainStats = stats[0] || {};
   const brainPyramids = stats[1] || {};
   const walnJson = stats[2] || {};
-  const segmented = stats[3].files || 0;
+  const segmented = stats[3]?.files || 0;
   let registered = walnJson.jsons?.length >= 1;
 
   if (isLoading) {
@@ -404,7 +404,7 @@ const QuickActions = ({
       </Snackbar>
       <Grid
         container
-        spacing={2}
+        spacing={1}
         sx={{
           display: "flex",
           flexDirection: "row",
@@ -829,7 +829,7 @@ const QuickActions = ({
 
       <Box
         sx={{
-          mt: 2,
+          mt: 1,
           boxShadow: "none",
           border: "1px solid #e0e0e0",
           backgroundColor: "white",

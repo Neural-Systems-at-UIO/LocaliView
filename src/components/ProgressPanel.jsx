@@ -73,7 +73,7 @@ export default function ProgressPanel({
         border: "1px solid #e0e0e0",
         borderRadius: "4px",
         boxShadow: "none",
-        mt: 2,
+        mt: 1,
       }}
     >
       <Stack spacing={2}>
@@ -81,10 +81,11 @@ export default function ProgressPanel({
         
         - Initial info, later down will reveal the progress
         
+        
         */}
         <Stack
           direction="row"
-          spacing={1.5}
+          spacing={1}
           alignItems="center"
           justifyContent="space-between"
         >
