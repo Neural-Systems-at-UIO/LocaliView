@@ -27,7 +27,11 @@ const atlasNames = {
 
 // TODO - Get the vanilla atlas screen from QuickActions to here
 
-export default function ProgressPanel({ walnContent, currentRegistration }) {
+export default function ProgressPanel({
+  walnContent,
+  currentRegistration,
+  segmented,
+}) {
   const {
     navigateToWebAlign,
     navigateToWebWarp,
@@ -323,7 +327,7 @@ export default function ProgressPanel({ walnContent, currentRegistration }) {
                   </Box>
                   <Tooltip title={`WebIlastik tooltip`}>
                     <Chip
-                      label={`${totalImages}`}
+                      label={`${segmented}/${totalImages}`}
                       size="small"
                       color="warning"
                       variant="outlined"
@@ -344,10 +348,10 @@ export default function ProgressPanel({ walnContent, currentRegistration }) {
                   <Box sx={{ position: "relative", display: "inline-flex" }}>
                     <CircularProgress
                       variant="determinate"
-                      value={0}
+                      value={(segmented / totalImages) * 100}
                       size={60}
                       thickness={2.5}
-                      sx={{ color: "warning" }}
+                      color="warning"
                     />
                     <Box
                       sx={{
@@ -367,7 +371,7 @@ export default function ProgressPanel({ walnContent, currentRegistration }) {
                         color="warning"
                         fontWeight="bold"
                       >
-                        {0}%
+                        {(segmented / totalImages) * 100}%
                       </Typography>
                     </Box>
                   </Box>

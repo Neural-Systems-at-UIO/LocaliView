@@ -132,69 +132,71 @@ export function fetchWorkspaceConfigurations(workspace, token) {
 }
 
 export const fetchBrainStats = async (token, bucketName, brainPrefix, optional = null) => {
-    let res = []
-    try {
-        let url = `${BUCKET_URL}${bucketName}?`
-        let workDirs = [];
+    let workDirs = [];
 
-        if (optional) {
-            workDirs.push(optional);
-            console.log("added", optional, "to ", workDirs);
-        } else {
-            workDirs = [
-                'raw_images',
-                'zipped_images',
-                'jsons'
-            ];
-        }
-
-        for (const workDir of workDirs) {
-            const params = new URLSearchParams()
-            if (brainPrefix) params.append('prefix', `${brainPrefix}${workDir}/`)
-            params.append('limit', 1000)
-            const workDirUrl = `${url}${params.toString()}`
-
-            const response = await fetch(workDirUrl, {
-                method: 'GET',
-                headers: {
-                    'accept': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                }
-            })
-            if (!response.ok) {
-                throw new Error(`Failed to fetch bucket directory for ${workDir}`)
-            }
-            const data = await response.json()
-            const stats = {
-                "name": brainPrefix + workDir,
-                "files": data.objects.length,
-                "size": data.objects.reduce((acc, obj) => acc + obj.bytes, 0),
-            }
-            // Workdir relevant keys
-
-            if (workDir === 'raw_images') {
-                stats.tiffs = data.objects.filter(obj => {
-                    const name = obj.name.toLowerCase();
-                    return name.endsWith('.tif') ||
-                        name.endsWith('.tiff') ||
-                        name.endsWith('.png') ||
-                        name.endsWith('.jpg') ||
-                        name.endsWith('.jpeg');
-                });
-            } else if (workDir === 'zipped_images') {
-                stats.zips = data.objects.filter(obj => obj.name.endsWith('.dzip'))
-            } else if (workDir === 'jsons') {
-                stats.jsons = data.objects.filter(obj => obj.name.endsWith('.waln'))
-            }
-
-            res.push(stats)
-        }
-
-    } catch (error) {
-        console.error('Error fetching bucket directory:', error)
-        throw error
+    if (optional) {
+        workDirs.push(optional);
+        console.log("added", optional, "to ", workDirs);
+    } else {
+        workDirs = [
+            'raw_images',
+            'zipped_images',
+            'jsons',
+            'segmentations',
+            // 'pynutil_results',
+        ];
     }
-    return res
+
+    const url = `${BUCKET_URL}${bucketName}?`;
+
+    // Prepare all fetch promises
+    const fetchPromises = workDirs.map(async (workDir) => {
+        const params = new URLSearchParams();
+        if (brainPrefix) params.append('prefix', `${brainPrefix}${workDir}/`);
+        params.append('limit', 1000);
+        const workDirUrl = `${url}${params.toString()}`;
+
+        const response = await fetch(workDirUrl, {
+            method: 'GET',
+            headers: {
+                'accept': 'application/json',
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to fetch bucket directory for ${workDir}`);
+        }
+        const data = await response.json();
+        const stats = {
+            "name": brainPrefix + workDir,
+            "files": data.objects.length,
+            "size": data.objects.reduce((acc, obj) => acc + obj.bytes, 0),
+        };
+
+        if (workDir === 'raw_images') {
+            stats.tiffs = data.objects.filter(obj => {
+                const name = obj.name.toLowerCase();
+                return name.endsWith('.tif') ||
+                    name.endsWith('.tiff') ||
+                    name.endsWith('.png') ||
+                    name.endsWith('.jpg') ||
+                    name.endsWith('.jpeg');
+            });
+        } else if (workDir === 'zipped_images') {
+            stats.zips = data.objects.filter(obj => obj.name.endsWith('.dzip'));
+        } else if (workDir === 'jsons') {
+            stats.jsons = data.objects.filter(obj => obj.name.endsWith('.waln'));
+        }
+
+        return stats;
+    });
+
+    try {
+        return await Promise.all(fetchPromises);
+    } catch (error) {
+        console.error('Error fetching bucket directory:', error);
+        throw error;
+    }
 }
 
 export const fetchBrainSegmentations = async (token, bucketName, brainPrefix) => {

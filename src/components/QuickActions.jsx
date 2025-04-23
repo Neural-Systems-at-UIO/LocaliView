@@ -361,6 +361,7 @@ const QuickActions = ({
   const brainStats = stats[0] || {};
   const brainPyramids = stats[1] || {};
   const walnJson = stats[2] || {};
+  const segmented = stats[3].files || 0;
   let registered = walnJson.jsons?.length >= 1;
 
   if (isLoading) {
@@ -971,6 +972,7 @@ const QuickActions = ({
         <ProgressPanel
           walnContent={walnContent}
           currentRegistration={walnJson.jsons?.[0]?.name}
+          segmented={segmented}
         />
       )}
     </Box>
