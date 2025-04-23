@@ -80,6 +80,7 @@ export const TabProvider = ({ children }) => {
   const navigateToWebIlastik = () => {
     const alignment = localStorage.getItem("alignment");
     const bucketName = localStorage.getItem("bucketName");
+    const mainPath = JSON.parse(localStorage.getItem("selectedBrain"));
 
     if (!alignment || alignment === "") {
       alert("Please set a working alignment first");
@@ -89,11 +90,18 @@ export const TabProvider = ({ children }) => {
     // Tab index 3 is for WebIlastik
     setCurrentTab(3);
 
-    // The current URL is app.ilastik.org
-    // TODO Work on webilastik and enable the picking up of workspaces
-    // eg. bucketname, prefix
-    const url =
-      "https://app.ilastik.org/public/nehuba/index.html#!%7B%22layout%22:%22xy%22%7D";
+    // Use the provided paths or default to the main path
+    const imagesPath = `${mainPath.path}/zipped_images/`;
+    const segmentsPath = `${mainPath.path}/segmentations/`;
+
+    const params = new URLSearchParams({
+      ebrains_bucket_name: bucketName,
+      ebrains_bucket_path: imagesPath,
+      output_path_pattern: segmentsPath,
+    });
+
+    const url = `https://app.ilastik.org/public/nehuba/index.html?${params.toString()}#!%7B%22layout%22%3A%22xy%22%7D`;
+    console.log("Ilastik URL:", url);
     handleFrameChange(url);
 
     return true;

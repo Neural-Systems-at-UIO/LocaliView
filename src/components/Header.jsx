@@ -381,7 +381,7 @@ const Header = () => {
                 color: "white",
               }}
             >
-              quint online
+              QUINT Online
             </Typography>
           </Box>
           <Box
