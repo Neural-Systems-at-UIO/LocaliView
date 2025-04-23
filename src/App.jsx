@@ -3,7 +3,7 @@ import "./App.css";
 import Header from "./components/Header";
 import { createTheme } from "@mui/material/styles";
 import { ThemeProvider } from "@mui/material/styles";
-import { TabProvider } from "./components/TabContext";
+import { TabProvider } from "./contexts/TabContext";
 // TODO Add Token and Auth provider
 
 const theme = createTheme({
@@ -55,6 +55,7 @@ const theme = createTheme({
       light: "#94221b",
       dark: "#00a595",
       contrastText: "#ffffff",
+      highlight: "rgba(9, 184, 100, 0.44)",
     },
     secondary: {
       main: "#3fa9f5",

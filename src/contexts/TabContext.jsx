@@ -23,13 +23,21 @@ export const TabProvider = ({ children }) => {
     setCurrentTab(tabIndex);
   };
 
-  const navigateToWebAlign = () => {
-    const alignment = localStorage.getItem("alignment");
+  const navigateToWebAlign = (customAlignment) => {
+    const alignment = customAlignment || localStorage.getItem("alignment");
     const bucketName = localStorage.getItem("bucketName");
 
     if (!alignment || alignment === "") {
       alert("Please set a working alignment first");
       return false;
+    }
+
+    // Updating localstorage in case the registrations are not the same
+    if (
+      customAlignment &&
+      customAlignment !== localStorage.getItem("alignment")
+    ) {
+      localStorage.setItem("alignment", customAlignment);
     }
 
     // Tab index 1 is for WebAlign
@@ -42,13 +50,21 @@ export const TabProvider = ({ children }) => {
     return true;
   };
 
-  const navigateToWebWarp = () => {
-    const alignment = localStorage.getItem("alignment");
+  const navigateToWebWarp = (customAlignment) => {
+    const alignment = customAlignment || localStorage.getItem("alignment");
     const bucketName = localStorage.getItem("bucketName");
 
     if (!alignment || alignment === "") {
       alert("Please set a working alignment first");
       return false;
+    }
+
+    // Updating localstorage in case the registrations are not the same
+    if (
+      customAlignment &&
+      customAlignment !== localStorage.getItem("alignment")
+    ) {
+      localStorage.setItem("alignment", customAlignment);
     }
 
     // Tab index 2 is for WebWarp
@@ -64,6 +80,7 @@ export const TabProvider = ({ children }) => {
   const navigateToWebIlastik = () => {
     const alignment = localStorage.getItem("alignment");
     const bucketName = localStorage.getItem("bucketName");
+    const mainPath = JSON.parse(localStorage.getItem("selectedBrain"));
 
     if (!alignment || alignment === "") {
       alert("Please set a working alignment first");
@@ -73,8 +90,18 @@ export const TabProvider = ({ children }) => {
     // Tab index 3 is for WebIlastik
     setCurrentTab(3);
 
-    // The current URL is not up for it so its empty
-    const url = `https://webilastik.apps.ebrains.eu/webilastik.php?clb-collab-id=${bucketName}&filename=${alignment}`;
+    // Use the provided paths or default to the main path
+    const imagesPath = `${mainPath.path}/zipped_images/`;
+    const segmentsPath = `${mainPath.path}/segmentations/`;
+
+    const params = new URLSearchParams({
+      ebrains_bucket_name: bucketName,
+      ebrains_bucket_path: imagesPath,
+      output_path_pattern: segmentsPath,
+    });
+
+    const url = `https://app.ilastik.org/public/nehuba/index.html?${params.toString()}#!%7B%22layout%22%3A%22xy%22%7D`;
+    console.log("Ilastik URL:", url);
     handleFrameChange(url);
 
     return true;
@@ -87,6 +114,17 @@ export const TabProvider = ({ children }) => {
     setNativeSelection({
       native: true,
       app: "nutil",
+    });
+    return true;
+  };
+
+  const natvigateToSandBox = () => {
+    // Tab index 5 is for SandBox
+    setCurrentTab(5);
+    // Construct URL and set iframe
+    setNativeSelection({
+      native: true,
+      app: "sandbox",
     });
     return true;
   };

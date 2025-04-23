@@ -1,4 +1,5 @@
-import React from "react";
+import { useState, useEffect, useMemo } from "react";
+// MUI Components
 import {
   Box,
   Typography,
@@ -14,7 +15,6 @@ import {
   Tooltip,
   Alert,
   Snackbar,
-  ListItemIcon,
   Table,
   TableBody,
   TableCell,
@@ -24,37 +24,27 @@ import {
   Paper,
 } from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import InfoIcon from "@mui/icons-material/Info";
-// Icons
-import DeleteIcon from "@mui/icons-material/Delete";
-import SaveIcon from "@mui/icons-material/Save";
 
-import { useState, useEffect, useMemo } from "react";
-
-import Atlas from "./Atlas";
 // Icons
 import {
   AutoAwesomeMotionSharp,
   ImageSharp,
   FolderOff,
-  Share,
   CheckCircleOutline,
   Error,
   PendingOutlined,
+  Delete,
+  Info,
 } from "@mui/icons-material";
 
+// Project components and helper functions
 import { deleteItem } from "../actions/handleCollabs";
+import { formatFileSize } from "../utils/fileUtils";
+import ProgressPanel from "./ProgressPanel";
+import Atlas from "./Atlas";
 
 // Importing deepzoom here
 const DEEPZOOM_URL = import.meta.env.VITE_APP_DEEPZOOM_URL;
-
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return "0 Bytes";
-  const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-};
 
 // To fit some of the dates in case of long names
 const dateOptions = {
@@ -70,9 +60,8 @@ const QuickActions = ({
   stats,
   isLoading,
   token,
-  setSelectedBrain,
   refreshBrain,
-  refreshProjectBrains,
+  walnContent,
 }) => {
   // Generate unified file list from raw and processed images
   const unifiedFiles = useMemo(() => {
@@ -87,6 +76,8 @@ const QuickActions = ({
       // Extract the base name from the path
       // The name format is as .tif -> .tif.dzip
       const baseName = zip.name.split("/").pop().replace(".dzip", "");
+      // add the zipped image modification time
+      zip.last_modified = new Date(zip.last_modified).getTime();
       zippedMap.set(baseName, zip);
     });
 
@@ -94,24 +85,21 @@ const QuickActions = ({
 
     // Create unified records
     return rawImages.map((raw) => {
-      // Extract the base name for matching
-
       const rawBaseName = raw.name.split("/").pop();
       const matchingZip = zippedMap.get(rawBaseName);
 
+      // TODO Add processed size to the table
       return {
         id: raw.name, // Use full path as unique ID
         fileName: rawBaseName,
         rawPath: raw.name,
         rawSize: raw.bytes,
         rawLastModified: raw.last_modified,
+        zipLastModified: matchingZip?.last_modified || null,
         isProcessed: !!matchingZip,
         processedPath: matchingZip?.name || null,
         processedSize: matchingZip?.bytes || null,
         processedLastModified: matchingZip?.last_modified || null,
-        compressionRatio: matchingZip
-          ? (((raw.bytes - matchingZip.bytes) / raw.bytes) * 100).toFixed(1)
-          : null,
       };
     });
   }, [stats]);
@@ -373,6 +361,7 @@ const QuickActions = ({
   const brainStats = stats[0] || {};
   const brainPyramids = stats[1] || {};
   const walnJson = stats[2] || {};
+  const segmented = stats[3]?.files || 0;
   let registered = walnJson.jsons?.length >= 1;
 
   if (isLoading) {
@@ -415,7 +404,7 @@ const QuickActions = ({
       </Snackbar>
       <Grid
         container
-        spacing={2}
+        spacing={1}
         sx={{
           display: "flex",
           flexDirection: "row",
@@ -462,7 +451,7 @@ const QuickActions = ({
                   }}
                 />
                 <Tooltip title="You can add more images from the 'Add or Edit' button">
-                  <InfoIcon fontSize="small" color="action" />
+                  <Info fontSize="small" color="action" />
                 </Tooltip>
               </ListItem>
               <ListItem>
@@ -555,10 +544,10 @@ const QuickActions = ({
                         <TableRow>
                           <TableCell>File Name</TableCell>
                           <TableCell>Raw Image Size</TableCell>
-                          <TableCell>Last Modified</TableCell>
+                          <TableCell>Uploaded at</TableCell>
                           <TableCell>Status</TableCell>
+                          <TableCell>Created at</TableCell>
                           <TableCell>DZIP Size</TableCell>
-                          <TableCell>Compression</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -717,13 +706,16 @@ const QuickActions = ({
                                   )}
                                 </TableCell>
                                 <TableCell>
-                                  {file.processedSize
-                                    ? formatFileSize(file.processedSize)
+                                  {file.isProcessed
+                                    ? new Date(
+                                        file.zipLastModified
+                                      ).toLocaleString("en-GB", dateOptions)
                                     : "-"}
                                 </TableCell>
+
                                 <TableCell>
-                                  {file.compressionRatio
-                                    ? `${file.compressionRatio}%`
+                                  {file.processedSize
+                                    ? formatFileSize(file.processedSize)
                                     : "-"}
                                 </TableCell>
                               </TableRow>
@@ -837,7 +829,7 @@ const QuickActions = ({
 
       <Box
         sx={{
-          mt: 2,
+          mt: 1,
           boxShadow: "none",
           border: "1px solid #e0e0e0",
           backgroundColor: "white",
@@ -933,7 +925,7 @@ const QuickActions = ({
                         }}
                         disabled={!walnJson.jsons?.[0]}
                       >
-                        <DeleteIcon fontSize="small" />
+                        <Delete fontSize="small" />
                       </IconButton>
                     </Tooltip>
 
@@ -976,6 +968,13 @@ const QuickActions = ({
           </Box>
         )}
       </Box>
+      {walnContent && (
+        <ProgressPanel
+          walnContent={walnContent}
+          currentRegistration={walnJson.jsons?.[0]?.name}
+          segmented={segmented}
+        />
+      )}
     </Box>
   );
 };

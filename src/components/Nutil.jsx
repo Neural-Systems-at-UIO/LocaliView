@@ -42,14 +42,14 @@ import UploadSegments from "./UploadSegments";
 
 // Nutil endpoint, one for submitting and one for polling the status
 const NUTIL_URL = "https://pynutil.apps.ebrains.eu/";
-const MESH_URL = "https://meshview.apps.ebrains.eu/";
+const MESH_URL = "https://meshview.apps.ebrains.eu/collab.php";
 
 // Shared styles object
 const styles = {
   listContainer: {
     backgroundColor: "white",
     border: "1px solid #e0e0e0",
-    borderRadius: "4px",
+    borderRadius: 1,
     height: "100%",
   },
   listItem: {
@@ -89,7 +89,7 @@ const styles = {
     position: "relative",
     backgroundColor: "white",
     border: "1px solid #e0e0e0",
-    borderRadius: "4px",
+    borderRadius: 1,
     height: "100%",
     transition: "all 0.3s ease",
   },
@@ -108,7 +108,7 @@ const MeshviewButton = ({ atlas, clouds }) => {
   const handleClick = () => {
     const urlPrefix = "https://data-proxy.ebrains.eu/api/v1/public/buckets/";
     const collabName = localStorage.getItem("bucketName");
-    const url = `${MESH_URL}?atlas=${atlasLookup[atlas]}&clouds=${urlPrefix}${collabName}/${clouds}whole_series_meshview/objects_meshview.json`;
+    const url = `${MESH_URL}?atlas=${atlasLookup[atlas]}&cloud=${urlPrefix}${collabName}/${clouds}whole_series_meshview/objects_meshview.json`;
     window.open(url, "_blank");
   };
   return (
@@ -515,10 +515,9 @@ const Nutil = ({ token }) => {
     <Box
       sx={{
         display: "flex",
-        height: "99%",
+        height: "100%",
         backgroundColor: "#f6f6f6",
-        borderRadius: "4px",
-        gap: 2,
+        gap: 1,
         padding: 1,
       }}
     >
@@ -730,13 +729,14 @@ const Nutil = ({ token }) => {
                 p: 1.5,
                 mb: 1.5,
                 backgroundColor: "grey.50",
+                textAlign: "left",
               }}
             >
               <Typography variant="caption" color="text.secondary">
                 Reference Atlas
               </Typography>
               <Typography variant="body2" sx={{ mt: 0.5 }}>
-                {registration.atlas || "No atlas selected"}
+                {atlasLookup[registration.atlas] || "No atlas selected"}
               </Typography>
               <Typography
                 variant="caption"

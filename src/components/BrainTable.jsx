@@ -116,7 +116,7 @@ const BrainList = ({
               onClick={(e) => {
                 e.stopPropagation(); // Stop event propagation
                 const confirmation = prompt(
-                  `Type "${brain.name}" to confirm deletion:`,
+                  `This action is irreversible!\nYou will lose all progress made on this series.\n\n Type "${brain.name}" to confirm deletion:`,
                   ""
                 );
                 if (confirmation === brain.name) {

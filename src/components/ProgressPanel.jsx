@@ -10,7 +10,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 
-import { useTabContext } from "./TabContext";
+import { useTabContext } from "../contexts/TabContext";
 
 // Icons
 import ImageIcon from "@mui/icons-material/Image";
@@ -27,7 +27,11 @@ const atlasNames = {
 
 // TODO - Get the vanilla atlas screen from QuickActions to here
 
-export default function ProgressPanel({ walnContent }) {
+export default function ProgressPanel({
+  walnContent,
+  currentRegistration,
+  segmented,
+}) {
   const {
     navigateToWebAlign,
     navigateToWebWarp,
@@ -69,7 +73,7 @@ export default function ProgressPanel({ walnContent }) {
         border: "1px solid #e0e0e0",
         borderRadius: "4px",
         boxShadow: "none",
-        mt: 2,
+        mt: 1,
       }}
     >
       <Stack spacing={2}>
@@ -77,10 +81,11 @@ export default function ProgressPanel({ walnContent }) {
         
         - Initial info, later down will reveal the progress
         
+        
         */}
         <Stack
           direction="row"
-          spacing={1.5}
+          spacing={1}
           alignItems="center"
           justifyContent="space-between"
         >
@@ -187,7 +192,7 @@ export default function ProgressPanel({ walnContent }) {
                   variant="contained"
                   endIcon={<ArrowOutward />}
                   disableElevation
-                  onClick={navigateToWebAlign}
+                  onClick={() => navigateToWebAlign(currentRegistration)}
                   disabled={!walnContent || sectionsWithOUV === totalImages}
                   sx={{ fontSize: "0.8rem", mt: 0.5, textTransform: "none" }}
                   fullWidth
@@ -283,7 +288,7 @@ export default function ProgressPanel({ walnContent }) {
                   variant="contained"
                   endIcon={<ArrowOutward />}
                   disableElevation
-                  onClick={navigateToWebWarp}
+                  onClick={() => navigateToWebWarp(currentRegistration)}
                   color="success"
                   sx={{ fontSize: "0.8rem", mt: 0.5, textTransform: "none" }}
                   fullWidth
@@ -323,7 +328,7 @@ export default function ProgressPanel({ walnContent }) {
                   </Box>
                   <Tooltip title={`WebIlastik tooltip`}>
                     <Chip
-                      label={`${totalImages}`}
+                      label={`${segmented}/${totalImages}`}
                       size="small"
                       color="warning"
                       variant="outlined"
@@ -344,10 +349,10 @@ export default function ProgressPanel({ walnContent }) {
                   <Box sx={{ position: "relative", display: "inline-flex" }}>
                     <CircularProgress
                       variant="determinate"
-                      value={0}
+                      value={(segmented / totalImages) * 100}
                       size={60}
                       thickness={2.5}
-                      sx={{ color: "warning" }}
+                      color="warning"
                     />
                     <Box
                       sx={{
@@ -367,7 +372,7 @@ export default function ProgressPanel({ walnContent }) {
                         color="warning"
                         fontWeight="bold"
                       >
-                        {0}%
+                        {(segmented / totalImages) * 100}%
                       </Typography>
                     </Box>
                   </Box>

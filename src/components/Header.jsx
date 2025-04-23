@@ -14,13 +14,8 @@ import {
   Toolbar,
   Tooltip,
   Typography,
-  Snackbar,
-  Alert,
   IconButton,
   Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
 } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
@@ -30,7 +25,7 @@ import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 
 import Mainframe from "./Mainframe";
 import callUser from "../actions/createUser";
-import { useTabContext } from "./TabContext";
+import { useTabContext } from "../contexts/TabContext";
 
 // Variable loading for URLs
 const OIDC = import.meta.env.VITE_APP_OIDC;
@@ -92,6 +87,7 @@ const Header = () => {
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Added loading state
   // Control for the iframe, further divergence from an iframe can be done within the Mainframe component
   // Mainly for Native use of the applications and the webalign etc i frame ones
   const {
@@ -107,12 +103,12 @@ const Header = () => {
   const [docsOpen, setDocsOpen] = useState(false);
 
   // Login alert
-  const [loginAlert, setLoginAlert] = useState(true);
-  const [showDialog, setShowDialog] = useState(false);
+  const [loginAlert, setLoginAlert] = useState(false); // Default to false
 
   // Tab context to interact
 
   const handleLogin = () => {
+    // Redirect immediately
     window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=${MY_URL}`;
     // WIP url https://rodentworkbench.apps.ebrains.eu/new/
   };
@@ -132,62 +128,93 @@ const Header = () => {
     },
   };
 
-  // OnMount for all logins etc.
+  // OnMount: Handle code exchange or redirect
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get("code");
 
     if (code) {
+      setIsLoading(true); // Keep loading while fetching token
       fetch(`${TOKEN_URL}?code=${code}`)
-        .then((response) => response.json())
-        .then((data) => {
-          console.log(data);
-          setToken(data.token.access_token);
-          setLoginAlert(false);
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
         })
-        // clean the url
-        .then(window.history.replaceState(null, null, window.location.pathname))
-        .catch((error) => console.error("Token couldn't be retrieved", error));
-    }
-  }, []);
+        .then((data) => {
+          console.log("Token received:", data);
+          if (data.token && data.token.access_token) {
+            setToken(data.token.access_token);
+            // User fetching will happen in the next effect
+            // Clean the url after successful token fetch
+            window.history.replaceState(null, null, window.location.pathname);
+          } else {
+            // Handle cases where the response is ok but doesn't contain the expected token
 
-  // Get user on mount, always renews on new token
+            console.error("Token data is missing or invalid:", data);
+            setToken(null); // Ensure token is null
+            handleLogin(); // Redirect to login if token exchange failed
+          }
+        })
+        .catch((error) => {
+          console.error("Token couldn't be retrieved:", error);
+          setToken(null); // Ensure token is null on error
+          // Optionally show an error message to the user before redirecting
+          handleLogin(); // Redirect to login on fetch error
+          // This will no longer freak out when the IAM is too slow to respond
+        });
+    } else {
+      // No code in URL, redirect immediately to login
+      // Check if a token might already exist (e.g., from a previous session, though not implemented here)
+      // If not implementing token persistence, always redirect if no code.
+      console.log("No code found in URL, redirecting to login.");
+      handleLogin();
+      // Keep isLoading true as we are redirecting away
+    }
+  }, []); // Runs only once on mount
+
+  // Get user info when token is available
   useEffect(() => {
     const fetchUser = async () => {
-      if (!token) return;
+      if (!token) {
+        // If token becomes null after attempting fetch, stop loading
+        // This condition might be hit if token fetch failed but didn't redirect immediately
+        // Or if the initial state is null and no code was found (though redirect should handle that)
+        // Check if a code was present initially to avoid stopping loading during redirect
+        const urlParams = new URLSearchParams(window.location.search);
+        if (!urlParams.has("code")) {
+          setIsLoading(false); // Only stop loading if we weren't trying to exchange a code
+        }
+        return;
+      }
 
       try {
+        console.log("Fetching user info with token...");
         const userInfo = await callUser(token);
         setUser(userInfo);
-        console.log(userInfo);
+        console.log("User info received:", userInfo);
         localStorage.setItem("userInfo", JSON.stringify(userInfo));
         setAuth(true);
+        setIsLoading(false); // Stop loading after user is fetched
+        setLoginAlert(false); // Hide login alert if shown
       } catch (error) {
-        console.error("User couldn't be retrieved", error);
+        console.error("User couldn't be retrieved:", error);
         setAuth(false);
         setUser(null);
+        setToken(null); // Invalidate token if user fetch fails
+        setIsLoading(false); // Stop loading on error
+        handleLogin(); // Uncomment this line if you want to force re-login on user fetch error
       }
     };
 
     fetchUser();
-  }, [token]);
+  }, [token]); // Runs when token changes
 
-  // Auto-redirect to login if no token is present after a short delay
-  useEffect(() => {
-    // Only redirect if we're not in the middle of a token exchange (no code in URL)
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get("code");
+  // Removed the auto-redirect useEffect with setTimeout
 
-    if (!token && !code) {
-      const redirectTimer = setTimeout(() => {
-        handleLogin();
-      }, 4000);
-
-      return () => clearTimeout(redirectTimer);
-    }
-  }, [token]);
-
-  if (!token) {
+  // Show loading screen while authenticating or redirecting
+  if (isLoading) {
     return (
       <Box
         sx={{
@@ -211,6 +238,13 @@ const Header = () => {
     );
   }
 
+  // If not loading and not authenticated (e.g., token fetch failed but didn't redirect yet, or user fetch failed)
+  // This state might be brief or shouldn't be reached if redirects work correctly.
+  // Consider what to show here, maybe an error message or force redirect again.
+  // For now, we proceed to render the main app structure, which will show "Login" if !user
+
+  // This can revert to the original dialog if needed :)
+
   return (
     <Box
       sx={{
@@ -223,9 +257,10 @@ const Header = () => {
       <AppBar
         position="flex"
         sx={{
-          backgroundColor: "#f0f0f0",
+          backgroundColor: "rgba(24, 29, 26, 0.8)",
           color: "black",
           boxShadow: "none",
+          borderBottom: "1px solid #ccc",
         }}
       >
         <Toolbar
@@ -251,13 +286,13 @@ const Header = () => {
                 "& .MuiTab-root": {
                   minHeight: "36px",
                   fontSize: "0.875rem",
-                  padding: "0 16px",
+                  padding: "0 14px",
                   minWidth: "auto",
-                  opacity: 0.7,
+                  opacity: 1,
                   transition: "opacity 0.1s",
                   color: "black",
                   textTransform: "none",
-                  backgroundColor: "#e0e0e0",
+                  backgroundColor: "rgba(255, 255, 255, 0.69)",
                   clipPath:
                     "polygon(90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%, 0 0)", // Arrow shape
                   marginLeft: -0.5, // Spacing is 0 for now as arrows look to be fitting in
@@ -274,7 +309,8 @@ const Header = () => {
                   },
                   "&:hover": {
                     opacity: 1,
-                    backgroundColor: "darkgray",
+                    backgroundColor: "transparent",
+                    color: "white",
                   },
                 },
                 "& .MuiTabs-indicator": {
@@ -286,8 +322,12 @@ const Header = () => {
                 <Tab
                   key={index}
                   label={tab.icon || tab.label}
-                  disabled={!token && tab.label !== "Projects"}
+                  // Disable tabs if not authenticated (user object is null)
+                  disabled={!user && tab.label !== "Projects"}
                   onClick={() => {
+                    // Prevent action if not authenticated
+                    if (!user && tab.label !== "Projects") return;
+
                     switch (tab.label) {
                       case "Projects":
                         setNativeSelection({
@@ -312,7 +352,7 @@ const Header = () => {
                       case "Sandbox":
                         setNativeSelection({
                           native: true,
-                          app: "results",
+                          app: "sandbox",
                         });
                         break;
                       default:
@@ -338,9 +378,10 @@ const Header = () => {
             <Typography
               sx={{
                 fontSize: "0.875rem",
+                color: "white",
               }}
             >
-              rodent workbench
+              QUINT Online
             </Typography>
           </Box>
           <Box
@@ -363,7 +404,7 @@ const Header = () => {
                 }
                 size="small"
                 sx={{
-                  color: "black",
+                  color: "white",
                   padding: 0,
                   "&:hover": {
                     backgroundColor: "transparent",
@@ -376,12 +417,13 @@ const Header = () => {
             </Tooltip>
             <Tooltip title="Account, settings and FAQ">
               <Button
+                // Always use handleLogin if user is not present
                 onClick={user ? toggleDrawer : handleLogin}
                 sx={{
                   textAlign: "right",
                   cursor: "pointer",
                   fontWeight: "bold",
-                  color: "text.primary",
+                  color: "white",
                   textTransform: "none",
                   padding: 0,
                   "& .MuiTypography-root": {
@@ -409,7 +451,7 @@ const Header = () => {
                 <ListItemIcon>
                   <AccountCircleIcon />
                 </ListItemIcon>
-                {
+                {user && ( // Conditionally render user info
                   <ListItemText
                     primary={user?.fullname}
                     secondary={user?.email}
@@ -418,7 +460,7 @@ const Header = () => {
                       color: "text.primary",
                     }}
                   />
-                }
+                )}
               </ListItem>
               <ListItem sx={sharedListItemSx}>
                 <ListItemIcon>
@@ -483,21 +525,14 @@ const Header = () => {
           title="Rodent Workbench Documentation"
         />
       </Dialog>
-      <Mainframe
-        url={currentUrl}
-        native={nativeSelection}
-        token={token}
-        user={user}
-      />
-      <Snackbar
-        open={loginAlert}
-        autoHideDuration={5000}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert severity="info" sx={{ width: "100%" }} elevation={6}>
-          Please login to access the Rodent Workbench and the EBrains services
-        </Alert>
-      </Snackbar>
+      {auth && user && (
+        <Mainframe
+          url={currentUrl}
+          native={nativeSelection}
+          token={token}
+          user={user}
+        />
+      )}
     </Box>
   );
 };

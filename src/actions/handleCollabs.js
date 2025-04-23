@@ -1,494 +1,168 @@
+const BUCKET_URL = 'https://data-proxy.ebrains.eu/api/v1/buckets/';
 
-const BUCKET_URL = 'https://data-proxy.ebrains.eu/api/v1/buckets/'
-const DEEPZOOM_URL = import.meta.env.VITE_APP_DEEPZOOM_URL
+const fetchJson = async (url, options = {}) => {
+    const response = await fetch(url, options);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return response.json();
+};
+
+const fetchWithAuth = (url, token, options = {}) =>
+    fetchJson(url, {
+        ...options,
+        headers: {
+            ...(options.headers || {}),
+            'Authorization': 'Bearer ' + token,
+            'accept': 'application/json',
+        },
+    });
 
 export async function deleteItem(path, token) {
-    try {
-        // Naming here is the full path
-        const response = await fetch(`https://data-proxy.ebrains.eu/api/v1/buckets/${path}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': 'Bearer ' + token
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        return response;
-    }
-    catch (error) {
-        console.error('Error deleting item:', error);
-        throw error; // Re-throw to allow caller to handle
-    }
+    return fetchWithAuth(`${BUCKET_URL}${path}`, token, { method: 'DELETE' });
 }
-
 
 export async function listAvailableWorkspaces(token) {
-    try {
-        const response = await fetch('https://data-proxy.ebrains.eu/api/v1/buckets', {
-            method: 'GET',
-            headers: {
-                'accept': 'application/json',
-                'Authorization': 'Bearer ' + token
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const workspaces = await response.json();
-        return workspaces.map(workspace => workspace.name);
-
-    } catch (error) {
-        console.error('Error fetching workspaces:', error);
-        throw error; // Re-throw to allow handling by caller on the UI secito 
-    }
+    const workspaces = await fetchWithAuth(BUCKET_URL.slice(0, -1), token);
+    return workspaces.map(w => w.name);
 }
 
-
-// Works fine
-export const fetchCollab = async (token, collabName) => {
-    try {
-        const response = await fetch(`https://wiki.ebrains.eu/rest/v1/collabs/${collabName}`, {
-            method: 'GET',
-            headers: {
-                'accept': 'application/json',
-                'Authorization': 'Bearer ' + token
-            }
-        })
-        console.log(response)
-        if (!response.ok) {
-            throw new Error('Failed to fetch collab')
-        }
-
-        return await response.json()
-    } catch (error) {
-        console.error('Error:', error)
-        throw error
-    }
-}
+export const fetchCollab = (token, collabName) =>
+    fetchWithAuth(`https://wiki.ebrains.eu/rest/v1/collabs/${collabName}`, token);
 
 export const fetchBucketDir = async (token, bucketName, prefix, delimiter, limit = 1000) => {
+    const params = new URLSearchParams();
+    if (prefix) params.append('prefix', prefix);
+    if (delimiter) params.append('delimiter', delimiter);
+    if (limit) params.append('limit', limit);
+    const url = `${BUCKET_URL}${bucketName}?${params}`;
+    const data = await fetchWithAuth(url, token);
+    return (data.objects || [])
+        .filter(obj => obj.subdir)
+        .map(obj => {
+            const dirName = obj.subdir.split('/').slice(-2, -1)[0] || obj.subdir;
+            return {
+                name: dirName,
+                type: 'directory',
+                path: prefix ? `${prefix}${dirName}/` : `${dirName}/`
+            };
+        });
+};
 
-    if (token === null) {
-        throw new Error('No token provided')
-    }
-
-    try {
-        let url = `${BUCKET_URL}${bucketName}?`
-        const params = new URLSearchParams()
-
-        if (prefix) params.append('prefix', prefix)
-        if (delimiter) params.append('delimiter', delimiter)
-        if (limit) params.append('limit', limit)
-
-        url += params.toString()
-
-        console.log('Fetching bucket directory:', url)
-
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'accept': 'application/json',
-                'Authorization': 'Bearer ' + token
-            }
-        })
-        if (!response.ok) {
-            throw new Error('Failed to fetch bucket directory')
-        }
-        const data = await response.json()
-
-
-        // Assign logic here so just touch here
-        const entries = await Promise.all(data.objects.map(async obj => {
-            if (obj.subdir) {
-                // Placing the name
-                const dirName = obj.subdir.split('/').slice(-2, -1)[0] || obj.subdir
-
-                // Fetching the subEntries for the Brains
-
-                return {
-                    name: dirName,
-                    type: 'directory',
-                    path: prefix ? `${prefix}${dirName}/` : `${dirName}/`
-                }
-            }
-            return null
-        }))
-        console.log('All brains in project:', entries)
-        return entries.filter(entry => entry !== null)
-    } catch (error) {
-        console.error('Error fetching bucket directory:', error)
-        throw error
-    }
-}
-
-export function fetchWorkspaceConfigurations(workspace, token) {
-
+export function fetchWorkspaceConfigurations() {
     return null;
 }
 
-export const fetchBrainStats = async (token, bucketName, brainPrefix, optional = null) => {
-    let res = []
-    try {
-        let url = `${BUCKET_URL}${bucketName}?`
-        let workDirs = [];
-
-        if (optional) {
-            workDirs.push(optional);
-            console.log("added", optional, "to ", workDirs);
-        } else {
-            workDirs = [
-                'raw_images',
-                'zipped_images',
-                'jsons'
-            ];
-        }
-
-        for (const workDir of workDirs) {
-            const params = new URLSearchParams()
-            if (brainPrefix) params.append('prefix', `${brainPrefix}${workDir}/`)
-            params.append('limit', 1000)
-            const workDirUrl = `${url}${params.toString()}`
-
-            const response = await fetch(workDirUrl, {
-                method: 'GET',
-                headers: {
-                    'accept': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                }
-            })
-            if (!response.ok) {
-                throw new Error(`Failed to fetch bucket directory for ${workDir}`)
-            }
-            const data = await response.json()
-            const stats = {
-                "name": brainPrefix + workDir,
-                "files": data.objects.length,
-                "size": data.objects.reduce((acc, obj) => acc + obj.bytes, 0),
-            }
-            // Workdir relevant keys
-
-            if (workDir === 'raw_images') {
-                stats.tiffs = data.objects.filter(obj => {
-                    const name = obj.name.toLowerCase();
-                    return name.endsWith('.tif') ||
-                        name.endsWith('.tiff') ||
-                        name.endsWith('.png') ||
-                        name.endsWith('.jpg') ||
-                        name.endsWith('.jpeg');
-                });
-            } else if (workDir === 'zipped_images') {
-                stats.zips = data.objects.filter(obj => obj.name.endsWith('.dzip'))
-            } else if (workDir === 'jsons') {
-                stats.jsons = data.objects.filter(obj => obj.name.endsWith('.waln'))
-            }
-
-            res.push(stats)
-        }
-
-    } catch (error) {
-        console.error('Error fetching bucket directory:', error)
-        throw error
+const fetchBucketStats = async (token, bucketName, prefix, workDir) => {
+    const params = new URLSearchParams();
+    if (prefix) params.append('prefix', `${prefix}${workDir}/`);
+    params.append('limit', 1000);
+    const url = `${BUCKET_URL}${bucketName}?${params}`;
+    const data = await fetchWithAuth(url, token);
+    const stats = {
+        name: prefix + workDir,
+        files: data.objects.length,
+        size: data.objects.reduce((acc, obj) => acc + obj.bytes, 0),
+    };
+    if (workDir === 'raw_images') {
+        stats.tiffs = data.objects.filter(obj => /\.(tif|tiff|png|jpe?g)$/i.test(obj.name));
+    } else if (workDir === 'zipped_images') {
+        stats.zips = data.objects.filter(obj => obj.name.endsWith('.dzip'));
+    } else if (workDir === 'jsons') {
+        stats.jsons = data.objects.filter(obj => obj.name.endsWith('.waln'));
     }
-    return res
-}
+    return stats;
+};
+
+export const fetchBrainStats = async (token, bucketName, brainPrefix, optional = null) => {
+    const workDirs = optional ? [optional] : ['raw_images', 'zipped_images', 'jsons', 'segmentations'];
+    return Promise.all(workDirs.map(wd => fetchBucketStats(token, bucketName, brainPrefix, wd)));
+};
 
 export const fetchBrainSegmentations = async (token, bucketName, brainPrefix) => {
-    let res = []
-
-    try {
-        let url = `https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}?`
-
-        const workDirs = [
-            'segmentations',
-        ]
-
-        for (const workDir of workDirs) {
-            const params = new URLSearchParams()
-            if (brainPrefix) params.append('prefix', `${brainPrefix}${workDir}/`)
-            params.append('limit', 1000)
-            const workDirUrl = `${url}${params.toString()}`
-
-            const response = await fetch(workDirUrl, {
-                method: 'GET',
-                headers: {
-                    'accept': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                }
-            })
-            if (!response.ok) {
-                throw new Error(`Failed to fetch bucket directory for ${workDir}`)
-            }
-
-            const data = await response.json()
-
-            if (!data.objects || data.objects.length === 0) {
-                return []
-            }
-
-            const stats = {
-                "name": brainPrefix + workDir,
-                "files": data.objects.length,
-                "size": data.objects.reduce((acc, obj) => acc + obj.bytes, 0),
-                "images": data.objects,
-            }
-
-            res.push(stats)
-        }
-
-        return res
-
-    } catch (error) {
-        console.error('Error fetching bucket directory:', error)
-        throw error
-    }
-}
+    const params = new URLSearchParams();
+    if (brainPrefix) params.append('prefix', `${brainPrefix}segmentations/`);
+    params.append('limit', 1000);
+    const url = `${BUCKET_URL}${bucketName}?${params}`;
+    const data = await fetchWithAuth(url, token);
+    if (!data.objects?.length) return [];
+    return [{
+        name: brainPrefix + 'segmentations',
+        files: data.objects.length,
+        size: data.objects.reduce((acc, obj) => acc + obj.bytes, 0),
+        images: data.objects,
+    }];
+};
 
 export const fetchPyNutilResults = async (token, bucketName, brainPrefix) => {
-    try {
-        let url = `https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}?`
-        const workDir = 'pynutil_results'
+    const params = new URLSearchParams();
+    if (brainPrefix) params.append('prefix', `${brainPrefix}pynutil_results/`);
+    params.append('limit', 1000);
+    params.append('delimiter', '/');
+    const url = `${BUCKET_URL}${bucketName}?${params}`;
+    const data = await fetchWithAuth(url, token);
+    if (!data.objects?.length) return [];
+    return [{
+        name: brainPrefix + 'pynutil_results',
+        files: data.objects.length,
+        size: data.objects.reduce((acc, obj) => acc + obj.bytes, 0),
+        images: data.objects,
+    }];
+};
 
-        const params = new URLSearchParams()
-        if (brainPrefix) params.append('prefix', `${brainPrefix}${workDir}/`)
-        params.append('limit', 1000)
-        params.append('delimiter', '/')
-        const workDirUrl = `${url}${params.toString()}`
+const getUploadUrl = async (token, bucketName, objectName) => {
+    const url = `${BUCKET_URL}${bucketName}/${objectName}`;
+    const { url: uploadUrl } = await fetchWithAuth(url, token, { method: 'PUT', headers: { 'Accept': 'application/json' } });
+    return uploadUrl;
+};
 
-        const response = await fetch(workDirUrl, {
-            method: 'GET',
-            headers: {
-                'accept': 'application/json',
-                'Authorization': 'Bearer ' + token
-            }
-        })
-        if (!response.ok) {
-            throw new Error(`Failed to fetch bucket directory for ${workDir}`)
-        }
+const uploadFile = async (uploadUrl, file, contentType) => {
+    const headers = contentType ? { 'Content-Type': contentType } : {};
+    const response = await fetch(uploadUrl, { method: 'PUT', body: file, headers });
+    if (!response.ok) throw new Error('Failed to upload file');
+    return { url: uploadUrl, status: response.status === 204 };
+};
 
-        const data = await response.json()
-
-        if (!data.objects || data.objects.length === 0) {
-            return []
-        }
-
-        const stats = {
-            "name": brainPrefix + workDir,
-            "files": data.objects.length,
-            "size": data.objects.reduce((acc, obj) => acc + obj.bytes, 0),
-            "images": data.objects,
-        }
-
-        return [stats]
-
-    } catch (error) {
-        console.error('Error fetching bucket directory:', error)
-        throw error
-    }
-}
-
-// For upload to paths, subdirs are added upon calling in the params eg "brain/raw_images/"
 export const uploadToPath = async (token, bucketName, projectName, uploadPath, file) => {
     const objectName = `${projectName}/${uploadPath}${file.name}`.replace(/\/+/g, '/');
-    const getUrlEndpoint = `${BUCKET_URL}${bucketName}/${objectName}`;
-
-    // Step 1:
-    const urlResponse = await fetch(getUrlEndpoint, {
-        method: 'PUT',
-        headers: {
-            'Authorization': 'Bearer ' + token,
-            'Accept': 'application/json'
-        }
-    });
-
-    if (!urlResponse.ok) {
-        throw new Error(`Failed to get upload URL for ${file.name}`);
-    }
-
-    const { url: uploadUrl } = await urlResponse.json();
-
-    // Step 2: 
-    const uploadResponse = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: file
-    });
-
-    if (!uploadResponse.ok) {
-        throw new Error(`Failed to upload file ${file.name}`);
-    }
-
-    return { url: uploadUrl, status: uploadResponse.status === 204 };
-}
+    const uploadUrl = await getUploadUrl(token, bucketName, objectName);
+    return uploadFile(uploadUrl, file);
+};
 
 export const createProject = async (uploadObj) => {
     const objectName = `${uploadObj.projectName}/projectsettings.json`.replace(/\/+/g, '/');
-    const getUrlEndpoint = `${BUCKET_URL}${uploadObj.bucketName}/${objectName}`;
-
+    const uploadUrl = await getUploadUrl(uploadObj.token, uploadObj.bucketName, objectName);
     const content = {
-        'created_at': new Date().toISOString(),
-        'project_name': uploadObj.projectName,
-    }
-
-    // Step 1: Get upload URL
-    const urlResponse = await fetch(getUrlEndpoint, {
-        method: 'PUT',
-        headers: {
-            'Authorization': 'Bearer ' + uploadObj.token,
-            'Accept': 'application/json'
-        }
-    });
-
-    if (!urlResponse.ok) {
-        throw new Error(`Failed to get upload URL`);
-    }
-
-    const { url: uploadUrl } = await urlResponse.json();
-
-    // Step 2: Upload JSON content
-    const uploadResponse = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(content)
-    });
-
-    if (!uploadResponse.ok) {
-        throw new Error(`Failed to upload file`);
-    }
-
-    return { url: uploadResponse.json, status: uploadResponse.status === 204 };
-}
+        created_at: new Date().toISOString(),
+        project_name: uploadObj.projectName,
+    };
+    return uploadFile(uploadUrl, JSON.stringify(content), 'application/json');
+};
 
 export const uploadToSegments = async (token, bucketName, projectName, brainName, file) => {
     const objectName = `${projectName}/${brainName}/segmentations/${file.name}`.replace(/\/+/g, '/');
-    const getUrlEndpoint = `${BUCKET_URL}${bucketName}/${objectName}`;
-
-    // Step 1:
-    const urlResponse = await fetch(getUrlEndpoint, {
-        method: 'PUT',
-        headers: {
-            'Authorization': 'Bearer ' + token,
-            'Accept': 'application/json'
-        }
-    });
-
-    if (!urlResponse.ok) {
-        throw new Error(`Failed to get upload URL for ${file.name}`);
-    }
-
-    const { url: uploadUrl } = await urlResponse.json();
-
-    // Step 2: 
-    const uploadResponse = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: file
-    });
-
-    if (!uploadResponse.ok) {
-        throw new Error(`Failed to upload file ${file.name}`);
-    }
-
-    return { url: uploadUrl, status: uploadResponse.status === 204 };
-}
+    const uploadUrl = await getUploadUrl(token, bucketName, objectName);
+    return uploadFile(uploadUrl, file);
+};
 
 export const uploadToJson = async (uploadObj, fileName, content) => {
     const objectName = `${uploadObj.projectName}/${uploadObj.brainName}/jsons/${fileName}`.replace(/\/+/g, '/');
-    const getUrlEndpoint = `${BUCKET_URL}${uploadObj.bucketName}/${objectName}`;
+    const uploadUrl = await getUploadUrl(uploadObj.token, uploadObj.bucketName, objectName);
+    return uploadFile(uploadUrl, JSON.stringify(content), 'application/json');
+};
 
-    console.log('Uploading JSON:', uploadObj)
-
-    // Step 1: Get upload URL
-    const urlResponse = await fetch(getUrlEndpoint, {
-        method: 'PUT',
-        headers: {
-            'Authorization': 'Bearer ' + uploadObj.token,
-            'Accept': 'application/json'
-        }
-    });
-
-    if (!urlResponse.ok) {
-        throw new Error(`Failed to get upload URL for ${fileName}`);
-    }
-
-    const { url: uploadUrl } = await urlResponse.json();
-
-    // Step 2: Upload JSON content
-    const uploadResponse = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(content)
-    });
-
-    if (!uploadResponse.ok) {
-        throw new Error(`Failed to upload file ${fileName}`);
-    }
-
-    return { url: uploadResponse.json, status: uploadResponse.status === 204 };
-}
-
-// Ported from the old code, but with async/await
 export async function checkBucketExists(token, searchTerm) {
-    const headers = {
-        'accept': 'application/json',
-        'Authorization': `Bearer ${token}`
-    };
-
     try {
-        const response = await fetch(
-            `https://data-proxy.ebrains.eu/api/v1/buckets?search=${searchTerm}`,
-            { headers }
-        );
-
-        if (!response.ok) {
-            throw new Error('Failed to check bucket');
-        }
-
-        const data = await response.json();
+        const url = `${BUCKET_URL.slice(0, -1)}?search=${searchTerm}`;
+        const data = await fetchWithAuth(url, token);
         return data && data.length > 0;
-    } catch (error) {
-        console.error('Bucket check error:', error.message);
+    } catch {
         return false;
     }
 }
 
-// downloading waln to to memory to display further stats of the flow progress
 export const downloadWalnJson = async (token, bucketName, objectPath) => {
-    try {
-        // Step 1: Get the download URL
-        const response = await fetch(`${BUCKET_URL}${bucketName}/${objectPath}?redirect=false`, {
-            method: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + token,
-                'Accept': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to get download URL');
-        }
-
-        const { url: downloadUrl } = await response.json();
-
-        // Step 2: Download the actual content
-        const contentResponse = await fetch(downloadUrl);
-
-        if (!contentResponse.ok) {
-            throw new Error('Failed to download WALN content');
-        }
-
-        // Parse and return the JSON content
-        const walnContent = await contentResponse.json();
-        return walnContent;
-
-    } catch (error) {
-        console.error('Error downloading WALN:', error);
-        throw error;
-    }
+    const url = `${BUCKET_URL}${bucketName}/${objectPath}?redirect=false`;
+    const { url: downloadUrl } = await fetchWithAuth(url, token);
+    const contentResponse = await fetch(downloadUrl);
+    if (!contentResponse.ok) throw new Error('Failed to download WALN content');
+    return contentResponse.json();
 };

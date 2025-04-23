@@ -26,7 +26,6 @@ import {
 import CreationDialog from "./CreationDialog.jsx";
 import BrainTable from "./BrainTable.jsx";
 import QuickActions from "./QuickActions.jsx";
-import ProgressPanel from "./ProgressPanel.jsx";
 
 export default function QuintTable({ token, user }) {
   // Query helpers
@@ -134,10 +133,6 @@ export default function QuintTable({ token, user }) {
     });
     fetchBucketDir(token, collabName, null, "/")
       .then((projects) => {
-        if (projects.length === 0) {
-          console.log("No projects found");
-          return;
-        }
         console.log(projects);
         setProjects(projects);
         setProjectIssue({
@@ -149,6 +144,12 @@ export default function QuintTable({ token, user }) {
       })
       .catch((error) => {
         console.error("Error fetching projects:", error);
+        setProjectIssue({
+          problem: true,
+          message: "Error fetching projects",
+          severity: "error",
+          loading: false,
+        });
       });
   };
 
@@ -343,19 +344,18 @@ export default function QuintTable({ token, user }) {
         flexDirection: "row",
         alignItems: "stretch",
         height: "99%",
-        borderRadius: "4px",
         gap: 2,
       }}
     >
       <Box sx={{ display: "flex", flexGrow: 1, minHeight: 0 }}>
         {selectedProject === null ? (
-          <Box sx={{ flex: 1, display: "flex", flexDirection: "row", gap: 2 }}>
+          <Box sx={{ flex: 1, display: "flex", flexDirection: "row", gap: 1 }}>
             <Box
               sx={{
                 flexDirection: "column",
-                flexGrow: 1,
+                width: "50%",
                 border: "1px solid #e0e0e0",
-                borderRadius: "8px",
+                borderRadius: 1,
                 padding: 2,
                 backgroundColor: "white",
               }}
@@ -469,7 +469,8 @@ export default function QuintTable({ token, user }) {
                             onClick={(e) => {
                               e.stopPropagation(); // Stop event propagation
                               const confirmation = prompt(
-                                `Type "${project.name}" to confirm deletion:`,
+                                `This action is irreversible!\nAre you sure you want to delete the project "${project.name}"?\n\n` +
+                                  `\nType "${project.name}" to confirm deletion:`,
                                 ""
                               );
                               if (confirmation === project.name) {
@@ -511,9 +512,8 @@ export default function QuintTable({ token, user }) {
               component="iframe"
               src="https://quint-webtools.readthedocs.io/en/latest/"
               sx={{
-                display: "flex",
-                flexGrow: 1.5,
-                borderRadius: "8px",
+                width: "50%",
+                borderRadius: 1,
                 border: "1px solid #e0e0e0",
               }}
             ></Box>
@@ -524,7 +524,7 @@ export default function QuintTable({ token, user }) {
               <Box
                 sx={{
                   display: "flex",
-                  gap: 2,
+                  gap: 1,
                   justifyContent: "center",
                   width: "100%",
                   alignItems: "center",
@@ -552,7 +552,7 @@ export default function QuintTable({ token, user }) {
                 <Box
                   sx={{
                     width: "60%",
-                    ml: 2,
+                    ml: 1,
                     flexGrow: 0.6,
                     height: "100%",
                     flexDirection: "column",
@@ -566,8 +566,9 @@ export default function QuintTable({ token, user }) {
                     setSelectedBrain={setSelectedBrain}
                     refreshBrain={refreshBrain}
                     refreshProjectBrains={refreshProjectBrains}
+                    walnContent={walnContent}
                   />
-                  <ProgressPanel walnContent={walnContent} />
+                  {/*<ProgressPanel walnContent={walnContent} />*/}
                 </Box>
               </>
             )}
