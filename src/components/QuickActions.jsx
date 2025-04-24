@@ -37,6 +37,8 @@ import {
   Info,
 } from "@mui/icons-material";
 
+import ImageSearchIcon from "@mui/icons-material/ImageSearch";
+
 // Project components and helper functions
 import { deleteItem } from "../actions/handleCollabs";
 import { formatFileSize } from "../utils/fileUtils";
@@ -391,13 +393,14 @@ const QuickActions = ({
     <Box sx={{ height: "auto" }}>
       <Snackbar
         open={infoMessage.open}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        anchorOrigin={{ vertical: "center", horizontal: "center" }}
         autoHideDuration={3000}
       >
         <Alert
+          variant="outlined"
           onClose={() => setInfoMessage({ ...infoMessage, open: false })}
           severity={infoMessage.severity}
-          elevation={4}
+          elevation={0}
         >
           {infoMessage.message}
         </Alert>
@@ -518,17 +521,41 @@ const QuickActions = ({
                     justifyContent: "space-between",
                   }}
                 >
-                  <Typography
+                  <Box
                     sx={{
-                      textWrap: "wrap",
-                      textAlign: "left",
-                      fontSize: 20,
+                      display: "flex",
+                      flexDirection: "row",
+
+                      justifyContent: "space-between",
+                      width: "100%",
                       mb: 2,
                     }}
                   >
-                    Convert images to DZI format
-                  </Typography>
-
+                    <Typography
+                      sx={{
+                        textWrap: "wrap",
+                        textAlign: "left",
+                        fontSize: 16,
+                      }}
+                    >
+                      Convert images to DZI format
+                    </Typography>
+                    <Button
+                      size="small"
+                      disabled={!pyramidComplete}
+                      sx={{
+                        textTransform: "none",
+                        fontSize: 12,
+                      }}
+                      startIcon={<ImageSearchIcon />}
+                      onClick={() => {
+                        const url = `https://dzseriesviewer.apps.ebrains.eu/?bucket=https://dzip-svc.apps.ebrains.eu/fakebucket/?url=https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}?prefix=${stats[1]?.name}`;
+                        window.open(url, "_blank");
+                      }}
+                    >
+                      Inspect converted DZI images with SeriesZoom
+                    </Button>
+                  </Box>
                   {/* Unified Image Table */}
                   <TableContainer
                     component={Paper}

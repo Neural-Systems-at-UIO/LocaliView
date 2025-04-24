@@ -9,6 +9,14 @@ import {
   ListItem,
   ListItemText,
   TextField,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
 import AddIcon from "@mui/icons-material/Add";
@@ -74,6 +82,16 @@ export default function QuintTable({ token, user }) {
   });
 
   const [walnContent, setWalnContent] = useState(null);
+
+  // Delete states
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [confirmInput, setConfirmInput] = useState("");
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "info",
+  });
 
   // Project state helper for conditional rendering
   const getProjectState = () => {
@@ -467,33 +485,10 @@ export default function QuintTable({ token, user }) {
                               },
                             }}
                             onClick={(e) => {
-                              e.stopPropagation(); // Stop event propagation
-                              const confirmation = prompt(
-                                `This action is irreversible!\nAre you sure you want to delete the project "${project.name}"?\n\n` +
-                                  `\nType "${project.name}" to confirm deletion:`,
-                                ""
-                              );
-                              if (confirmation === project.name) {
-                                let deletingPath = `${bucketName}/${project.name}/`;
-
-                                deleteItem(deletingPath, token)
-                                  .then(() => {
-                                    setTimeout(() => {
-                                      fetchAndUpdateProjects(bucketName);
-                                    }, 1500);
-                                  })
-                                  .catch((error) => {
-                                    console.error(
-                                      "Error deleting project:",
-                                      error
-                                    );
-                                    alert("Failed to delete project");
-                                  });
-                              } else if (confirmation !== null) {
-                                alert(
-                                  "Project name didn't match. Deletion cancelled."
-                                );
-                              }
+                              e.stopPropagation();
+                              setProjectToDelete(project);
+                              setDeleteDialogOpen(true);
+                              setConfirmInput("");
                             }}
                           >
                             <DeleteIcon />
@@ -585,6 +580,86 @@ export default function QuintTable({ token, user }) {
         brainEntries={projectBrainEntries}
         onUploadComplete={refreshProjectBrains}
       />
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setConfirmInput("");
+        }}
+      >
+        <DialogTitle>Delete Project</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This action is irreversible! You will lose all data in this project.
+            <br />
+            Please type <b>{projectToDelete?.name}</b> to confirm deletion.
+          </DialogContentText>
+          <Box mt={2}>
+            <input
+              type="text"
+              value={confirmInput}
+              onChange={(e) => setConfirmInput(e.target.value)}
+              placeholder={`Type "${projectToDelete?.name}"`}
+              style={{ width: "100%", padding: 8, fontSize: 16 }}
+              autoFocus
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setDeleteDialogOpen(false);
+              setConfirmInput("");
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            color="error"
+            onClick={async () => {
+              let deletingPath = `${bucketName}/${projectToDelete.name}/`;
+              try {
+                await deleteItem(deletingPath, token);
+                setSnackbar({
+                  open: true,
+                  message: "Project deleted.",
+                  severity: "success",
+                });
+                setDeleteDialogOpen(false);
+                setConfirmInput("");
+                setTimeout(() => {
+                  fetchAndUpdateProjects(bucketName);
+                }, 1000);
+              } catch (error) {
+                setSnackbar({
+                  open: true,
+                  message: "Failed to delete project.",
+                  severity: "error",
+                });
+                setDeleteDialogOpen(false);
+                setConfirmInput("");
+              }
+            }}
+            disabled={confirmInput !== projectToDelete?.name}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   Typography,
@@ -11,6 +11,13 @@ import {
   Icon,
   IconButton,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import ArrowBack from "@mui/icons-material/ArrowBack";
 import Add from "@mui/icons-material/Add";
@@ -26,12 +33,53 @@ const BrainList = ({
   bucketName,
   onDeleteComplete,
 }) => {
-  const [selectedBrain, setSelectedBrain] = React.useState(null);
+  // Current brain selection, changes on click for the list item
+  const [selectedBrain, setSelectedBrain] = useState(null);
+  // Delete states
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [brainToDelete, setBrainToDelete] = useState(null);
+  const [confirmInput, setConfirmInput] = useState("");
+  // Snackbar states
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "info",
+  });
 
-  // Choose brains to fetch stats for upon click
   const handleBrainSelect = (brain) => {
     setSelectedBrain(brain);
     onBrainSelect({ row: brain });
+  };
+
+  const handleDeleteClick = (brain) => {
+    setBrainToDelete(brain);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    const deletingPath = `${bucketName}/${brainToDelete.path}`;
+    deleteItem(deletingPath, token)
+      .then(() => {
+        setSnackbar({
+          open: true,
+          message: "Series deleted.",
+          severity: "success",
+        });
+        setDeleteDialogOpen(false);
+        setBrainToDelete(null);
+        setTimeout(() => {
+          onDeleteComplete();
+        }, 1000);
+      })
+      .catch((error) => {
+        setSnackbar({
+          open: true,
+          message: "Failed to delete series.",
+          severity: "error",
+        });
+        setDeleteDialogOpen(false);
+        setBrainToDelete(null);
+      });
   };
 
   if (rows.length === 0) {
@@ -57,92 +105,135 @@ const BrainList = ({
   }
 
   return (
-    <List
-      sx={{
-        width: "100%",
-        bgcolor: "background.paper",
-        borderRadius: 1,
-        border: "none",
-      }}
-      dense
-    >
-      {rows.map((brain) => (
-        <ListItem
-          key={brain.id}
-          disablePadding
-          selected={selectedBrain && selectedBrain.id === brain.id}
-          sx={{
-            // borderBottom: "1px solid #e0e0e0",
-            "&:last-child": { borderBottom: "none" },
-            display: "flex",
-            justifyContent: "space-between",
-          }}
-        >
-          <ListItemButton
+    <>
+      <List
+        sx={{
+          width: "100%",
+          bgcolor: "background.paper",
+          borderRadius: 1,
+          border: "none",
+        }}
+        dense
+      >
+        {rows.map((brain) => (
+          <ListItem
+            key={brain.id}
+            disablePadding
             selected={selectedBrain && selectedBrain.id === brain.id}
-            onClick={() => handleBrainSelect(brain)}
-            sx={{ flex: 1, borderRadius: 2, m: 0.5 }}
+            sx={{
+              "&:last-child": { borderBottom: "none" },
+              display: "flex",
+              justifyContent: "space-between",
+            }}
           >
-            <ListItemIcon>
-              <img
-                src={mBrain}
-                alt="Brain Icon"
-                style={{ width: "1.75rem", height: "1.75rem" }}
-              />
-            </ListItemIcon>
-            <ListItemText
-              primary={brain.name}
-              primaryTypographyProps={{
-                sx: {
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                },
-              }}
-            />
-          </ListItemButton>
-          <Tooltip title="Delete series">
-            <IconButton
-              edge="end"
-              aria-label="delete"
-              sx={{
-                mr: 1,
-                "&:hover": {
-                  color: "error.main",
-                  transform: "scale(1.1)",
-                  backgroundColor: "transparent",
-                },
-              }}
-              onClick={(e) => {
-                e.stopPropagation(); // Stop event propagation
-                const confirmation = prompt(
-                  `This action is irreversible!\nYou will lose all progress made on this series.\n\n Type "${brain.name}" to confirm deletion:`,
-                  ""
-                );
-                if (confirmation === brain.name) {
-                  const deletingPath = `${bucketName}/${brain.path}`;
-
-                  deleteItem(deletingPath, token)
-                    .then(() => {
-                      setTimeout(() => {
-                        onDeleteComplete();
-                      }, 1500);
-                    })
-                    .catch((error) => {
-                      console.error("Error deleting series:", error);
-                      alert("Failed to delete series");
-                    });
-                } else if (confirmation !== null) {
-                  alert("Series name didn't match. Deletion cancelled.");
-                }
-              }}
+            <ListItemButton
+              selected={selectedBrain && selectedBrain.id === brain.id}
+              onClick={() => handleBrainSelect(brain)}
+              sx={{ flex: 1, borderRadius: 2, m: 0.5 }}
             >
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
-        </ListItem>
-      ))}
-    </List>
+              <ListItemIcon>
+                <img
+                  src={mBrain}
+                  alt="Brain Icon"
+                  style={{ width: "1.75rem", height: "1.75rem" }}
+                />
+              </ListItemIcon>
+              <ListItemText
+                primary={brain.name}
+                primaryTypographyProps={{
+                  sx: {
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  },
+                }}
+              />
+            </ListItemButton>
+            <Tooltip title="Delete series">
+              <IconButton
+                edge="end"
+                aria-label="delete"
+                sx={{
+                  mr: 1,
+                  "&:hover": {
+                    color: "error.main",
+                    transform: "scale(1.1)",
+                    backgroundColor: "transparent",
+                  },
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteClick(brain);
+                }}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Tooltip>
+          </ListItem>
+        ))}
+      </List>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setConfirmInput("");
+        }}
+      >
+        <DialogTitle>Delete Series</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This action is irreversible! You will lose all progress made on this
+            series.
+            <br />
+            Please type <b>{brainToDelete?.name}</b> to confirm deletion.
+          </DialogContentText>
+          <Box mt={2}>
+            <input
+              type="text"
+              value={confirmInput}
+              onChange={(e) => setConfirmInput(e.target.value)}
+              placeholder={`Type "${brainToDelete?.name}"`}
+              style={{ width: "100%", padding: 8, fontSize: 16 }}
+              autoFocus
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setDeleteDialogOpen(false);
+              setConfirmInput("");
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            color="error"
+            onClick={() => {
+              handleDeleteConfirm();
+              setConfirmInput("");
+            }}
+            disabled={confirmInput !== brainToDelete?.name}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
 
