@@ -24,7 +24,7 @@ import Add from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FolderOffOutlinedIcon from "@mui/icons-material/FolderOffOutlined";
 import mBrain from "../mBrain.ico";
-import { deleteItem } from "../actions/handleCollabs.js";
+import { deleteItem } from "../actions/handleCollabs.ts";
 
 const BrainList = ({
   rows,
