@@ -277,6 +277,7 @@ const QuickActions = ({
           }, 1000);
         }
       }, 5000); // Poll every 5 seconds
+      // TODO Update this to a exponential backoff strategy
 
       setPollingInterval(interval);
 
@@ -293,7 +294,7 @@ const QuickActions = ({
   const pollTaskStatus = async (statusEndpoint, filePath) => {
     try {
       const response = await fetch(
-        `https://deepzoom.apps.ebrains.eu${statusEndpoint}`,
+        `https://createzoom.apps.ebrains.eu${statusEndpoint}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -350,7 +351,7 @@ const QuickActions = ({
           p: 4,
         }}
       >
-        <Typography variant="h5" color="textSecondary">
+        <Typography variant="body2" color="textSecondary">
           Choose an image series to view additional information.
           <br />
           If there are none, add a new series by clicking on the 'Add/Edit
@@ -549,7 +550,13 @@ const QuickActions = ({
                       }}
                       startIcon={<ImageSearchIcon />}
                       onClick={() => {
-                        const url = `https://dzseriesviewer.apps.ebrains.eu/?bucket=https://dzip-svc.apps.ebrains.eu/fakebucket/?url=https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}?prefix=${stats[1]?.name}`;
+                        token = localStorage.getItem("accessToken");
+                        // const url = `https://serieszoom.apps.ebrains.eu/?token=${token}&bucket=https://dzip-svc.apps.ebrains.eu/fakebucket/?url=https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}?prefix=${stats[1]?.files[0].name}`;
+                        const url = `https://serieszoom.apps.ebrains.eu/?token=${encodeURIComponent(
+                          token
+                        )}&dzip=https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}/${
+                          stats[1]?.zips[0].name
+                        }`;
                         window.open(url, "_blank");
                       }}
                     >

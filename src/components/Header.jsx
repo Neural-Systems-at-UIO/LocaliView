@@ -24,7 +24,7 @@ import FindInPageIcon from "@mui/icons-material/FindInPage";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 
 import Mainframe from "./Mainframe";
-import callUser from "../actions/createUser";
+import createUser from "../actions/createUser";
 import { useTabContext } from "../contexts/TabContext";
 
 // Variable loading for URLs
@@ -191,7 +191,7 @@ const Header = () => {
 
       try {
         console.log("Fetching user info with token...");
-        const userInfo = await callUser(token);
+        const userInfo = await createUser(token);
         setUser(userInfo);
         console.log("User info received:", userInfo);
         localStorage.setItem("userInfo", JSON.stringify(userInfo));

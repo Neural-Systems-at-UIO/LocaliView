@@ -95,9 +95,9 @@ const BrainList = ({
       >
         <Icon
           component={FolderOffOutlinedIcon}
-          sx={{ fontSize: 25, color: "gray", mr: 2 }}
+          sx={{ fontSize: 25, color: "gray", mr: 3 }}
         />
-        <Typography variant="h6" color="gray" gutterBottom>
+        <Typography variant="body2" color="gray" gutterBottom>
           No series were found, please add a series.
         </Typography>
       </Box>

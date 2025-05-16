@@ -30,7 +30,7 @@ import {
   checkBucketExists,
   downloadWalnJson,
   deleteItem,
-} from "../actions/handleCollabs.js";
+} from "../actions/handleCollabs.ts";
 import CreationDialog from "./CreationDialog.jsx";
 import BrainTable from "./BrainTable.jsx";
 import QuickActions from "./QuickActions.jsx";
@@ -110,7 +110,7 @@ export default function QuintTable({ token, user }) {
     if (projects.length === 0) {
       return "empty";
     }
-    // TODO Add an i cant find your bucekt and creating
+    // Resolved with implementation further down
     return "ready";
   };
 
@@ -188,7 +188,7 @@ export default function QuintTable({ token, user }) {
           } else {
             try {
               const response = await fetch(
-                "https://deepzoom.apps.ebrains.eu/api/initialize-collab",
+                "https://createzoom.apps.ebrains.eu/api/initialize-collab",
                 {
                   method: "POST",
                   headers: {

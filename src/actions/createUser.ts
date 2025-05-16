@@ -1,4 +1,3 @@
-const USER_INFO_URL = import.meta.env.VITE_APP_USER_INFO_URL;
 
 interface UserInfo {
     username: string;
@@ -7,36 +6,27 @@ interface UserInfo {
     [key: string]: any;
 }
 
-export default function callUser(token: string): Promise<UserInfo> {
-    const userMap: Record<string, string> = {
-        username: "http://schema.org/alternateName",
-        fullname: "http://schema.org/name",
-        email: "http://schema.org/email",
-    };
-    return fetch(`${USER_INFO_URL}`, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-    })
-        .then((response) => response.json())
-        .then((responseData) => {
-            const data = responseData.data;
-            const userInfo: UserInfo = {
-                username: "",
-                fullname: "",
-                email: "",
-            };
-            Object.keys(userMap).forEach((key) => {
-                userInfo[key] = data[userMap[key]];
-            });
-            console.log("User created:", userInfo);
-            localStorage.setItem("userInfo", JSON.stringify(userInfo));
-            return userInfo;
-        })
-        .catch((error) => {
-            console.error("Error fetching user info:", error);
-            throw error;
-        });
+export default function createUser(token: string): UserInfo {
+    try {
+        // Get the payload part of the JWT (second part)
+        const payloadBase64 = token.split('.')[1];
+        
+        const decodedPayload = atob(payloadBase64);
+        const payload = JSON.parse(decodedPayload);
+        
+        // Map the JWT fields to our UserInfo structure
+        const userInfo: UserInfo = {
+            username: payload.preferred_username || "",
+            fullname: payload.name || "",
+            email: payload.email || "",
+        };
+        
+        console.log("User created:", userInfo);
+        localStorage.setItem("userInfo", JSON.stringify(userInfo));
+        
+        return userInfo;
+    } catch (error) {
+        console.error("Error parsing JWT token:", error);
+        throw error;
+    }
 }
