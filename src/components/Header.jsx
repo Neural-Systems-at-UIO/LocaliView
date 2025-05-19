@@ -24,7 +24,12 @@ import FindInPageIcon from "@mui/icons-material/FindInPage";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 
 import Mainframe from "./Mainframe";
-import createUser from "../actions/createUser";
+import UserAgreement from "./UserAgreement";
+import {
+  createUser,
+  checkAgreement,
+  signDocument,
+} from "../actions/createUser";
 import { useTabContext } from "../contexts/TabContext";
 
 // Variable loading for URLs
@@ -104,6 +109,7 @@ const Header = () => {
 
   // Login alert
   const [loginAlert, setLoginAlert] = useState(false); // Default to false
+  const [userAgreementOpen, setUserAgreementOpen] = useState(false); // Default to false
 
   // Tab context to interact
 
@@ -195,15 +201,29 @@ const Header = () => {
         setUser(userInfo);
         console.log("User info received:", userInfo);
         localStorage.setItem("userInfo", JSON.stringify(userInfo));
-        setAuth(true);
-        setIsLoading(false); // Stop loading after user is fetched
-        setLoginAlert(false); // Hide login alert if shown
+        const agreement = await checkAgreement(
+          userInfo["fullname"],
+          userInfo["email"]
+        );
+        console.log("User agreement status:", agreement);
+        if (!agreement) {
+          console.log("User has not accepted the agreement.");
+          setLoginAlert(true); // Show login alert if user hasn't accepted the agreement
+          setIsLoading(false); // Stop loading after user is fetched
+          setUserAgreementOpen(true); // Open user agreement dialog
+        } else {
+          console.log("User has accepted the agreement.");
+          setLoginAlert(false); // Hide login alert if user has accepted the agreement
+          setAuth(true);
+          setIsLoading(false); // Stop loading after user is fetched
+          setLoginAlert(false); // Hide login alert if shown
+        }
       } catch (error) {
         console.error("User couldn't be retrieved:", error);
         setAuth(false);
         setUser(null);
         setToken(null); // Invalidate token if user fetch fails
-        setIsLoading(false); // Stop loading on error
+        // setIsLoading(false); // Stop loading on error
         handleLogin(); // Uncomment this line if you want to force re-login on user fetch error
       }
     };
@@ -235,6 +255,43 @@ const Header = () => {
           Connecting to EBRAINS services...
         </Typography>
       </Box>
+    );
+  }
+
+  if (userAgreementOpen) {
+    return (
+      <UserAgreement
+        open={userAgreementOpen}
+        onClose={() => setUserAgreementOpen(false)}
+        onAccept={async () => {
+          try {
+            // Call signDocument with the token as required by the function signature
+            await signDocument(token);
+
+            // Verify the agreement was properly signed
+            const agreementSigned = await checkAgreement(
+              user?.fullname,
+              user?.email
+            );
+
+            if (agreementSigned) {
+              console.log("Agreement successfully signed and verified");
+              setUserAgreementOpen(false);
+              setAuth(true);
+              setLoginAlert(false);
+              setIsLoading(false);
+            } else {
+              console.error("Agreement signature could not be verified");
+              // Optionally show an error message to the user
+            }
+          } catch (error) {
+            console.error("Error during agreement signing:", error);
+            // Handle error, maybe show a notification to the user
+          }
+        }}
+        userEmail={user?.email}
+        userName={user?.fullname}
+      />
     );
   }
 
