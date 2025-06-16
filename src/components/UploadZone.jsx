@@ -98,7 +98,7 @@ const FileList = ({ files, onRemove }) => (
 const UploadZone = ({
   onFilesSelected,
   acceptedFileTypes = {
-    "image/*": [".tif", ".tiff", ".jpg", ".jpeg", ".png"],
+    "image/*": [".tif", ".tiff", ".jpg", ".jpeg", ".png", ".dzip"],
   },
   isUploading = false,
 }) => {

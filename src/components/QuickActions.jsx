@@ -65,14 +65,14 @@ const QuickActions = ({
   refreshBrain,
   walnContent,
 }) => {
-  // Generate unified file list from raw and processed images
+  const nutilResults = stats[4]?.nutil_results || [];
+
   const unifiedFiles = useMemo(() => {
     if (!stats || stats.length < 2) return [];
 
     const rawImages = stats[0]?.tiffs || [];
     const zippedImages = stats[1]?.zips || [];
 
-    // Create a map of zipped images for quick lookup
     const zippedMap = new Map();
     zippedImages.forEach((zip) => {
       // Extract the base name from the path
@@ -496,7 +496,7 @@ const QuickActions = ({
             sx={{
               boxShadow: "none",
               border: "1px solid #e0e0e0",
-              opacity: registered ? 0.5 : 1,
+              // Handled by the button now opacity: registered ? 0.5 : 1,
               "&:hover": {
                 cursor: registered ? "not-allowed" : "default",
               },
@@ -1007,6 +1007,7 @@ const QuickActions = ({
           walnContent={walnContent}
           currentRegistration={walnJson.jsons?.[0]?.name}
           segmented={segmented}
+          nutilResults={nutilResults}
         />
       )}
     </Box>

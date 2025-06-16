@@ -31,6 +31,7 @@ export default function ProgressPanel({
   walnContent,
   currentRegistration,
   segmented,
+  nutilResults,
 }) {
   const {
     navigateToWebAlign,
@@ -48,21 +49,23 @@ export default function ProgressPanel({
   }
 
   // Helpers for getting the WALN content
-  const sections = walnContent?.sections || [];
-  const totalImages = sections.length;
+  const sectionList = walnContent?.sections || walnContent?.slices || [];
+  const totalImages = sectionList.length;
 
-  // Calculate sections with OUV and markers
-  const sectionsWithOUV = sections.filter(
-    (section) => section?.ouv && section.ouv.length > 0
+  // Calculate sections/slices with OUV/anchoring and markers
+  const sectionsWithOUVorAnchoring = sectionList.filter(
+    (item) =>
+      (item?.ouv && item.ouv.length > 0) ||
+      (item?.anchoring && item.anchoring.length > 0)
   ).length;
-  const sectionsWithMarkers = sections.filter(
-    (section) => section?.markers && section.markers.length > 0
+  const sectionsWithMarkers = sectionList.filter(
+    (item) => item?.markers && item.markers.length > 0
   ).length;
 
   // Verbose logging
-  console.log("total images", totalImages);
-  console.log("sections with OUV", sectionsWithOUV);
-  console.log("sections with markers", sectionsWithMarkers);
+  console.log("total images/slices", totalImages);
+  console.log("sections/slices with OUV/anchoring", sectionsWithOUVorAnchoring);
+  console.log("sections/slices with markers", sectionsWithMarkers);
 
   return (
     <Paper
@@ -135,9 +138,11 @@ export default function ProgressPanel({
                       Register
                     </Typography>
                   </Box>
-                  <Tooltip title={`${sectionsWithOUV} sections with OUV data`}>
+                  <Tooltip
+                    title={`${sectionsWithOUVorAnchoring} sections with OUV data`}
+                  >
                     <Chip
-                      label={`${sectionsWithOUV}/${totalImages}`}
+                      label={`${sectionsWithOUVorAnchoring}/${totalImages}`}
                       size="small"
                       color="primary"
                       variant="outlined"
@@ -158,7 +163,7 @@ export default function ProgressPanel({
                   <Box sx={{ position: "relative", display: "inline-flex" }}>
                     <CircularProgress
                       variant="determinate"
-                      value={(sectionsWithOUV / totalImages) * 100}
+                      value={(sectionsWithOUVorAnchoring / totalImages) * 100}
                       size={60}
                       thickness={2.5}
                       sx={{ color: "primary.main" }}
@@ -181,7 +186,10 @@ export default function ProgressPanel({
                         color="primary.main"
                         fontWeight="bold"
                       >
-                        {Math.round((sectionsWithOUV / totalImages) * 100)}%
+                        {Math.round(
+                          (sectionsWithOUVorAnchoring / totalImages) * 100
+                        )}
+                        %
                       </Typography>
                     </Box>
                   </Box>
@@ -193,7 +201,9 @@ export default function ProgressPanel({
                   endIcon={<ArrowOutward />}
                   disableElevation
                   onClick={() => navigateToWebAlign(currentRegistration)}
-                  disabled={!walnContent || sectionsWithOUV === totalImages}
+                  disabled={
+                    !walnContent || sectionsWithOUVorAnchoring === totalImages
+                  }
                   sx={{ fontSize: "0.8rem", mt: 0.5, textTransform: "none" }}
                   fullWidth
                 >
@@ -372,7 +382,7 @@ export default function ProgressPanel({
                         color="warning"
                         fontWeight="bold"
                       >
-                        {(segmented / totalImages) * 100}%
+                        {((segmented / totalImages) * 100).toFixed(2)}%
                       </Typography>
                     </Box>
                   </Box>
@@ -470,7 +480,7 @@ export default function ProgressPanel({
                         color="secondary"
                         fontWeight="bold"
                       >
-                        {0}%
+                        {nutilResults?.length} Results ready
                       </Typography>
                     </Box>
                   </Box>

@@ -519,7 +519,15 @@ const Header = () => {
                   />
                 )}
               </ListItem>
-              <ListItem sx={sharedListItemSx}>
+              <ListItem
+                sx={sharedListItemSx}
+                onClick={() => {
+                  window.open(
+                    // Fixed URL for downloading the example dataset
+                    "https://data-proxy-zipper.ebrains.eu/zip?container=https://data-proxy.ebrains.eu/api/v1/buckets/quint?prefix=Online QUINT demo dataset/"
+                  );
+                }}
+              >
                 <ListItemIcon>
                   <CloudDownloadIcon />
                 </ListItemIcon>

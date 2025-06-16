@@ -192,9 +192,17 @@ const Nutil = ({ token }) => {
     if (
       !selectedBrain ||
       !registration.atlas ||
+      !atlasLookup[registration.atlas] || // Ensure atlas is valid for lookup
       selectedSegmentations.length === 0
     ) {
-      console.error("Missing required data for Nutil analysis");
+      console.error("Missing required data for Nutil analysis", {
+        selectedBrain,
+        registration,
+        selectedSegmentations,
+      });
+      setError(
+        "Missing required data (brain, atlas, or segmentations) for Nutil analysis."
+      );
       return;
     }
 
@@ -215,8 +223,6 @@ const Nutil = ({ token }) => {
         return [r, g, b];
       };
 
-      // Create timestamp-based output folder
-      // the name of can be reworked. Update: The rework has been done to reflect the time of the analysis rather than just the date
       const now = new Date();
       const dateStr = `${now.getFullYear()}_${String(
         now.getMonth() + 1
@@ -225,31 +231,41 @@ const Nutil = ({ token }) => {
       ).padStart(2, "0")}_${String(now.getMinutes()).padStart(2, "0")}_${String(
         now.getSeconds()
       ).padStart(2, "0")}`;
-      const outputPath = `${brainPath}pynutil_results/${dateStr}`;
+      // output_path should be bucketName/path/to/output_folder
+      const outputPath = `${selectedBrain.path}pynutil_results/${dateStr}`; // Relative to bucket
 
       // Create the request payload
       const payload = {
         segmentation_path: `${collabName}/${segmentationPath}`,
         alignment_json_path: `${collabName}/${registration.alignment_json_path}`,
         colour: hexToRgb(objectColor),
-        output_path: outputPath,
+        atlas_name: atlasLookup[registration.atlas], // Use looked-up atlas name
+        output_path: `${collabName}/${outputPath}`, // Full path including bucket name
         token: token,
       };
 
       console.log("Nutil analysis request payload:", payload);
 
       // Send the request to the PyNutil endpoint
-      const response = await fetch("https://pynutil.apps.ebrains.eu/pynutil", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        "https://pynutil.apps.ebrains.eu/schedule-task",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `Error: ${response.status} - ${
+            errorData.detail || response.statusText
+          }`
+        );
       }
 
       const result = await response.json();
@@ -259,11 +275,11 @@ const Nutil = ({ token }) => {
       if (result && result.task_id) {
         const newTask = {
           id: result.task_id,
-          status: "pending",
-          message: "Task submitted and processing...",
+          status: "pending", // Initial status from schedule-task might be different, or use polling result
+          message: result.message || "Task submitted and processing...",
           createdAt: new Date(),
           brainName: selectedBrain.name,
-          outputPath: outputPath,
+          outputPath: `${collabName}/${outputPath}`, // Store the full output path
         };
 
         setTasks((prev) => [...prev, newTask]);
@@ -272,10 +288,16 @@ const Nutil = ({ token }) => {
         if (!isPolling) {
           setIsPolling(true);
         }
+      } else {
+        // Handle cases where task_id might not be in the root of the response
+        // For example, if it's nested like result.task.task_id
+        // Based on the prompt, schedule-task returns { "task_id": "...", "message": "..." } directly
+        console.error("Task ID not found in schedule-task response", result);
+        setError("Failed to get Task ID from Nutil analysis request.");
       }
     } catch (error) {
       console.error("Error requesting Nutil analysis:", error);
-      setError("Failed to process Nutil analysis request");
+      setError(`Failed to process Nutil analysis request: ${error.message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -285,7 +307,7 @@ const Nutil = ({ token }) => {
   const pollTaskStatus = async (taskId) => {
     try {
       const response = await fetch(
-        `https://pynutil.apps.ebrains.eu/status/${taskId}`,
+        `https://pynutil.apps.ebrains.eu/task-status/${taskId}`,
         {
           method: "GET",
           headers: {
@@ -295,14 +317,22 @@ const Nutil = ({ token }) => {
       );
 
       if (!response.ok) {
-        throw new Error(`Error fetching task status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `Error fetching task status: ${response.status} - ${
+            errorData.detail || response.statusText
+          }`
+        );
       }
 
-      const result = await response.json();
-      return result;
+      const result = await response.json(); // result is { task: { ... } }
+      return result; // Return the full response object
     } catch (error) {
       console.error(`Error polling task ${taskId}:`, error);
-      return { status: "error", message: error.message };
+      // Return a structure consistent with a successful poll containing an error status
+      return {
+        task: { status: "failed", message: `Polling error: ${error.message}` },
+      };
     }
   };
 
@@ -365,58 +395,80 @@ const Nutil = ({ token }) => {
 
         const updatedTasks = await Promise.all(
           tasks.map(async (task) => {
-            // Continue polling for all statuses except completed and failed
             if (task.status !== "completed" && task.status !== "failed") {
               const statusResult = await pollTaskStatus(task.id);
 
-              // Check if we need to continue polling
-              if (
-                statusResult.status !== "completed" &&
-                statusResult.status !== "failed"
-              ) {
-                shouldContinuePolling = true;
-              }
+              // Ensure statusResult and statusResult.task exist
+              if (statusResult && statusResult.task) {
+                const currentTaskStatus = statusResult.task.status;
+                const currentTaskMessage = statusResult.task.message;
 
-              // If the task just completed or failed, add it to completed results
-              if (
-                (statusResult.status === "completed" ||
-                  statusResult.status === "failed") &&
-                task.status !== "completed" &&
-                task.status !== "failed"
-              ) {
-                // Task just completed or failed
-                fetchCompletedResults(); // Refresh results list
-                // TODO Add fetch here for the pynutil outputs folder.
-              }
+                if (
+                  currentTaskStatus !== "completed" &&
+                  currentTaskStatus !== "failed"
+                ) {
+                  shouldContinuePolling = true;
+                }
 
-              return {
-                ...task,
-                status: statusResult.status,
-                message: statusResult.message || task.message,
-                completedAt:
-                  statusResult.status === "completed" ||
-                  statusResult.status === "failed"
-                    ? new Date()
-                    : null,
-              };
+                if (
+                  (currentTaskStatus === "completed" ||
+                    currentTaskStatus === "failed") &&
+                  task.status !== "completed" && // Check against previous task status
+                  task.status !== "failed"
+                ) {
+                  fetchCompletedResults();
+                }
+
+                return {
+                  ...task,
+                  status: currentTaskStatus,
+                  message: currentTaskMessage || task.message, // Use new message or fallback to old
+                  completedAt:
+                    currentTaskStatus === "completed" ||
+                    currentTaskStatus === "failed"
+                      ? new Date()
+                      : null,
+                };
+              } else {
+                // Handle case where pollTaskStatus might not return the expected structure
+                // This could happen if the error return in pollTaskStatus isn't {task: {...}}
+                // or if the API returns an unexpected format.
+                console.warn(
+                  `Unexpected statusResult for task ${task.id}:`,
+                  statusResult
+                );
+                shouldContinuePolling = true; // Continue polling for this task for now
+                return task; // Return unmodified task
+              }
             }
-            return task;
+            return task; // Return task if already completed or failed
           })
         );
 
         setTasks(updatedTasks);
 
-        // If no tasks are still in progress, stop polling
-        if (!shouldContinuePolling) {
+        if (
+          !shouldContinuePolling &&
+          tasks.some((t) => t.status !== "completed" && t.status !== "failed")
+        ) {
+          // If no tasks are actively being polled but some are still not terminal, ensure polling continues
+          // This case might be redundant if shouldContinuePolling is set correctly above.
+        }
+
+        // If no tasks are still in progress (pending, quantifying etc.), stop polling
+        const anyTaskInProgress = updatedTasks.some(
+          (t) => t.status !== "completed" && t.status !== "failed"
+        );
+        if (!anyTaskInProgress) {
           setIsPolling(false);
         }
-      }, 3000); // Poll every 3 seconds - Eg to be discussed in a meeting
+      }, 3000); // Poll every 3 seconds
     }
 
     return () => {
       if (pollingInterval) clearInterval(pollingInterval);
     };
-  }, [tasks, isPolling, token]);
+  }, [tasks, isPolling, token]); // Added token to dependencies as it's used in pollTaskStatus
 
   useEffect(() => {
     try {

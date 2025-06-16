@@ -77,10 +77,10 @@ const Sandbox = ({ token }) => {
   ];
 
   const csvSourceUrl =
-    "https://data-proxy.ebrains.eu/api/v1/buckets/rwb-arda2014/new_project/kain/pynutil_results/4_4_25/whole_series_report/counts.csv?redirect=false";
+    "https://data-proxy.ebrains.eu/api/v1/buckets/quint/counts.csv?redirect=false";
 
   useEffect(() => {
-    setAvailableCsvs([csvSourceUrl, "other stuff"]);
+    setAvailableCsvs([csvSourceUrl]);
   }, []);
 
   const fetchCSVData = async () => {
