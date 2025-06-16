@@ -244,20 +244,20 @@ const Nutil = ({ token }) => {
         token: token,
       };
 
-      console.log("Nutil analysis request payload:", payload);
-
-      // Send the request to the PyNutil endpoint
-      const response = await fetch(
-        "https://pynutil.apps.ebrains.eu/schedule-task",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      console.log("Nutil analysis request payload:", payload); // Send the request to the PyNutil endpoint via proxy (development) or direct (production)
+      const baseUrl = import.meta.env.DEV
+        ? "/api/pynutil"
+        : "https://pynutil.apps.ebrains.eu";
+      const response = await fetch(`${baseUrl}/schedule-task`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          // Try to avoid preflight by keeping headers simple
+        },
+        mode: "cors", // Explicitly set CORS mode
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -302,19 +302,18 @@ const Nutil = ({ token }) => {
       setIsProcessing(false);
     }
   };
-
   // To keep updating the results after submittion
   const pollTaskStatus = async (taskId) => {
     try {
-      const response = await fetch(
-        `https://pynutil.apps.ebrains.eu/task-status/${taskId}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const baseUrl = import.meta.env.DEV
+        ? "/api/pynutil"
+        : "https://pynutil.apps.ebrains.eu";
+      const response = await fetch(`${baseUrl}/task-status/${taskId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -365,6 +364,7 @@ const Nutil = ({ token }) => {
             path: item.name || item.subdir, // Use subdir as a fallback for path
             status: "completed",
           }));
+          console.log("Raw results fetched:", results);
           setCompletedResults(results);
           console.log("Processed results:", results);
         } else {
@@ -376,6 +376,54 @@ const Nutil = ({ token }) => {
     } catch (error) {
       console.error("Error fetching completed results:", error);
       setCompletedResults([]);
+    }
+  };
+  const handleExportResults = async (resultPath) => {
+    const bucketName = localStorage.getItem("bucketName");
+    if (!bucketName) {
+      console.error("No bucket name found in localStorage");
+      return;
+    }
+
+    // Build the zipper URL
+    const baseUrl = "https://data-proxy-zipper.ebrains.eu/zip?container=";
+    const containerUrl = `https%3A%2F%2Fdata-proxy.ebrains.eu%2Fapi%2Fv1%2Fbuckets%2F${encodeURIComponent(
+      bucketName
+    )}%3Fprefix%3D${encodeURIComponent(resultPath)}`;
+    const zipperUrl = baseUrl + containerUrl;
+
+    console.log("Downloading from zipper URL:", zipperUrl);
+
+    try {
+      // Usin authentication for the data proxy zipper
+      const response = await fetch(zipperUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Download failed: ${response.status} ${response.statusText}`
+        );
+      }
+
+      // Create a blob from the response and trigger download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = `${resultPath.split("/").pop() || "results"}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Error downloading results:", error);
+      // Fallback to opening in new tab if fetch fails
+      window.open(zipperUrl, "_blank");
     }
   };
 
@@ -914,6 +962,7 @@ const Nutil = ({ token }) => {
                           <Typography
                             variant="caption"
                             sx={{ fontWeight: "medium" }}
+                            color="white"
                           >
                             {task.status.toUpperCase()}
                           </Typography>
@@ -1009,17 +1058,19 @@ const Nutil = ({ token }) => {
                         return cleanPath.split("/").pop() || "Unnamed Result";
                       })()}
                     </Typography>
+
                     {/*<Typography
                       variant="caption"
                       display="block"
                       color="text.secondary"
                       sx={{ mt: 1, textAlign: "left" }}
                     >
-                      {result.created
-                        ? new Date(result.created).toLocaleString()
-                        : "No date available"}
+                      {result.created ? result.created : "No date available"}
                     </Typography>
-                    */}
+                      Created info is broken at the api level
+                      
+                      */}
+
                     <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
                       <Button
                         size="small"
@@ -1027,11 +1078,12 @@ const Nutil = ({ token }) => {
                         sx={{ fontSize: "0.75rem", py: 0.5 }}
                       >
                         Plot
-                      </Button>
+                      </Button>{" "}
                       <Button
                         size="small"
                         startIcon={<SaveAlt />}
                         sx={{ fontSize: "0.75rem", py: 0.5 }}
+                        onClick={() => handleExportResults(result.name)}
                       >
                         Export
                       </Button>
