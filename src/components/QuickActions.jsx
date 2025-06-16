@@ -37,6 +37,8 @@ import {
   Info,
 } from "@mui/icons-material";
 
+import ImageSearchIcon from "@mui/icons-material/ImageSearch";
+
 // Project components and helper functions
 import { deleteItem } from "../actions/handleCollabs";
 import { formatFileSize } from "../utils/fileUtils";
@@ -63,14 +65,14 @@ const QuickActions = ({
   refreshBrain,
   walnContent,
 }) => {
-  // Generate unified file list from raw and processed images
+  const nutilResults = stats[4]?.nutil_results || [];
+
   const unifiedFiles = useMemo(() => {
     if (!stats || stats.length < 2) return [];
 
     const rawImages = stats[0]?.tiffs || [];
     const zippedImages = stats[1]?.zips || [];
 
-    // Create a map of zipped images for quick lookup
     const zippedMap = new Map();
     zippedImages.forEach((zip) => {
       // Extract the base name from the path
@@ -275,6 +277,7 @@ const QuickActions = ({
           }, 1000);
         }
       }, 5000); // Poll every 5 seconds
+      // TODO Update this to a exponential backoff strategy
 
       setPollingInterval(interval);
 
@@ -291,7 +294,7 @@ const QuickActions = ({
   const pollTaskStatus = async (statusEndpoint, filePath) => {
     try {
       const response = await fetch(
-        `https://deepzoom.apps.ebrains.eu${statusEndpoint}`,
+        `https://createzoom.apps.ebrains.eu${statusEndpoint}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -348,7 +351,7 @@ const QuickActions = ({
           p: 4,
         }}
       >
-        <Typography variant="h5" color="textSecondary">
+        <Typography variant="body2" color="textSecondary">
           Choose an image series to view additional information.
           <br />
           If there are none, add a new series by clicking on the 'Add/Edit
@@ -391,13 +394,14 @@ const QuickActions = ({
     <Box sx={{ height: "auto" }}>
       <Snackbar
         open={infoMessage.open}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        anchorOrigin={{ vertical: "center", horizontal: "center" }}
         autoHideDuration={3000}
       >
         <Alert
+          variant="outlined"
           onClose={() => setInfoMessage({ ...infoMessage, open: false })}
           severity={infoMessage.severity}
-          elevation={4}
+          elevation={0}
         >
           {infoMessage.message}
         </Alert>
@@ -492,7 +496,7 @@ const QuickActions = ({
             sx={{
               boxShadow: "none",
               border: "1px solid #e0e0e0",
-              opacity: registered ? 0.5 : 1,
+              // Handled by the button now opacity: registered ? 0.5 : 1,
               "&:hover": {
                 cursor: registered ? "not-allowed" : "default",
               },
@@ -518,17 +522,47 @@ const QuickActions = ({
                     justifyContent: "space-between",
                   }}
                 >
-                  <Typography
+                  <Box
                     sx={{
-                      textWrap: "wrap",
-                      textAlign: "left",
-                      fontSize: 20,
+                      display: "flex",
+                      flexDirection: "row",
+
+                      justifyContent: "space-between",
+                      width: "100%",
                       mb: 2,
                     }}
                   >
-                    Convert images to DZI format
-                  </Typography>
-
+                    <Typography
+                      sx={{
+                        textWrap: "wrap",
+                        textAlign: "left",
+                        fontSize: 16,
+                      }}
+                    >
+                      Convert images to DZI format
+                    </Typography>
+                    <Button
+                      size="small"
+                      disabled={!pyramidComplete}
+                      sx={{
+                        textTransform: "none",
+                        fontSize: 12,
+                      }}
+                      startIcon={<ImageSearchIcon />}
+                      onClick={() => {
+                        token = localStorage.getItem("accessToken");
+                        // const url = `https://serieszoom.apps.ebrains.eu/?token=${token}&bucket=https://dzip-svc.apps.ebrains.eu/fakebucket/?url=https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}?prefix=${stats[1]?.files[0].name}`;
+                        const url = `https://serieszoom.apps.ebrains.eu/?token=${encodeURIComponent(
+                          token
+                        )}&dzip=https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}/${
+                          stats[1]?.zips[0].name
+                        }`;
+                        window.open(url, "_blank");
+                      }}
+                    >
+                      Inspect converted DZI images with SeriesZoom
+                    </Button>
+                  </Box>
                   {/* Unified Image Table */}
                   <TableContainer
                     component={Paper}
@@ -973,6 +1007,7 @@ const QuickActions = ({
           walnContent={walnContent}
           currentRegistration={walnJson.jsons?.[0]?.name}
           segmented={segmented}
+          nutilResults={nutilResults}
         />
       )}
     </Box>
