@@ -245,17 +245,13 @@ const Nutil = ({ token }) => {
       };
 
       console.log("Nutil analysis request payload:", payload); // Send the request to the PyNutil endpoint via proxy (development) or direct (production)
-      const baseUrl = import.meta.env.DEV
-        ? "/api/pynutil"
-        : "https://pynutil.apps.ebrains.eu";
-      const response = await fetch(`${baseUrl}/schedule-task`, {
+      const response = await fetch(`${NUTIL_URL}/schedule-task`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
-          // Try to avoid preflight by keeping headers simple
         },
-        mode: "cors", // Explicitly set CORS mode
+        mode: "cors",
         body: JSON.stringify(payload),
       });
 
@@ -269,7 +265,7 @@ const Nutil = ({ token }) => {
       }
 
       const result = await response.json();
-      console.log("Nutil analysis result:", result);
+      console.log("Nutil task scheduled", result);
 
       // Add the new task to the tasks list with initial status
       if (result && result.task_id) {
@@ -289,9 +285,6 @@ const Nutil = ({ token }) => {
           setIsPolling(true);
         }
       } else {
-        // Handle cases where task_id might not be in the root of the response
-        // For example, if it's nested like result.task.task_id
-        // Based on the prompt, schedule-task returns { "task_id": "...", "message": "..." } directly
         console.error("Task ID not found in schedule-task response", result);
         setError("Failed to get Task ID from Nutil analysis request.");
       }
@@ -302,7 +295,7 @@ const Nutil = ({ token }) => {
       setIsProcessing(false);
     }
   };
-  // To keep updating the results after submittion
+
   const pollTaskStatus = async (taskId) => {
     try {
       const baseUrl = import.meta.env.DEV
