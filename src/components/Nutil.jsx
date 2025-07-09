@@ -129,7 +129,6 @@ const MeshviewButton = ({ atlas, clouds }) => {
   );
 };
 
-// Implementation for the Nutil over the web
 const Nutil = ({ token }) => {
   const [brainEntries, setBrainEntries] = useState([]);
   const [error, setError] = useState(null);
@@ -140,7 +139,6 @@ const Nutil = ({ token }) => {
   const [isFetchingSegmentations, setIsFetchingSegmentations] = useState(false);
   const [selectedBrain, setSelectedBrain] = useState(null);
 
-  // Uploading segments window for custom images
   const [uploadSegmentsOpen, setUploadSegmentsOpen] = useState(false);
   const [registration, setRegistration] = useState({
     atlas: null,
@@ -154,7 +152,6 @@ const Nutil = ({ token }) => {
   const [completedResults, setCompletedResults] = useState([]);
   const [isPolling, setIsPolling] = useState(false);
 
-  // Color/jsx helper
   const getStatusInfo = (status) => {
     switch (status) {
       case "completed":
@@ -211,16 +208,15 @@ const Nutil = ({ token }) => {
       const collabName = localStorage.getItem("bucketName");
       const brainPath = `${collabName}/${selectedBrain.path}`;
 
-      // Extract the segmentation folder path from the selected segmentation
       const segmentationPath =
         selectedSegmentations[0].name.split("/").slice(0, -1).join("/") + "/";
 
-      // Format object color from hex to RGB array
+      // hex -> bgr
       const hexToRgb = (hex) => {
         const r = parseInt(hex.slice(1, 3), 16);
         const g = parseInt(hex.slice(3, 5), 16);
         const b = parseInt(hex.slice(5, 7), 16);
-        return [r, g, b];
+        return [b, g, r];
       };
 
       const now = new Date();
@@ -857,12 +853,7 @@ const Nutil = ({ token }) => {
                 alignItems: "flex-start",
               }}
             >
-              <Box sx={{ flex: 1 }}>
-                {/*<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  <Typography variant="caption">Output</Typography>
-                */}
-              </Box>
-              <Box sx={{ flex: 1 }}>
+              <Box sx={{ flex: 1, flexDirection: "row" }}>
                 <Typography variant="caption" display="block" gutterBottom>
                   Object Color
                 </Typography>
@@ -870,7 +861,7 @@ const Nutil = ({ token }) => {
                   type="color"
                   size="small"
                   fullWidth
-                  defaultValue="#000000"
+                  defaultValue="#ff0000"
                   onChange={(e) => setObjectColor(e.target.value)}
                   sx={{
                     '& input[type="color"]': {
