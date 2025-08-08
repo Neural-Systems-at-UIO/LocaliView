@@ -736,7 +736,7 @@ const Nutil = ({ token }) => {
                   ...styles.listItem,
                   py: 0.5,
                   "&:hover": {
-                    backgroundColor: "rgba(0, 0, 0, 0.04)", // Subtle hover effect
+                    backgroundColor: "rgba(0, 0, 0, 0.04)",
                   },
                 }}
               >
