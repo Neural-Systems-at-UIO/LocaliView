@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Typography,
@@ -25,7 +25,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 // Project handling
 import {
   fetchBucketDir,
-  fetchBrainStats,
+  fetchBrainStatsNormalized,
   createProject,
   checkBucketExists,
   downloadWalnJson,
@@ -37,11 +37,13 @@ import QuickActions from "./QuickActions.jsx";
 
 export default function QuintTable({ token, user }) {
   // Query helpers
-  const [bucketName, setBucketName] = useState("");
+  // null until resolved so 'no-workspace' state can be meaningful
+  const [bucketName, setBucketName] = useState(null);
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [selectedBrain, setSelectedBrain] = useState(null);
-  const [selectedBrainStats, setSelectedBrainStats] = useState([]);
+  // Normalized brain stats only
+  const [selectedBrainStats, setSelectedBrainStats] = useState(null);
   const [projectBrainEntries, setProjectBrainEntries] = useState(() => {
     try {
       const storedEntries = localStorage.getItem("projectBrainEntries");
@@ -142,6 +144,7 @@ export default function QuintTable({ token, user }) {
     }
   };
 
+  const projectsControllerRef = useRef(null);
   const fetchAndUpdateProjects = (collabName) => {
     setProjectIssue({
       problem: false,
@@ -149,7 +152,14 @@ export default function QuintTable({ token, user }) {
       severity: "info",
       loading: true,
     });
-    fetchBucketDir(token, collabName, null, "/")
+    if (projectsControllerRef.current) {
+      projectsControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    projectsControllerRef.current = controller;
+    fetchBucketDir(token, collabName, null, "/", 1000, {
+      signal: controller.signal,
+    })
       .then((projects) => {
         console.log(projects);
         setProjects(projects);
@@ -161,6 +171,10 @@ export default function QuintTable({ token, user }) {
         });
       })
       .catch((error) => {
+        if (error.name === "AbortError") {
+          console.log("Project fetch aborted");
+          return;
+        }
         console.error("Error fetching projects:", error);
         setProjectIssue({
           problem: true,
@@ -173,7 +187,8 @@ export default function QuintTable({ token, user }) {
 
   useEffect(() => {
     try {
-      const userName = user.username;
+      const userName = user?.username;
+      if (!userName) return; // wait until user available
       console.log("User info received by table:", user);
       const collabName = `rwb-${userName}`;
       setBucketName(collabName);
@@ -243,6 +258,7 @@ export default function QuintTable({ token, user }) {
     }
   }, [token, bucketName]); // Only depends on token and bucketName
 
+  const brainsControllerRef = useRef(null);
   const handleProjectSelect = async (project) => {
     setSelectedProject(project);
     localStorage.setItem("selectedProject", JSON.stringify(project));
@@ -255,12 +271,17 @@ export default function QuintTable({ token, user }) {
     }
 
     try {
+      if (brainsControllerRef.current) brainsControllerRef.current.abort();
+      const controller = new AbortController();
+      brainsControllerRef.current = controller;
       const projectPath = `${project.name}/`;
       const brainEntries = await fetchBucketDir(
         token,
         bucketName,
         projectPath,
-        "/"
+        "/",
+        1000,
+        { signal: controller.signal }
       );
       const newRows = brainEntries.map((entry, index) => ({
         id: index,
@@ -273,7 +294,11 @@ export default function QuintTable({ token, user }) {
       setProjectBrainEntries(brainEntries);
       setUpdatingBrains(false);
     } catch (error) {
-      console.error("Error fetching brain entries:", error);
+      if (error.name === "AbortError") {
+        console.log("Brain list fetch aborted");
+      } else {
+        console.error("Error fetching brain entries:", error);
+      }
       setRows([]);
       setUpdatingBrains(false);
     }
@@ -287,32 +312,54 @@ export default function QuintTable({ token, user }) {
     // the current brain will be deleted so defaults to null
   };
 
+  // Ref to track and abort in-flight brain stats/WALN fetches
+  const brainFetchControllerRef = useRef(null);
+
   const handleBrainSelect = async (params) => {
     console.log("Params passed down", params);
     setWalnContent(null);
     setSelectedBrain(params.row);
     setIsFetchingStats(true);
     console.log(`Selected brain: ${params.row.name}`);
+    // Abort any previous selection's fetches
+    if (brainFetchControllerRef.current) {
+      brainFetchControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    brainFetchControllerRef.current = controller;
+    const { signal } = controller;
     try {
-      const stats = await fetchBrainStats(token, bucketName, params.row.path);
-      setSelectedBrainStats(stats);
+      const normalized = await fetchBrainStatsNormalized(
+        token,
+        bucketName,
+        params.row.path,
+        null,
+        { signal }
+      );
+      setSelectedBrainStats(normalized);
       localStorage.setItem(
         "selectedBrain",
         JSON.stringify({ ...params.row, project: selectedProject.name })
       );
-      console.log(`Selected brain stats:`, stats);
+      console.log(`Selected brain normalized stats:`, normalized);
 
-      if (stats && stats[2]?.jsons?.[0]?.name) {
+      const regFile = normalized?.registrations?.jsons?.[0]?.name;
+      if (regFile) {
         try {
           const walnContent = await downloadWalnJson(
             token,
             bucketName,
-            stats[2].jsons[0].name
+            regFile,
+            signal
           );
           console.log("WALN Content:", walnContent);
           setWalnContent(walnContent);
         } catch (error) {
-          console.error("Failed to download WALN:", error);
+          if (error.name === "AbortError") {
+            console.log("WALN fetch aborted (stale selection)");
+          } else {
+            console.error("Failed to download WALN:", error);
+          }
           setWalnContent(null);
         }
       } else {
@@ -320,16 +367,23 @@ export default function QuintTable({ token, user }) {
         setWalnContent(null);
       }
     } catch (error) {
-      console.error("Error fetching brain stats:", error);
-      setSelectedBrainStats([]);
+      if (error.name === "AbortError") {
+        console.log("Brain stats fetch aborted (stale selection)");
+      } else {
+        console.error("Error fetching brain stats:", error);
+      }
+      setSelectedBrainStats(null);
       setWalnContent(null);
     } finally {
       setIsFetchingStats(false);
+      if (brainFetchControllerRef.current === controller) {
+        brainFetchControllerRef.current = null;
+      }
     }
   };
 
   const refreshBrain = async () => {
-    // Refecthing what we have to update the stats
+    // Refetch stats for current selection
     if (selectedBrain) {
       handleBrainSelect({ row: selectedBrain });
     }

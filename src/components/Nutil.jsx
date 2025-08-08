@@ -35,9 +35,9 @@ import mBrain from "../mBrain.ico";
 
 import {
   fetchBrainSegmentations,
-  fetchBrainStats,
   fetchPyNutilResults,
 } from "../actions/handleCollabs";
+import { getBrainStats } from "../actions/brainRepository.ts";
 import UploadSegments from "./UploadSegments";
 
 // Nutil endpoint, one for submitting and one for polling the status
@@ -568,18 +568,15 @@ const Nutil = ({ token }) => {
       setSegmentations([]);
       localStorage.setItem("selectedBrain", JSON.stringify(brain));
       await getSegmentations(brain);
-      let seriesDescriptor = await fetchBrainStats(
-        token,
-        localStorage.getItem("bucketName"),
-        brain.path,
-        "jsons"
-      );
-      console.log(seriesDescriptor);
-      if (seriesDescriptor[0]?.jsons?.[0]) {
-        const filePath = seriesDescriptor[0].jsons[0].name;
+      const bucketName = localStorage.getItem("bucketName");
+      const normStats = await getBrainStats(token, bucketName, brain.path);
+      console.log(normStats);
+      const jsonEntry = normStats.registrations?.jsons?.[0];
+      if (jsonEntry) {
+        const filePath = jsonEntry.name;
         const atlasMatch = filePath.match(/\/([^\/]+)_\d{4}-\d{2}-\d{2}/);
         const atlas = atlasMatch ? atlasMatch[1] : null;
-        const lastModified = seriesDescriptor[0].jsons[0].last_modified;
+        const lastModified = jsonEntry.last_modified;
 
         await setRegistration({
           atlas: atlas,
