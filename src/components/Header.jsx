@@ -1,3 +1,4 @@
+import logger from "../utils/logger.js";
 import React, { useEffect, useState } from "react";
 import {
   AppBar,
@@ -83,9 +84,9 @@ const tabs = [
   },
 ];
 
-console.log(`You are running this application in ${process.env.NODE_ENV} mode`);
+logger.info("Application mode", { mode: process.env.NODE_ENV });
 
-console.log(`Logging in`);
+logger.info("Logging in start");
 
 const Header = () => {
   const [auth, setAuth] = useState(false);
@@ -149,7 +150,7 @@ const Header = () => {
           return response.json();
         })
         .then((data) => {
-          console.log("Token received:", data);
+          logger.debug("Token received", { hasAccess: !!data?.access_token });
           if (data.token && data.token.access_token) {
             setToken(data.token.access_token);
             // User fetching will happen in the next effect
@@ -158,13 +159,13 @@ const Header = () => {
           } else {
             // Handle cases where the response is ok but doesn't contain the expected token
 
-            console.error("Token data is missing or invalid:", data);
+            logger.error("Token data missing or invalid", data);
             setToken(null); // Ensure token is null
             handleLogin(); // Redirect to login if token exchange failed
           }
         })
         .catch((error) => {
-          console.error("Token couldn't be retrieved:", error);
+          logger.error("Token couldn't be retrieved", error);
           setToken(null); // Ensure token is null on error
           // Optionally show an error message to the user before redirecting
           handleLogin(); // Redirect to login on fetch error
@@ -174,7 +175,7 @@ const Header = () => {
       // No code in URL, redirect immediately to login
       // Check if a token might already exist (e.g., from a previous session, though not implemented here)
       // If not implementing token persistence, always redirect if no code.
-      console.log("No code found in URL, redirecting to login.");
+      logger.info("No code found, redirecting to login");
       handleLogin();
       // Keep isLoading true as we are redirecting away
     }
@@ -196,30 +197,30 @@ const Header = () => {
       }
 
       try {
-        console.log("Fetching user info with token...");
+        logger.debug("Fetching user info");
         const userInfo = await createUser(token);
         setUser(userInfo);
-        console.log("User info received:", userInfo);
+        logger.info("User info received", { user: userInfo?.username });
         localStorage.setItem("userInfo", JSON.stringify(userInfo));
         const agreement = await checkAgreement(
           userInfo["fullname"],
           userInfo["email"]
         );
-        console.log("User agreement status:", agreement);
+        logger.debug("User agreement status", { agreement });
         if (!agreement) {
-          console.log("User has not accepted the agreement.");
+          logger.info("User has not accepted the agreement");
           setLoginAlert(true); // Show login alert if user hasn't accepted the agreement
           setIsLoading(false); // Stop loading after user is fetched
           setUserAgreementOpen(true); // Open user agreement dialog
         } else {
-          console.log("User has accepted the agreement.");
+          logger.info("User has accepted the agreement");
           setLoginAlert(false); // Hide login alert if user has accepted the agreement
           setAuth(true);
           setIsLoading(false); // Stop loading after user is fetched
           setLoginAlert(false); // Hide login alert if shown
         }
       } catch (error) {
-        console.error("User couldn't be retrieved:", error);
+        logger.error("User couldn't be retrieved", error);
         setAuth(false);
         setUser(null);
         setToken(null); // Invalidate token if user fetch fails
@@ -275,17 +276,17 @@ const Header = () => {
             );
 
             if (agreementSigned) {
-              console.log("Agreement successfully signed and verified");
+              logger.info("Agreement signed & verified");
               setUserAgreementOpen(false);
               setAuth(true);
               setLoginAlert(false);
               setIsLoading(false);
             } else {
-              console.error("Agreement signature could not be verified");
+              logger.error("Agreement signature could not be verified");
               // Optionally show an error message to the user
             }
           } catch (error) {
-            console.error("Error during agreement signing:", error);
+            logger.error("Error during agreement signing", error);
             // Handle error, maybe show a notification to the user
           }
         }}
@@ -403,7 +404,9 @@ const Header = () => {
                           native: true,
                           app: "nutil",
                         });
-                        console.log(nativeSelection);
+                        logger.debug("Native selection", {
+                          selection: nativeSelection,
+                        });
                         break;
                       }
                       case "Sandbox":

@@ -1,3 +1,4 @@
+import logger from "../utils/logger.js";
 import { useState, useEffect, useMemo } from "react";
 // MUI Components
 import {
@@ -90,7 +91,7 @@ const QuickActions = ({
       zippedMap.set(baseName, zip);
     });
 
-    console.log("Zipped images map:", zippedMap);
+    logger.debug("Zipped images map", { count: zippedMap.size });
 
     // Create unified records
     return rawImages.map((raw) => {
@@ -137,7 +138,7 @@ const QuickActions = ({
       setUser(userInfo.username);
       setBucketName(localStorage.getItem("bucketName"));
     } catch (error) {
-      console.error("Error parsing userInfo:", error);
+      logger.error("Error parsing userInfo", error);
     }
   }, [token, stats]);
 
@@ -177,7 +178,7 @@ const QuickActions = ({
         status: data.status,
       };
     } catch (error) {
-      console.error(`Error processing file ${imageFile.name}:`, error);
+      logger.error("Error processing file", { file: imageFile.name, error });
       throw error;
     }
   };
@@ -262,7 +263,10 @@ const QuickActions = ({
                 hasActiveTask = true;
               }
             } catch (error) {
-              console.error(`Error polling task ${filePath}:`, error);
+              logger.error("Error polling pyramid conversion task", {
+                filePath,
+                error,
+              });
             }
           }
         }
@@ -292,7 +296,7 @@ const QuickActions = ({
         `Scheduled ${filesToProcess.length} files for conversion - you can leave this page.`
       );
     } catch (error) {
-      console.error("Error processing TIFF files:", error);
+      logger.error("Error processing TIFF files", error);
       alert("Error processing TIFF files. Check the console for details.");
       setIsProcessing(false);
     }
@@ -322,7 +326,7 @@ const QuickActions = ({
 
       return statusData;
     } catch (error) {
-      console.error(`Error polling status:`, error);
+      logger.error("Error polling status", error);
       setTaskStatus((prevStatus) => ({
         ...prevStatus,
         [filePath]: {
@@ -570,7 +574,7 @@ const QuickActions = ({
                           )}&dzip=https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}/${firstZip}`;
                           window.open(url, "_blank", "noopener,noreferrer");
                         } catch (e) {
-                          console.warn("Failed to open SeriesZoom viewer", e);
+                          logger.warn("Failed to open SeriesZoom viewer", e);
                         }
                       }}
                     >
@@ -958,7 +962,7 @@ const QuickActions = ({
                             bucketName + "/" + walnJson.jsons?.[0]?.name,
                             token
                           );
-                          console.log(
+                          logger.debug(
                             "Deleting",
                             bucketName + "/" + walnJson.jsons?.[0]?.name
                           );

@@ -1,3 +1,4 @@
+import logger from "../utils/logger.js";
 import {
   Box,
   List,
@@ -192,7 +193,7 @@ const Nutil = ({ token }) => {
       !atlasLookup[registration.atlas] || // Ensure atlas is valid for lookup
       selectedSegmentations.length === 0
     ) {
-      console.error("Missing required data for Nutil analysis", {
+      logger.warn("Missing required data for Nutil analysis", {
         selectedBrain,
         registration,
         selectedSegmentations,
@@ -240,7 +241,7 @@ const Nutil = ({ token }) => {
         token: token,
       };
 
-      console.log("Nutil analysis request payload:", payload); // Send the request to the PyNutil endpoint via proxy (development) or direct (production)
+      logger.debug("Nutil analysis request payload", { payload });
       const response = await fetch(`${NUTIL_URL}/schedule-task`, {
         method: "POST",
         headers: {
@@ -261,7 +262,7 @@ const Nutil = ({ token }) => {
       }
 
       const result = await response.json();
-      console.log("Nutil task scheduled", result);
+      logger.info("Nutil task scheduled", { task: result?.task_id });
 
       // Add the new task to the tasks list with initial status
       if (result && result.task_id) {
@@ -281,11 +282,11 @@ const Nutil = ({ token }) => {
           setIsPolling(true);
         }
       } else {
-        console.error("Task ID not found in schedule-task response", result);
+        logger.error("Task ID not found in schedule-task response", result);
         setError("Failed to get Task ID from Nutil analysis request.");
       }
     } catch (error) {
-      console.error("Error requesting Nutil analysis:", error);
+      logger.error("Error requesting Nutil analysis", error);
       setError(`Failed to process Nutil analysis request: ${error.message}`);
     } finally {
       setIsProcessing(false);
@@ -316,7 +317,7 @@ const Nutil = ({ token }) => {
       const result = await response.json(); // result is { task: { ... } }
       return result; // Return the full response object
     } catch (error) {
-      console.error(`Error polling task ${taskId}:`, error);
+      logger.error("Error polling task", { taskId, error });
       // Return a structure consistent with a successful poll containing an error status
       return {
         task: { status: "failed", message: `Polling error: ${error.message}` },
@@ -331,7 +332,7 @@ const Nutil = ({ token }) => {
       const collabName = localStorage.getItem("bucketName");
       const resultsPath = `${selectedBrain.path}`;
 
-      console.log("Fetching completed results from:", resultsPath);
+      logger.info("Fetching completed results", { resultsPath });
 
       const response = await fetchPyNutilResults(
         token,
@@ -339,7 +340,7 @@ const Nutil = ({ token }) => {
         resultsPath
       );
 
-      console.log("Raw response structure:", JSON.stringify(response));
+      logger.debug("Raw response structure", { response });
 
       if (response && response.length > 0) {
         const folderData = response[0];
@@ -353,9 +354,11 @@ const Nutil = ({ token }) => {
             path: item.name || item.subdir, // Use subdir as a fallback for path
             status: "completed",
           }));
-          console.log("Raw results fetched:", results);
+          logger.debug("Raw results fetched", {
+            keys: Object.keys(results || {}),
+          });
           setCompletedResults(results);
-          console.log("Processed results:", results);
+          logger.info("Processed results ready", { hasData: !!results });
         } else {
           setCompletedResults([]);
         }
@@ -363,14 +366,14 @@ const Nutil = ({ token }) => {
         setCompletedResults([]);
       }
     } catch (error) {
-      console.error("Error fetching completed results:", error);
+      logger.error("Error fetching completed results", error);
       setCompletedResults([]);
     }
   };
   const handleExportResults = async (resultPath) => {
     const bucketName = localStorage.getItem("bucketName");
     if (!bucketName) {
-      console.error("No bucket name found in localStorage");
+      logger.warn("No bucket name found in localStorage");
       return;
     }
 
@@ -381,7 +384,7 @@ const Nutil = ({ token }) => {
     )}%3Fprefix%3D${encodeURIComponent(resultPath)}`;
     const zipperUrl = baseUrl + containerUrl;
 
-    console.log("Downloading from zipper URL:", zipperUrl);
+    logger.info("Downloading zipper results", { zipperUrl });
 
     try {
       // Usin authentication for the data proxy zipper
@@ -410,7 +413,7 @@ const Nutil = ({ token }) => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error("Error downloading results:", error);
+      logger.error("Error downloading results", error);
       // Fallback to opening in new tab if fetch fails
       window.open(zipperUrl, "_blank");
     }
@@ -470,7 +473,7 @@ const Nutil = ({ token }) => {
                 // Handle case where pollTaskStatus might not return the expected structure
                 // This could happen if the error return in pollTaskStatus isn't {task: {...}}
                 // or if the API returns an unexpected format.
-                console.warn(
+                logger.warn(
                   `Unexpected statusResult for task ${task.id}:`,
                   statusResult
                 );
@@ -514,10 +517,10 @@ const Nutil = ({ token }) => {
       if (storedBrainEntries) {
         const parsedEntries = JSON.parse(storedBrainEntries);
         setBrainEntries(parsedEntries);
-        console.log("Brain entries loaded:", parsedEntries);
+        logger.debug("Brain entries loaded", { count: parsedEntries.length });
       }
     } catch (error) {
-      console.error("Error loading brain entries:", error);
+      logger.error("Error loading brain entries", error);
       setError("Failed to load brain entries");
     }
   }, []);
@@ -540,14 +543,16 @@ const Nutil = ({ token }) => {
       );
       if (response && response[0] && response[0].images) {
         const imageData = response[0].images;
-        console.log("Brain segmentations fetched:", imageData);
+        logger.info("Brain segmentations fetched", {
+          count: imageData?.[0]?.images?.length || 0,
+        });
         setSegmentations(imageData);
         setSelectedSegmentations(imageData);
       } else {
         throw new Error("Invalid response structure");
       }
     } catch (error) {
-      console.error("Error fetching brain segmentations:", error);
+      logger.error("Error fetching brain segmentations", error);
       setSegmentations([]);
       setError("Failed to fetch brain segmentations");
     } finally {
@@ -570,7 +575,7 @@ const Nutil = ({ token }) => {
       await getSegmentations(brain);
       const bucketName = localStorage.getItem("bucketName");
       const normStats = await getBrainStats(token, bucketName, brain.path);
-      console.log(normStats);
+      logger.debug("Normalized stats", { keys: Object.keys(normStats || {}) });
       const jsonEntry = normStats.registrations?.jsons?.[0];
       if (jsonEntry) {
         const filePath = jsonEntry.name;
@@ -583,16 +588,16 @@ const Nutil = ({ token }) => {
           last_modified: lastModified,
           alignment_json_path: filePath,
         });
-        console.log("Atlas registration found:", filePath);
+        logger.info("Atlas registration found", { filePath });
       } else {
-        console.log("No atlas registration found");
+        logger.info("No atlas registration found");
         await setRegistration({
           atlas: "Registration file not found",
           last_modified: new Date().toISOString(),
         });
       }
     } catch (error) {
-      console.error("Error selecting brain:", error);
+      logger.error("Error selecting brain", error);
       setError("Failed to select brain");
     }
   };

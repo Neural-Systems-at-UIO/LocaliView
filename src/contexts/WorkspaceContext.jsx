@@ -1,3 +1,4 @@
+import logger from "../utils/logger.js";
 import { Alert } from "@mui/material";
 import React, { createContext, useContext, useState } from "react";
 import { Alert } from "@mui/material";
@@ -20,7 +21,7 @@ export const WorkspaceProvider = ({ children }) => {
       const storedEntries = localStorage.getItem("projectBrainEntries");
       return storedEntries ? JSON.parse(storedEntries) : [];
     } catch (error) {
-      console.error("Error parsing projectBrainEntries:", error);
+      logger.error("Error parsing projectBrainEntries", error);
       return [];
     }
   });

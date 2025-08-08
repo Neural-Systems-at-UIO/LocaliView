@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import logger from "../utils/logger.js";
 import {
   Box,
   Typography,
@@ -49,7 +50,7 @@ export default function QuintTable({ token, user }) {
       const storedEntries = localStorage.getItem("projectBrainEntries");
       return storedEntries ? JSON.parse(storedEntries) : [];
     } catch (error) {
-      console.error("Error parsing projectBrainEntries:", error);
+      logger.error("Failed to parse projectBrainEntries", error);
       return [];
     }
   });
@@ -65,7 +66,7 @@ export default function QuintTable({ token, user }) {
         path: entry.path,
       }));
     } catch (error) {
-      console.error("Error parsing rows from projectBrainEntries:", error);
+      logger.error("Failed to parse rows from projectBrainEntries", error);
       return [];
     }
   });
@@ -161,7 +162,7 @@ export default function QuintTable({ token, user }) {
       signal: controller.signal,
     })
       .then((projects) => {
-        console.log(projects);
+        logger.debug("Projects fetched", projects);
         setProjects(projects);
         setProjectIssue({
           problem: false,
@@ -172,10 +173,10 @@ export default function QuintTable({ token, user }) {
       })
       .catch((error) => {
         if (error.name === "AbortError") {
-          console.log("Project fetch aborted");
+          logger.debug("Project fetch aborted by abort controller");
           return;
         }
-        console.error("Error fetching projects:", error);
+        logger.error("Error fetching projects", error);
         setProjectIssue({
           problem: true,
           message: "Error fetching projects",
@@ -189,7 +190,7 @@ export default function QuintTable({ token, user }) {
     try {
       const userName = user?.username;
       if (!userName) return; // wait until user available
-      console.log("User info received by table:", user);
+      logger.info("User info received by table", { user: user?.username });
       const collabName = `rwb-${userName}`;
       setBucketName(collabName);
 
@@ -198,7 +199,7 @@ export default function QuintTable({ token, user }) {
         try {
           const resp = await checkBucketExists(token, collabName);
           if (resp) {
-            console.log("Bucket already exists");
+            logger.debug("Bucket already exists (workspace init)");
             setBucketName(collabName);
           } else {
             try {
@@ -224,7 +225,7 @@ export default function QuintTable({ token, user }) {
                 throw new Error("Failed to initialize collab");
               }
             } catch (error) {
-              console.error("Error initializing collab:", error);
+              logger.error("Error initializing collab", error);
               setProjectIssue({
                 problem: true,
                 message: "Failed to initialize collab",
@@ -234,7 +235,7 @@ export default function QuintTable({ token, user }) {
             }
           }
         } catch (error) {
-          console.error("Error initializing workspace:", error);
+          logger.error("Error initializing workspace", error);
           setProjectIssue({
             problem: true,
             message: "Failed to initialize workspace",
@@ -246,7 +247,7 @@ export default function QuintTable({ token, user }) {
 
       initializeWorkspace();
     } catch (error) {
-      console.error("Error parsing userInfo:", error);
+      logger.error("Error parsing userInfo", error);
     }
   }, [user, token]); // only token hook here to avoid infinite loop
 
@@ -295,9 +296,9 @@ export default function QuintTable({ token, user }) {
       setUpdatingBrains(false);
     } catch (error) {
       if (error.name === "AbortError") {
-        console.log("Brain list fetch aborted");
+        logger.debug("Brain list fetch aborted");
       } else {
-        console.error("Error fetching brain entries:", error);
+        logger.error("Error fetching brain entries", error);
       }
       setRows([]);
       setUpdatingBrains(false);
@@ -316,11 +317,11 @@ export default function QuintTable({ token, user }) {
   const brainFetchControllerRef = useRef(null);
 
   const handleBrainSelect = async (params) => {
-    console.log("Params passed down", params);
+    logger.debug("Brain params passed from BrainTable", params);
     setWalnContent(null);
     setSelectedBrain(params.row);
     setIsFetchingStats(true);
-    console.log(`Selected brain: ${params.row.name}`);
+    logger.info("Brain selected", { name: params.row.name });
     // Abort any previous selection's fetches
     if (brainFetchControllerRef.current) {
       brainFetchControllerRef.current.abort();
@@ -341,7 +342,7 @@ export default function QuintTable({ token, user }) {
         "selectedBrain",
         JSON.stringify({ ...params.row, project: selectedProject.name })
       );
-      console.log(`Selected brain normalized stats:`, normalized);
+      logger.debug("Selected brain stats", normalized);
 
       const regFile = normalized?.registrations?.jsons?.[0]?.name;
       if (regFile) {
@@ -352,25 +353,27 @@ export default function QuintTable({ token, user }) {
             regFile,
             signal
           );
-          console.log("WALN Content:", walnContent);
+          logger.debug("WALN content retrieved", {
+            keys: Object.keys(walnContent || {}).length,
+          });
           setWalnContent(walnContent);
         } catch (error) {
           if (error.name === "AbortError") {
-            console.log("WALN fetch aborted (stale selection)");
+            logger.debug("WALN fetch aborted (stale selection)");
           } else {
-            console.error("Failed to download WALN:", error);
+            logger.error("Failed to download WALN", error);
           }
           setWalnContent(null);
         }
       } else {
-        console.log("No WALN file found in stats");
+        logger.info("No registration WALN file present");
         setWalnContent(null);
       }
     } catch (error) {
       if (error.name === "AbortError") {
-        console.log("Brain stats fetch aborted (stale selection)");
+        logger.debug("Brain stats fetch aborted (stale selection)");
       } else {
-        console.error("Error fetching brain stats:", error);
+        logger.error("Error fetching brain stats", error);
       }
       setSelectedBrainStats(null);
       setWalnContent(null);
@@ -390,17 +393,17 @@ export default function QuintTable({ token, user }) {
   };
 
   const createProjectCall = async (projectName) => {
-    console.log(`Creating project: ${projectName}`);
+    logger.info("Creating project", { projectName });
     try {
       let res = await createProject({
         token: token,
         bucketName: bucketName,
         projectName: projectName,
       });
-      console.log("Project created:", res);
+      logger.info("Project created", res);
       fetchAndUpdateProjects(bucketName);
     } catch (error) {
-      console.error("Error creating project:", error);
+      logger.error("Error creating project", error);
     }
   };
 

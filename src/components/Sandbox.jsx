@@ -1,3 +1,4 @@
+import logger from "../utils/logger.js";
 import { useState, useEffect } from "react";
 import Plot from "react-plotly.js";
 import Papa from "papaparse";
@@ -86,7 +87,7 @@ const Sandbox = ({ token }) => {
   const fetchCSVData = async () => {
     if (!token) {
       setError("Authentication token is missing.");
-      console.error("Authentication token is missing.");
+      logger.error("Authentication token is missing");
       return;
     }
     setIsLoading(true);
@@ -134,7 +135,7 @@ const Sandbox = ({ token }) => {
           if (!results.data || results.data.length === 0) {
             throw new Error("CSV data is empty or invalid.");
           }
-          console.log("Parsed CSV data:", results.data);
+          logger.debug("Parsed CSV data", { rows: results.data?.length });
           setRawData(results.data);
           generateAllGraphs(
             results.data,
@@ -148,7 +149,7 @@ const Sandbox = ({ token }) => {
         },
       });
     } catch (err) {
-      console.error("Error fetching or plotting CSV:", err);
+      logger.error("Error fetching or plotting CSV", err);
       setError(err.message);
       setPlotData([]);
     } finally {
