@@ -249,7 +249,7 @@ const Header = () => {
         }}
       >
         <Typography variant="h5" color="text.primary">
-          Rodent Workbench
+          QUINT Online
         </Typography>
         <Typography variant="body2" className="loading-shine">
           Connecting to EBRAINS services...
