@@ -1,3 +1,4 @@
+import logger from "../utils/logger.js";
 import * as React from "react";
 import {
   Box,
@@ -63,9 +64,11 @@ export default function ProgressPanel({
   ).length;
 
   // Verbose logging
-  console.log("total images/slices", totalImages);
-  console.log("sections/slices with OUV/anchoring", sectionsWithOUVorAnchoring);
-  console.log("sections/slices with markers", sectionsWithMarkers);
+  logger.debug("ProgressPanel metrics", {
+    totalImages,
+    sectionsWithOUVorAnchoring,
+    sectionsWithMarkers,
+  });
 
   return (
     <Paper

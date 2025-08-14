@@ -1,3 +1,4 @@
+import logger from "../utils/logger.js";
 import React, { useState } from "react";
 import {
   Button,
@@ -67,7 +68,7 @@ export default function UploadSegments({
         return uploadedFiles;
       } catch (error) {
         setIsUploading(false);
-        console.error("Error uploading segments:", error);
+        logger.error("Error uploading segments", error);
         setInfoMessage({
           open: true,
           message: "Error uploading segments",
@@ -86,7 +87,7 @@ export default function UploadSegments({
       onUploadComplete?.();
       onClose();
     } catch (error) {
-      console.error("Error in handleSubmit:", error);
+      logger.error("Error in handleSubmit (segments)", error);
     }
   };
 

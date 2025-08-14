@@ -1,3 +1,4 @@
+import logger from "../utils/logger.js";
 import React, { createContext, useContext, useState } from "react";
 
 const TabContext = createContext();
@@ -11,7 +12,7 @@ export const TabProvider = ({ children }) => {
   const [currentUrl, setCurrentUrl] = useState(null);
 
   const handleFrameChange = (url) => {
-    console.log(`Changing frame to ${url}`);
+    logger.debug("Changing frame", { url });
     setCurrentUrl(url);
     setNativeSelection({
       native: false,
@@ -101,7 +102,7 @@ export const TabProvider = ({ children }) => {
     });
 
     const url = `https://app.ilastik.org/public/nehuba/index.html?${params.toString()}#!%7B%22layout%22%3A%22xy%22%7D`;
-    console.log("Ilastik URL:", url);
+    logger.debug("Ilastik URL", { url });
     handleFrameChange(url);
 
     return true;

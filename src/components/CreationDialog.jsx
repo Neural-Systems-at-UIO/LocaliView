@@ -1,3 +1,4 @@
+import logger from "../utils/logger.js";
 import React, { useEffect, useState } from "react";
 import {
   Button,
@@ -42,7 +43,7 @@ export default function CreationDialog({
     if (brainEntries) {
       const editBrains = brainEntries.map((entry) => entry.name);
       setEditBrainsList(editBrains);
-      console.log(editBrains);
+      logger.debug("Edit brains list", { count: editBrains?.length });
     }
   }, [brainEntries]);
 
@@ -112,7 +113,7 @@ export default function CreationDialog({
         return allResults;
       } catch (error) {
         setIsUploading(false);
-        console.error("Error uploading files:", error);
+        logger.error("Error uploading files", error);
         setInfoMessage({
           open: true,
           message: "Error uploading files",
@@ -151,7 +152,7 @@ export default function CreationDialog({
       onUploadComplete?.();
       onClose();
     } catch (error) {
-      console.error("Error in handleSubmit:", error);
+      logger.error("Error in handleSubmit", error);
     }
   };
 

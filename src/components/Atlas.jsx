@@ -12,6 +12,7 @@ import {
   Button,
 } from "@mui/material";
 import netunzip from "../actions/atlasUtils";
+import logger from "../utils/logger.js";
 import { uploadToJson } from "../actions/handleCollabs";
 
 // Extractor definitions
@@ -58,11 +59,11 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
   const [atlasProgress, setAtlasProgress] = useState(0);
 
   const createAtlas = async (atlasName, bucketName, dzips, token) => {
-    console.log("Creating atlas with the following parameters:");
-    console.log("Atlas Name:", atlasName);
-    console.log("Bucket Name:", bucketName);
-    console.log("DZIPs:", dzips);
-    console.log("Token:", token);
+    logger.info("Creating atlas", {
+      atlasName,
+      bucketName,
+      dzipCount: dzips?.length,
+    });
 
     const sortedDzips = [...dzips].sort((a, b) => a.name.localeCompare(b.name));
     const split = dzips[0].name.split("/");
@@ -116,9 +117,10 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
         }
 
         setAtlasProgress((index + 1) / sortedDzips.length);
-        console.log(
-          `Atlas ${atlasName} (${index + 1}/${sortedDzips.length}) created`
-        );
+        logger.debug("Atlas section processed", {
+          index: index + 1,
+          total: sortedDzips.length,
+        });
       }
 
       const walnName = `${atlasName
@@ -131,7 +133,7 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
       const response = await uploadToJson(uploadObj, walnName, atlas);
       return atlas;
     } catch (error) {
-      console.error("Error creating atlas:", error);
+      logger.error("Error creating atlas", error);
       throw error;
     }
   };
@@ -141,10 +143,10 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
   }
 
   useEffect(() => {
-    console.log("Files staged for registration", dzips);
+    logger.info("Files staged for registration", { count: dzips?.length });
     if (dzips && Array.isArray(dzips)) {
       setImageCount(dzips.length);
-      console.log(imageCount, "images are ready for registration");
+      logger.info("Images ready for registration", { imageCount });
     }
   }, [dzips]);
 
@@ -239,7 +241,7 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
                     severity: "error",
                   });
 
-                  console.error("Missing required parameters for createAtlas");
+                  logger.warn("Missing required parameters for createAtlas");
                   return;
                 }
                 if (dzips.length === 0) {
@@ -250,12 +252,12 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
                   });
                   // Reset creating state to false
                   // moved to logic onclick as the button carried onto execute refreshBrain
-                  console.error("No DZIPs provided for atlas creation");
+                  logger.warn("No DZIPs provided for atlas creation");
                   return;
                 }
 
                 setCreating(true);
-                console.log("Creating following atlas: ");
+                logger.debug("Submitting atlas creation request");
                 updateInfo({
                   open: true,
                   message: `Generation of the registration file is in progress...`,

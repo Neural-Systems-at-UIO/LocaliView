@@ -1,3 +1,4 @@
+import logger from "../utils/logger.js";
 import { useState, useEffect, useMemo } from "react";
 // MUI Components
 import {
@@ -65,13 +66,20 @@ const QuickActions = ({
   refreshBrain,
   walnContent,
 }) => {
-  const nutilResults = stats[4]?.nutil_results || [];
+  // Stats expected to be in normalized object shape only
+  const rawStats = stats?.rawImages;
+  const pyramidStats = stats?.pyramids;
+  const registrationStats = stats?.registrations;
+  const segmentationStats = stats?.segmentations;
+  const pynutilStats = stats?.pynutil;
+
+  const nutilResults =
+    pynutilStats?.nutil_results || pynutilStats?.nutilResults || [];
 
   const unifiedFiles = useMemo(() => {
-    if (!stats || stats.length < 2) return [];
-
-    const rawImages = stats[0]?.tiffs || [];
-    const zippedImages = stats[1]?.zips || [];
+    const rawImages = rawStats?.tiffs || [];
+    const zippedImages = pyramidStats?.zips || [];
+    if (!rawImages.length && !zippedImages.length) return [];
 
     const zippedMap = new Map();
     zippedImages.forEach((zip) => {
@@ -83,7 +91,7 @@ const QuickActions = ({
       zippedMap.set(baseName, zip);
     });
 
-    console.log("Zipped images map:", zippedMap);
+    logger.debug("Zipped images map", { count: zippedMap.size });
 
     // Create unified records
     return rawImages.map((raw) => {
@@ -104,9 +112,9 @@ const QuickActions = ({
         processedLastModified: matchingZip?.last_modified || null,
       };
     });
-  }, [stats]);
+  }, [rawStats, pyramidStats]);
 
-  let pyramidCount = stats[1]?.zips.length || 0;
+  let pyramidCount = pyramidStats?.zips?.length ?? 0;
   const [user, setUser] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [bucketName, setBucketName] = useState(null);
@@ -130,7 +138,7 @@ const QuickActions = ({
       setUser(userInfo.username);
       setBucketName(localStorage.getItem("bucketName"));
     } catch (error) {
-      console.error("Error parsing userInfo:", error);
+      logger.error("Error parsing userInfo", error);
     }
   }, [token, stats]);
 
@@ -170,7 +178,7 @@ const QuickActions = ({
         status: data.status,
       };
     } catch (error) {
-      console.error(`Error processing file ${imageFile.name}:`, error);
+      logger.error("Error processing file", { file: imageFile.name, error });
       throw error;
     }
   };
@@ -255,7 +263,10 @@ const QuickActions = ({
                 hasActiveTask = true;
               }
             } catch (error) {
-              console.error(`Error polling task ${filePath}:`, error);
+              logger.error("Error polling pyramid conversion task", {
+                filePath,
+                error,
+              });
             }
           }
         }
@@ -285,7 +296,7 @@ const QuickActions = ({
         `Scheduled ${filesToProcess.length} files for conversion - you can leave this page.`
       );
     } catch (error) {
-      console.error("Error processing TIFF files:", error);
+      logger.error("Error processing TIFF files", error);
       alert("Error processing TIFF files. Check the console for details.");
       setIsProcessing(false);
     }
@@ -315,7 +326,7 @@ const QuickActions = ({
 
       return statusData;
     } catch (error) {
-      console.error(`Error polling status:`, error);
+      logger.error("Error polling status", error);
       setTaskStatus((prevStatus) => ({
         ...prevStatus,
         [filePath]: {
@@ -329,8 +340,10 @@ const QuickActions = ({
   };
 
   const calculateOverallProgress = () => {
+    const totalFiles = rawStats?.files || 0;
     if (!isProcessing || Object.keys(taskStatus).length === 0) {
-      return (pyramidCount / (stats[0]?.files || 1)) * 100;
+      if (!totalFiles) return 0;
+      return (pyramidCount / totalFiles) * 100;
     }
 
     const tasks = Object.values(taskStatus);
@@ -361,10 +374,10 @@ const QuickActions = ({
     );
   }
 
-  const brainStats = stats[0] || {};
-  const brainPyramids = stats[1] || {};
-  const walnJson = stats[2] || {};
-  const segmented = stats[3]?.files || 0;
+  const brainStats = rawStats || {};
+  const brainPyramids = pyramidStats || {};
+  const walnJson = registrationStats || {};
+  const segmented = segmentationStats?.files || 0;
   let registered = walnJson.jsons?.length >= 1;
 
   if (isLoading) {
@@ -380,10 +393,14 @@ const QuickActions = ({
           width: "100%",
         }}
       >
-        <Typography variant="body2" color="textSecondary">
+        <Typography
+          variant="body2"
+          className="loading-shine"
+          color="textSecondary"
+          size="small"
+        >
           Loading series...
         </Typography>
-        <CircularProgress size={15} />
       </Box>
     );
   }
@@ -550,14 +567,19 @@ const QuickActions = ({
                       }}
                       startIcon={<ImageSearchIcon />}
                       onClick={() => {
-                        token = localStorage.getItem("accessToken");
-                        // const url = `https://serieszoom.apps.ebrains.eu/?token=${token}&bucket=https://dzip-svc.apps.ebrains.eu/fakebucket/?url=https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}?prefix=${stats[1]?.files[0].name}`;
-                        const url = `https://serieszoom.apps.ebrains.eu/?token=${encodeURIComponent(
-                          token
-                        )}&dzip=https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}/${
-                          stats[1]?.zips[0].name
-                        }`;
-                        window.open(url, "_blank");
+                        try {
+                          if (!pyramidComplete) return;
+                          const accessToken =
+                            localStorage.getItem("accessToken") || token;
+                          const firstZip = pyramidStats?.zips?.[0]?.name;
+                          if (!firstZip) return;
+                          const url = `https://serieszoom.apps.ebrains.eu/?token=${encodeURIComponent(
+                            accessToken
+                          )}&dzip=https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}/${firstZip}`;
+                          window.open(url, "_blank", "noopener,noreferrer");
+                        } catch (e) {
+                          logger.warn("Failed to open SeriesZoom viewer", e);
+                        }
                       }}
                     >
                       Inspect converted DZI images with SeriesZoom
@@ -944,7 +966,7 @@ const QuickActions = ({
                             bucketName + "/" + walnJson.jsons?.[0]?.name,
                             token
                           );
-                          console.log(
+                          logger.debug(
                             "Deleting",
                             bucketName + "/" + walnJson.jsons?.[0]?.name
                           );

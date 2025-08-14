@@ -1,3 +1,4 @@
+import logger from "../utils/logger.js";
 import {
   Box,
   List,
@@ -35,13 +36,13 @@ import mBrain from "../mBrain.ico";
 
 import {
   fetchBrainSegmentations,
-  fetchBrainStats,
   fetchPyNutilResults,
 } from "../actions/handleCollabs";
+import { getBrainStats } from "../actions/brainRepository.ts";
 import UploadSegments from "./UploadSegments";
 
 // Nutil endpoint, one for submitting and one for polling the status
-const NUTIL_URL = "https://pynutil.apps.ebrains.eu/";
+const NUTIL_URL = "https://pynutil.apps.ebrains.eu";
 const MESH_URL = "https://meshview.apps.ebrains.eu/collab.php";
 
 // Shared styles object
@@ -129,7 +130,6 @@ const MeshviewButton = ({ atlas, clouds }) => {
   );
 };
 
-// Implementation for the Nutil over the web
 const Nutil = ({ token }) => {
   const [brainEntries, setBrainEntries] = useState([]);
   const [error, setError] = useState(null);
@@ -140,7 +140,6 @@ const Nutil = ({ token }) => {
   const [isFetchingSegmentations, setIsFetchingSegmentations] = useState(false);
   const [selectedBrain, setSelectedBrain] = useState(null);
 
-  // Uploading segments window for custom images
   const [uploadSegmentsOpen, setUploadSegmentsOpen] = useState(false);
   const [registration, setRegistration] = useState({
     atlas: null,
@@ -154,7 +153,6 @@ const Nutil = ({ token }) => {
   const [completedResults, setCompletedResults] = useState([]);
   const [isPolling, setIsPolling] = useState(false);
 
-  // Color/jsx helper
   const getStatusInfo = (status) => {
     switch (status) {
       case "completed":
@@ -195,7 +193,7 @@ const Nutil = ({ token }) => {
       !atlasLookup[registration.atlas] || // Ensure atlas is valid for lookup
       selectedSegmentations.length === 0
     ) {
-      console.error("Missing required data for Nutil analysis", {
+      logger.warn("Missing required data for Nutil analysis", {
         selectedBrain,
         registration,
         selectedSegmentations,
@@ -211,16 +209,15 @@ const Nutil = ({ token }) => {
       const collabName = localStorage.getItem("bucketName");
       const brainPath = `${collabName}/${selectedBrain.path}`;
 
-      // Extract the segmentation folder path from the selected segmentation
       const segmentationPath =
         selectedSegmentations[0].name.split("/").slice(0, -1).join("/") + "/";
 
-      // Format object color from hex to RGB array
+      // hex -> bgr
       const hexToRgb = (hex) => {
         const r = parseInt(hex.slice(1, 3), 16);
         const g = parseInt(hex.slice(3, 5), 16);
         const b = parseInt(hex.slice(5, 7), 16);
-        return [r, g, b];
+        return [b, g, r];
       };
 
       const now = new Date();
@@ -244,18 +241,14 @@ const Nutil = ({ token }) => {
         token: token,
       };
 
-      console.log("Nutil analysis request payload:", payload); // Send the request to the PyNutil endpoint via proxy (development) or direct (production)
-      const baseUrl = import.meta.env.DEV
-        ? "/api/pynutil"
-        : "https://pynutil.apps.ebrains.eu";
-      const response = await fetch(`${baseUrl}/schedule-task`, {
+      logger.debug("Nutil analysis request payload", { payload });
+      const response = await fetch(`${NUTIL_URL}/schedule-task`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
-          // Try to avoid preflight by keeping headers simple
         },
-        mode: "cors", // Explicitly set CORS mode
+        mode: "cors",
         body: JSON.stringify(payload),
       });
 
@@ -269,7 +262,7 @@ const Nutil = ({ token }) => {
       }
 
       const result = await response.json();
-      console.log("Nutil analysis result:", result);
+      logger.info("Nutil task scheduled", { task: result?.task_id });
 
       // Add the new task to the tasks list with initial status
       if (result && result.task_id) {
@@ -289,20 +282,17 @@ const Nutil = ({ token }) => {
           setIsPolling(true);
         }
       } else {
-        // Handle cases where task_id might not be in the root of the response
-        // For example, if it's nested like result.task.task_id
-        // Based on the prompt, schedule-task returns { "task_id": "...", "message": "..." } directly
-        console.error("Task ID not found in schedule-task response", result);
+        logger.error("Task ID not found in schedule-task response", result);
         setError("Failed to get Task ID from Nutil analysis request.");
       }
     } catch (error) {
-      console.error("Error requesting Nutil analysis:", error);
+      logger.error("Error requesting Nutil analysis", error);
       setError(`Failed to process Nutil analysis request: ${error.message}`);
     } finally {
       setIsProcessing(false);
     }
   };
-  // To keep updating the results after submittion
+
   const pollTaskStatus = async (taskId) => {
     try {
       const baseUrl = import.meta.env.DEV
@@ -327,7 +317,7 @@ const Nutil = ({ token }) => {
       const result = await response.json(); // result is { task: { ... } }
       return result; // Return the full response object
     } catch (error) {
-      console.error(`Error polling task ${taskId}:`, error);
+      logger.error("Error polling task", { taskId, error });
       // Return a structure consistent with a successful poll containing an error status
       return {
         task: { status: "failed", message: `Polling error: ${error.message}` },
@@ -342,7 +332,7 @@ const Nutil = ({ token }) => {
       const collabName = localStorage.getItem("bucketName");
       const resultsPath = `${selectedBrain.path}`;
 
-      console.log("Fetching completed results from:", resultsPath);
+      logger.info("Fetching completed results", { resultsPath });
 
       const response = await fetchPyNutilResults(
         token,
@@ -350,7 +340,7 @@ const Nutil = ({ token }) => {
         resultsPath
       );
 
-      console.log("Raw response structure:", JSON.stringify(response));
+      logger.debug("Raw response structure", { response });
 
       if (response && response.length > 0) {
         const folderData = response[0];
@@ -364,9 +354,11 @@ const Nutil = ({ token }) => {
             path: item.name || item.subdir, // Use subdir as a fallback for path
             status: "completed",
           }));
-          console.log("Raw results fetched:", results);
+          logger.debug("Raw results fetched", {
+            keys: Object.keys(results || {}),
+          });
           setCompletedResults(results);
-          console.log("Processed results:", results);
+          logger.info("Processed results ready", { hasData: !!results });
         } else {
           setCompletedResults([]);
         }
@@ -374,14 +366,14 @@ const Nutil = ({ token }) => {
         setCompletedResults([]);
       }
     } catch (error) {
-      console.error("Error fetching completed results:", error);
+      logger.error("Error fetching completed results", error);
       setCompletedResults([]);
     }
   };
   const handleExportResults = async (resultPath) => {
     const bucketName = localStorage.getItem("bucketName");
     if (!bucketName) {
-      console.error("No bucket name found in localStorage");
+      logger.warn("No bucket name found in localStorage");
       return;
     }
 
@@ -392,7 +384,7 @@ const Nutil = ({ token }) => {
     )}%3Fprefix%3D${encodeURIComponent(resultPath)}`;
     const zipperUrl = baseUrl + containerUrl;
 
-    console.log("Downloading from zipper URL:", zipperUrl);
+    logger.info("Downloading zipper results", { zipperUrl });
 
     try {
       // Usin authentication for the data proxy zipper
@@ -421,7 +413,7 @@ const Nutil = ({ token }) => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error("Error downloading results:", error);
+      logger.error("Error downloading results", error);
       // Fallback to opening in new tab if fetch fails
       window.open(zipperUrl, "_blank");
     }
@@ -481,7 +473,7 @@ const Nutil = ({ token }) => {
                 // Handle case where pollTaskStatus might not return the expected structure
                 // This could happen if the error return in pollTaskStatus isn't {task: {...}}
                 // or if the API returns an unexpected format.
-                console.warn(
+                logger.warn(
                   `Unexpected statusResult for task ${task.id}:`,
                   statusResult
                 );
@@ -525,10 +517,10 @@ const Nutil = ({ token }) => {
       if (storedBrainEntries) {
         const parsedEntries = JSON.parse(storedBrainEntries);
         setBrainEntries(parsedEntries);
-        console.log("Brain entries loaded:", parsedEntries);
+        logger.debug("Brain entries loaded", { count: parsedEntries.length });
       }
     } catch (error) {
-      console.error("Error loading brain entries:", error);
+      logger.error("Error loading brain entries", error);
       setError("Failed to load brain entries");
     }
   }, []);
@@ -551,14 +543,16 @@ const Nutil = ({ token }) => {
       );
       if (response && response[0] && response[0].images) {
         const imageData = response[0].images;
-        console.log("Brain segmentations fetched:", imageData);
+        logger.info("Brain segmentations fetched", {
+          count: imageData?.[0]?.images?.length || 0,
+        });
         setSegmentations(imageData);
         setSelectedSegmentations(imageData);
       } else {
         throw new Error("Invalid response structure");
       }
     } catch (error) {
-      console.error("Error fetching brain segmentations:", error);
+      logger.error("Error fetching brain segmentations", error);
       setSegmentations([]);
       setError("Failed to fetch brain segmentations");
     } finally {
@@ -579,34 +573,31 @@ const Nutil = ({ token }) => {
       setSegmentations([]);
       localStorage.setItem("selectedBrain", JSON.stringify(brain));
       await getSegmentations(brain);
-      let seriesDescriptor = await fetchBrainStats(
-        token,
-        localStorage.getItem("bucketName"),
-        brain.path,
-        "jsons"
-      );
-      console.log(seriesDescriptor);
-      if (seriesDescriptor[0]?.jsons?.[0]) {
-        const filePath = seriesDescriptor[0].jsons[0].name;
+      const bucketName = localStorage.getItem("bucketName");
+      const normStats = await getBrainStats(token, bucketName, brain.path);
+      logger.debug("Normalized stats", { keys: Object.keys(normStats || {}) });
+      const jsonEntry = normStats.registrations?.jsons?.[0];
+      if (jsonEntry) {
+        const filePath = jsonEntry.name;
         const atlasMatch = filePath.match(/\/([^\/]+)_\d{4}-\d{2}-\d{2}/);
         const atlas = atlasMatch ? atlasMatch[1] : null;
-        const lastModified = seriesDescriptor[0].jsons[0].last_modified;
+        const lastModified = jsonEntry.last_modified;
 
         await setRegistration({
           atlas: atlas,
           last_modified: lastModified,
           alignment_json_path: filePath,
         });
-        console.log("Atlas registration found:", filePath);
+        logger.info("Atlas registration found", { filePath });
       } else {
-        console.log("No atlas registration found");
+        logger.info("No atlas registration found");
         await setRegistration({
           atlas: "Registration file not found",
           last_modified: new Date().toISOString(),
         });
       }
     } catch (error) {
-      console.error("Error selecting brain:", error);
+      logger.error("Error selecting brain", error);
       setError("Failed to select brain");
     }
   };
@@ -727,13 +718,12 @@ const Nutil = ({ token }) => {
                   py: 1,
                   flexDirection: "row",
                   display: "flex",
-                  justifyContent: "center",
+                  justifyContent: "left",
                   gap: 1,
                 }}
               >
                 {" "}
-                <CircularProgress size={20} />
-                <Typography sx={{ mr: 0.5 }}>
+                <Typography sx={{ mr: 2 }} className="loading-shine">
                   {" "}
                   Loading segmentations...
                 </Typography>
@@ -747,7 +737,7 @@ const Nutil = ({ token }) => {
                   ...styles.listItem,
                   py: 0.5,
                   "&:hover": {
-                    backgroundColor: "rgba(0, 0, 0, 0.04)", // Subtle hover effect
+                    backgroundColor: "rgba(0, 0, 0, 0.04)",
                   },
                 }}
               >
@@ -864,12 +854,7 @@ const Nutil = ({ token }) => {
                 alignItems: "flex-start",
               }}
             >
-              <Box sx={{ flex: 1 }}>
-                {/*<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  <Typography variant="caption">Output</Typography>
-                */}
-              </Box>
-              <Box sx={{ flex: 1 }}>
+              <Box sx={{ flex: 1, flexDirection: "row" }}>
                 <Typography variant="caption" display="block" gutterBottom>
                   Object Color
                 </Typography>
@@ -877,7 +862,7 @@ const Nutil = ({ token }) => {
                   type="color"
                   size="small"
                   fullWidth
-                  defaultValue="#000000"
+                  defaultValue="#ff0000"
                   onChange={(e) => setObjectColor(e.target.value)}
                   sx={{
                     '& input[type="color"]': {
@@ -1034,76 +1019,117 @@ const Nutil = ({ token }) => {
                 Available Results
               </Typography>
 
-              {completedResults && completedResults.length > 0 ? (
-                completedResults.map((result, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      border: "1px solid #e0e0e0",
-                      borderRadius: 1,
-                      p: 1.5,
-                      mb: 1.5,
-                      backgroundColor: "white",
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={{ fontWeight: "medium", textAlign: "left" }}
+              <Box
+                sx={{
+                  maxHeight: "45vh",
+                  overflowY: "auto",
+                  borderBottom: "1px solid #e0e0e0",
+                }}
+              >
+                {completedResults && completedResults.length > 0 ? (
+                  completedResults.map((result, index) => (
+                    <Box
+                      key={index}
+                      sx={{
+                        border: "1px solid #e0e0e0",
+                        borderRadius: 1,
+                        p: 1.5,
+                        mb: 1.5,
+                        backgroundColor: "white",
+                      }}
                     >
-                      {(() => {
-                        if (!result.name) return "Unnamed Result";
-                        const cleanPath = result.name.endsWith("/")
-                          ? result.name.slice(0, -1)
-                          : result.name;
-                        return cleanPath.split("/").pop() || "Unnamed Result";
-                      })()}
-                    </Typography>
-
-                    {/*<Typography
-                      variant="caption"
-                      display="block"
-                      color="text.secondary"
-                      sx={{ mt: 1, textAlign: "left" }}
-                    >
-                      {result.created ? result.created : "No date available"}
-                    </Typography>
-                      Created info is broken at the api level
-                      
-                      */}
-
-                    <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
-                      <Button
-                        size="small"
-                        startIcon={<Calculate />}
-                        sx={{ fontSize: "0.75rem", py: 0.5 }}
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: "400", textAlign: "left" }}
                       >
-                        Plot
-                      </Button>{" "}
-                      <Button
-                        size="small"
-                        startIcon={<SaveAlt />}
-                        sx={{ fontSize: "0.75rem", py: 0.5 }}
-                        onClick={() => handleExportResults(result.name)}
+                        {(() => {
+                          if (!result.name) return "Unnamed Result";
+                          const cleanPath = result.name.endsWith("/")
+                            ? result.name.slice(0, -1)
+                            : result.name;
+                          const fileName =
+                            cleanPath.split("/").pop() || "Unnamed Result";
+
+                          // There are no dates on the folders in data-proxy so we are using this reconstruct time of creation
+                          const timestampPattern =
+                            /^(\d{4})_(\d{2})_(\d{2})_(\d{2})_(\d{2})_(\d{2})$/;
+                          const match = fileName.match(timestampPattern);
+
+                          if (match) {
+                            const [, year, month, day, hour, minute, second] =
+                              match;
+                            const date = new Date(
+                              year,
+                              month - 1,
+                              day,
+                              hour,
+                              minute,
+                              second
+                            );
+                            return `Quantification - ${date.toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              }
+                            )} at ${date.toLocaleTimeString("en-US", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}`;
+                          }
+
+                          return fileName;
+                        })()}
+                      </Typography>
+
+                      {/*<Typography
+                        variant="caption"
+                        display="block"
+                        color="text.secondary"
+                        sx={{ mt: 1, textAlign: "left" }}
                       >
-                        Export
-                      </Button>
-                      <MeshviewButton
-                        atlas={registration.atlas}
-                        clouds={[result.path]}
-                      />
+                        {result.created ? result.created : "No date available"}
+                      </Typography>
+                        Created info is broken at the api level
+                        
+                        */}
+
+                      <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                        <Button
+                          size="small"
+                          startIcon={<Calculate />}
+                          sx={{ fontSize: "0.75rem", py: 0.5 }}
+                        >
+                          Plot
+                        </Button>{" "}
+                        <Button
+                          size="small"
+                          startIcon={<SaveAlt />}
+                          sx={{ fontSize: "0.75rem", py: 0.5 }}
+                          onClick={() => handleExportResults(result.name)}
+                        >
+                          Export
+                        </Button>
+                        <MeshviewButton
+                          atlas={registration.atlas}
+                          clouds={[result.path]}
+                        />
+                      </Box>
                     </Box>
+                  ))
+                ) : (
+                  <Box sx={{ p: 2, textAlign: "left" }}>
+                    <Typography variant="body2" color="text.secondary">
+                      No completed results available
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Submit a job to generate results
+                    </Typography>
                   </Box>
-                ))
-              ) : (
-                <Box sx={{ p: 2, textAlign: "left" }}>
-                  <Typography variant="body2" color="text.secondary">
-                    No completed results available
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Submit a job to generate results
-                  </Typography>
-                </Box>
-              )}
+                )}
+              </Box>
             </Box>
 
             {/*
