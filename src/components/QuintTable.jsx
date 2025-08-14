@@ -517,6 +517,7 @@ export default function QuintTable({ token, user }) {
                         "&:hover": {
                           backgroundColor: "#f5f5f5",
                           transform: "translateX(4px)",
+                          borderColor: "#bdbdbd",
                         },
                       },
                     }}

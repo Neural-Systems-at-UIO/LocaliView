@@ -261,7 +261,11 @@ const BrainTable = ({
         alignContent: "flex-start",
       }}
     >
-      <Typography variant="h6" color="black" gutterBottom>
+      <Typography
+        color="black"
+        gutterBottom
+        sx={{ mb: 2, fontSize: "1.2rem", fontWeight: 600, textAlign: "left" }}
+      >
         {selectedProject.name}
       </Typography>
       <Box
