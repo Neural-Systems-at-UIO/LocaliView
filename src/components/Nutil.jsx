@@ -40,9 +40,10 @@ import {
 } from "../actions/handleCollabs";
 import { getBrainStats } from "../actions/brainRepository.ts";
 import UploadSegments from "./UploadSegments";
+import { useWorkspaceContext } from "../contexts/WorkspaceContext";
 
 // Nutil endpoint, one for submitting and one for polling the status
-const NUTIL_URL = "https://pynutil.apps.ebrains.eu/";
+const NUTIL_URL = "https://pynutil.apps.ebrains.eu";
 const MESH_URL = "https://meshview.apps.ebrains.eu/collab.php";
 
 // Shared styles object
@@ -130,7 +131,15 @@ const MeshviewButton = ({ atlas, clouds }) => {
   );
 };
 
-const Nutil = ({ token }) => {
+const Nutil = () => {
+  const {
+    token,
+    bucketName,
+    projectBrainEntries,
+    selectedProject,
+    selectedBrain,
+    showSnackbar,
+  } = useWorkspaceContext();
   const [brainEntries, setBrainEntries] = useState([]);
   const [error, setError] = useState(null);
 
@@ -138,7 +147,6 @@ const Nutil = ({ token }) => {
   const [selectedSegmentations, setSelectedSegmentations] = useState([]);
 
   const [isFetchingSegmentations, setIsFetchingSegmentations] = useState(false);
-  const [selectedBrain, setSelectedBrain] = useState(null);
 
   const [uploadSegmentsOpen, setUploadSegmentsOpen] = useState(false);
   const [registration, setRegistration] = useState({
@@ -718,7 +726,7 @@ const Nutil = ({ token }) => {
                   py: 1,
                   flexDirection: "row",
                   display: "flex",
-                  justifyContent: "center",
+                  justifyContent: "left",
                   gap: 1,
                 }}
               >
@@ -1020,76 +1028,117 @@ const Nutil = ({ token }) => {
                 Available Results
               </Typography>
 
-              {completedResults && completedResults.length > 0 ? (
-                completedResults.map((result, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      border: "1px solid #e0e0e0",
-                      borderRadius: 1,
-                      p: 1.5,
-                      mb: 1.5,
-                      backgroundColor: "white",
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={{ fontWeight: "medium", textAlign: "left" }}
+              <Box
+                sx={{
+                  maxHeight: "45vh",
+                  overflowY: "auto",
+                  borderBottom: "1px solid #e0e0e0",
+                }}
+              >
+                {completedResults && completedResults.length > 0 ? (
+                  completedResults.map((result, index) => (
+                    <Box
+                      key={index}
+                      sx={{
+                        border: "1px solid #e0e0e0",
+                        borderRadius: 1,
+                        p: 1.5,
+                        mb: 1.5,
+                        backgroundColor: "white",
+                      }}
                     >
-                      {(() => {
-                        if (!result.name) return "Unnamed Result";
-                        const cleanPath = result.name.endsWith("/")
-                          ? result.name.slice(0, -1)
-                          : result.name;
-                        return cleanPath.split("/").pop() || "Unnamed Result";
-                      })()}
-                    </Typography>
-
-                    {/*<Typography
-                      variant="caption"
-                      display="block"
-                      color="text.secondary"
-                      sx={{ mt: 1, textAlign: "left" }}
-                    >
-                      {result.created ? result.created : "No date available"}
-                    </Typography>
-                      Created info is broken at the api level
-                      
-                      */}
-
-                    <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
-                      <Button
-                        size="small"
-                        startIcon={<Calculate />}
-                        sx={{ fontSize: "0.75rem", py: 0.5 }}
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: "400", textAlign: "left" }}
                       >
-                        Plot
-                      </Button>{" "}
-                      <Button
-                        size="small"
-                        startIcon={<SaveAlt />}
-                        sx={{ fontSize: "0.75rem", py: 0.5 }}
-                        onClick={() => handleExportResults(result.name)}
+                        {(() => {
+                          if (!result.name) return "Unnamed Result";
+                          const cleanPath = result.name.endsWith("/")
+                            ? result.name.slice(0, -1)
+                            : result.name;
+                          const fileName =
+                            cleanPath.split("/").pop() || "Unnamed Result";
+
+                          // There are no dates on the folders in data-proxy so we are using this reconstruct time of creation
+                          const timestampPattern =
+                            /^(\d{4})_(\d{2})_(\d{2})_(\d{2})_(\d{2})_(\d{2})$/;
+                          const match = fileName.match(timestampPattern);
+
+                          if (match) {
+                            const [, year, month, day, hour, minute, second] =
+                              match;
+                            const date = new Date(
+                              year,
+                              month - 1,
+                              day,
+                              hour,
+                              minute,
+                              second
+                            );
+                            return `Quantification - ${date.toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              }
+                            )} at ${date.toLocaleTimeString("en-US", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}`;
+                          }
+
+                          return fileName;
+                        })()}
+                      </Typography>
+
+                      {/*<Typography
+                        variant="caption"
+                        display="block"
+                        color="text.secondary"
+                        sx={{ mt: 1, textAlign: "left" }}
                       >
-                        Export
-                      </Button>
-                      <MeshviewButton
-                        atlas={registration.atlas}
-                        clouds={[result.path]}
-                      />
+                        {result.created ? result.created : "No date available"}
+                      </Typography>
+                        Created info is broken at the api level
+                        
+                        */}
+
+                      <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                        <Button
+                          size="small"
+                          startIcon={<Calculate />}
+                          sx={{ fontSize: "0.75rem", py: 0.5 }}
+                        >
+                          Plot
+                        </Button>{" "}
+                        <Button
+                          size="small"
+                          startIcon={<SaveAlt />}
+                          sx={{ fontSize: "0.75rem", py: 0.5 }}
+                          onClick={() => handleExportResults(result.name)}
+                        >
+                          Export
+                        </Button>
+                        <MeshviewButton
+                          atlas={registration.atlas}
+                          clouds={[result.path]}
+                        />
+                      </Box>
                     </Box>
+                  ))
+                ) : (
+                  <Box sx={{ p: 2, textAlign: "left" }}>
+                    <Typography variant="body2" color="text.secondary">
+                      No completed results available
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Submit a job to generate results
+                    </Typography>
                   </Box>
-                ))
-              ) : (
-                <Box sx={{ p: 2, textAlign: "left" }}>
-                  <Typography variant="body2" color="text.secondary">
-                    No completed results available
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Submit a job to generate results
-                  </Typography>
-                </Box>
-              )}
+                )}
+              </Box>
             </Box>
 
             {/*
