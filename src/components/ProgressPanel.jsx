@@ -209,6 +209,7 @@ export default function ProgressPanel({
                   }
                   sx={{ fontSize: "0.8rem", mt: 0.5, textTransform: "none" }}
                   fullWidth
+                  className="glass-button"
                 >
                   Continue in WebAlign
                 </Button>
@@ -303,6 +304,7 @@ export default function ProgressPanel({
                   disableElevation
                   onClick={() => navigateToWebWarp(currentRegistration)}
                   color="success"
+                  className="glass-button"
                   sx={{ fontSize: "0.8rem", mt: 0.5, textTransform: "none" }}
                   fullWidth
                 >
@@ -395,6 +397,7 @@ export default function ProgressPanel({
                   size="small"
                   variant="contained"
                   endIcon={<ArrowOutward />}
+                  className="glass-button"
                   disableElevation
                   onClick={navigateToWebIlastik}
                   color="warning"
@@ -501,6 +504,7 @@ export default function ProgressPanel({
                     mt: 0.5,
                     textTransform: "none",
                   }}
+                  className="glass-button"
                   fullWidth
                 >
                   Continue in WebNutil

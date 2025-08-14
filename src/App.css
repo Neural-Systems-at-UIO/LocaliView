@@ -97,9 +97,11 @@ html, body, #root {
   }
 }
 
+/* Loading buffering shine effect for Text/Typography
+className="loading-shine"
+*/
 .loading-shine {
   display: inline-block;
-  /* Shimmer via text gradient */
   color: #373737;
   background: linear-gradient(90deg, #373737 25%, #00d157 50%, #373737 75%);
   background-size: 200% 100%;
@@ -107,4 +109,52 @@ html, body, #root {
   background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: shine 2s infinite;
+}
+
+/* Glass button hover effect fixed shine on hover
+className="glass-button"
+*/
+.glass-button {
+  position: relative;
+  box-sizing: border-box;
+  transition: all 200ms ease;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(2px);
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-right-color: rgba(255, 255, 255, 0.1) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 20px 30px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.glass-button::before {
+  content: "";
+  position: absolute;
+  display: block;
+  width: 50%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.5);
+  filter: blur(0px);
+  transition: transform 400ms ease;
+  transform: skewX(45deg) translateX(220%);
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.glass-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 25px 40px rgba(0, 0, 0, 0.15);
+}
+
+.glass-button:hover::before {
+  transform: skewX(45deg) translateX(-150%);
+}
+
+.glass-button > * {
+  position: relative;
+  z-index: 2;
+  opacity: 0.9;
 }
