@@ -40,7 +40,6 @@ import {
 } from "../actions/handleCollabs";
 import { getBrainStats } from "../actions/brainRepository.ts";
 import UploadSegments from "./UploadSegments";
-import { useWorkspaceContext } from "../contexts/WorkspaceContext";
 
 // Nutil endpoint, one for submitting and one for polling the status
 const NUTIL_URL = "https://pynutil.apps.ebrains.eu";
@@ -131,15 +130,7 @@ const MeshviewButton = ({ atlas, clouds }) => {
   );
 };
 
-const Nutil = () => {
-  const {
-    token,
-    bucketName,
-    projectBrainEntries,
-    selectedProject,
-    selectedBrain,
-    showSnackbar,
-  } = useWorkspaceContext();
+const Nutil = ({ token }) => {
   const [brainEntries, setBrainEntries] = useState([]);
   const [error, setError] = useState(null);
 
@@ -147,6 +138,7 @@ const Nutil = () => {
   const [selectedSegmentations, setSelectedSegmentations] = useState([]);
 
   const [isFetchingSegmentations, setIsFetchingSegmentations] = useState(false);
+  const [selectedBrain, setSelectedBrain] = useState(null);
 
   const [uploadSegmentsOpen, setUploadSegmentsOpen] = useState(false);
   const [registration, setRegistration] = useState({
@@ -731,8 +723,7 @@ const Nutil = () => {
                 }}
               >
                 {" "}
-                <CircularProgress size={20} />
-                <Typography sx={{ mr: 0.5 }}>
+                <Typography sx={{ mr: 2 }} className="loading-shine">
                   {" "}
                   Loading segmentations...
                 </Typography>

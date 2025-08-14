@@ -393,10 +393,14 @@ const QuickActions = ({
           width: "100%",
         }}
       >
-        <Typography variant="body2" color="textSecondary">
+        <Typography
+          variant="body2"
+          className="loading-shine"
+          color="textSecondary"
+          size="small"
+        >
           Loading series...
         </Typography>
-        <CircularProgress size={15} />
       </Box>
     );
   }

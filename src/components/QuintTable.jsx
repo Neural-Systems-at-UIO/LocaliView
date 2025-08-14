@@ -128,8 +128,9 @@ export default function QuintTable({ token, user }) {
           <Box
             sx={{ display: "flex", gap: 2, justifyContent: "center", py: 4 }}
           >
-            <CircularProgress size={20} />
-            <Typography>Loading projects...</Typography>
+            <Typography className="loading-shine">
+              Loading projects...
+            </Typography>
           </Box>
         );
       case "error":
@@ -582,8 +583,10 @@ export default function QuintTable({ token, user }) {
                   alignItems: "center",
                 }}
               >
-                <CircularProgress size={24} />
-                <Typography>Loading series...</Typography>
+                2
+                <Typography className="loading-shine">
+                  Loading series...
+                </Typography>
               </Box>
             ) : (
               <>
