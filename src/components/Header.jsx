@@ -314,7 +314,7 @@ const Header = () => {
       <AppBar
         position="flex"
         sx={{
-          backgroundColor: "rgba(24, 29, 26, 0.8)",
+          backgroundColor: "rgba(0, 0, 0, 0.8)",
           color: "black",
           boxShadow: "none",
           borderBottom: "1px solid #ccc",
