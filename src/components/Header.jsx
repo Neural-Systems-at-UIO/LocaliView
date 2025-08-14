@@ -251,8 +251,7 @@ const Header = () => {
         <Typography variant="h5" color="text.primary">
           Rodent Workbench
         </Typography>
-        <CircularProgress size={30} />
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" className="loading-shine">
           Connecting to EBRAINS services...
         </Typography>
       </Box>

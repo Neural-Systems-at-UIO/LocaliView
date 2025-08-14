@@ -128,8 +128,8 @@ export default function QuintTable({ token, user }) {
           <Box
             sx={{ display: "flex", gap: 2, justifyContent: "center", py: 4 }}
           >
-            <Typography className="loading-shine">
-              Loading projects...
+            <Typography className="loading-shine" sx={{ pl: 2 }}>
+              Loading projects in the workspace...
             </Typography>
           </Box>
         );
