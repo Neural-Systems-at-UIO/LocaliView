@@ -543,6 +543,7 @@ export default function QuintTable({ token, user }) {
                                 backgroundColor: "transparent",
                               },
                             }}
+                            className="tilt-shake"
                             onClick={(e) => {
                               e.stopPropagation();
                               setProjectToDelete(project);
@@ -648,7 +649,9 @@ export default function QuintTable({ token, user }) {
           setConfirmInput("");
         }}
       >
-        <DialogTitle>Delete Project</DialogTitle>
+        <DialogTitle>
+          Deleting project <b>{projectToDelete?.name}</b>
+        </DialogTitle>
         <DialogContent>
           <DialogContentText>
             This action is irreversible! You will lose all data in this project.

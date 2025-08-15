@@ -111,6 +111,21 @@ className="loading-shine"
   animation: shine 2s infinite;
 }
 
+/* Tilt shake animation for hover effects
+className="tilt-shake" or use on :hover
+*/
+@keyframes tilt-shake {
+  0% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(2deg) scale(1.1); }
+  50% { transform: rotate(-2deg) scale(1.15); }
+  75% { transform: rotate(2deg) scale(1.1); }
+  100% { transform: rotate(0deg) scale(1.1); }
+}
+
+.tilt-shake:hover {
+  animation: tilt-shake 0.3s ease-in-out !important;
+}
+
 /* Glass button hover effect fixed shine on hover
 className="glass-button"
 */

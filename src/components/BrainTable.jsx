@@ -149,26 +149,25 @@ const BrainList = ({
                 }}
               />
             </ListItemButton>
-            <Tooltip title="Delete series">
-              <IconButton
-                edge="end"
-                aria-label="delete"
-                sx={{
-                  mr: 1,
-                  "&:hover": {
-                    color: "error.main",
-                    transform: "scale(1.1)",
-                    backgroundColor: "transparent",
-                  },
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteClick(brain);
-                }}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </Tooltip>
+
+            <IconButton
+              edge="end"
+              aria-label="delete"
+              sx={{
+                mr: 1,
+                "&:hover": {
+                  color: "error.main",
+                  backgroundColor: "transparent",
+                },
+              }}
+              className="tilt-shake"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteClick(brain);
+              }}
+            >
+              <DeleteIcon />
+            </IconButton>
           </ListItem>
         ))}
       </List>
@@ -179,7 +178,9 @@ const BrainList = ({
           setConfirmInput("");
         }}
       >
-        <DialogTitle>Delete Series</DialogTitle>
+        <DialogTitle>
+          Deleting series <b>{brainToDelete?.name}</b>
+        </DialogTitle>
         <DialogContent>
           <DialogContentText>
             This action is irreversible! You will lose all progress made on this

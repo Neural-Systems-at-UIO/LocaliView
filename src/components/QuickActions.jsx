@@ -952,6 +952,13 @@ const QuickActions = ({
                     <Tooltip title="Delete registration">
                       <IconButton
                         size="small"
+                        sx={{
+                          mr: 1,
+                          "&:hover": {
+                            color: "error.main",
+                            backgroundColor: "transparent",
+                          },
+                        }}
                         onClick={() => {
                           if (!(bucketName && walnJson.jsons?.[0]?.name)) {
                             setInfoMessage({
@@ -1013,8 +1020,8 @@ const QuickActions = ({
                         }}
                       >
                         {alignment === walnJson.jsons?.[0]?.name
-                          ? "Current working registration"
-                          : "Set as working registration"}
+                          ? "current registration"
+                          : "set as registration"}
                       </Button>
                     </Tooltip>
                   </Box>
