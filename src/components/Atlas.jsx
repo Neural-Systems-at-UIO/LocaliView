@@ -62,8 +62,15 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
   const [creating, setCreating] = useState(false);
   const [imageCount, setImageCount] = useState(0);
   const [atlasProgress, setAtlasProgress] = useState(0);
+  const [fileExtension, setFileExtension] = useState("lz");
 
-  const createAtlas = async (atlasName, bucketName, dzips, token) => {
+  const createAtlas = async (
+    atlasName,
+    bucketName,
+    dzips,
+    token,
+    fileExtension
+  ) => {
     logger.info("Creating atlas", {
       atlasName,
       bucketName,
@@ -134,7 +141,7 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
         .toISOString()
         .replace(/[:.]/g, "-")
         .replace("T", "_")
-        .slice(0, 19)}.waln`;
+        .slice(0, 19)}.${fileExtension}`;
       const response = await uploadToJson(uploadObj, walnName, atlas);
       return atlas;
     } catch (error) {
@@ -174,14 +181,14 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
+            gap: 2,
           }}
         >
           <FormControl
-            fullWidth
             variant="standard"
             sx={{
               margin: "1px",
-              width: "80%",
+              width: "60%",
             }}
           >
             <InputLabel htmlFor="grouped-select">
@@ -211,6 +218,29 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
               <MenuItem value={5}>
                 Allen Mouse Brain Atlas version 3 2017
               </MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl
+            variant="standard"
+            sx={{
+              margin: "1px",
+              width: "20%",
+            }}
+          >
+            <InputLabel htmlFor="extension-select">File Extension</InputLabel>
+            <Select
+              value={fileExtension}
+              id="extension-select"
+              label="File Extension"
+              dense="true"
+              onChange={(event) => {
+                setFileExtension(event.target.value);
+              }}
+            >
+              <MenuItem value="lz">lz</MenuItem>
+              <MenuItem value="waln">waln</MenuItem>
+              <MenuItem value="json">json</MenuItem>
             </Select>
           </FormControl>
           {creating && <Typography>Generating registration...</Typography>}
@@ -264,7 +294,13 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
                   message: `Generation of the registration file is in progress...`,
                   severity: "info",
                 });
-                await createAtlas(atlasName, bucketName, dzips, token);
+                await createAtlas(
+                  atlasName,
+                  bucketName,
+                  dzips,
+                  token,
+                  fileExtension
+                );
                 refreshBrain();
                 setCreating(false);
               }}

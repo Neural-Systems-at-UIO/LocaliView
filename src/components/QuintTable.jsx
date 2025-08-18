@@ -18,6 +18,7 @@ import {
   DialogActions,
   Snackbar,
   Alert,
+  Autocomplete,
 } from "@mui/material";
 import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
 import AddIcon from "@mui/icons-material/Add";
@@ -31,6 +32,7 @@ import {
   checkBucketExists,
   downloadWalnJson,
   deleteItem,
+  listAvailableWorkspaces,
 } from "../actions/handleCollabs.ts";
 import CreationDialog from "./CreationDialog.jsx";
 import BrainTable from "./BrainTable.jsx";
@@ -76,6 +78,11 @@ export default function QuintTable({ token, user }) {
   // To create a new project state
   const [newProjectName, setNewProjectName] = useState("");
 
+  // Bucket selection state
+  const [buckets, setBuckets] = useState([]);
+  const [selectedBucket, setSelectedBucket] = useState(null);
+  const [fetchingBuckets, setFetchingBuckets] = useState(false);
+
   // Project view issues
   const [projectIssue, setProjectIssue] = useState({
     problem: false,
@@ -101,7 +108,7 @@ export default function QuintTable({ token, user }) {
     if (!token) {
       return "unauthorized";
     }
-    if (bucketName === null) {
+    if (!selectedBucket) {
       return "no-workspace";
     }
     if (projectIssue.loading) {
@@ -188,73 +195,96 @@ export default function QuintTable({ token, user }) {
   };
 
   useEffect(() => {
-    try {
-      const userName = user?.username;
-      if (!userName) return; // wait until user available
-      logger.info("User info received by table", { user: user?.username });
-      const collabName = `rwb-${userName}`;
-      setBucketName(collabName);
+    // Fetch available buckets when token is available
+    if (token) {
+      setFetchingBuckets(true);
+      listAvailableWorkspaces(token)
+        .then((workspaceNames) => {
+          const bucketList = workspaceNames.map((name) => ({ name }));
+          setBuckets(bucketList);
 
-      // Initialize the collab/bucket if it doesn't exist
-      const initializeWorkspace = async () => {
-        try {
-          const resp = await checkBucketExists(token, collabName);
-          if (resp) {
-            logger.debug("Bucket already exists (workspace init)");
-            setBucketName(collabName);
-          } else {
-            try {
-              const response = await fetch(
-                "https://createzoom.apps.ebrains.eu/api/initialize-collab",
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    token: token,
-                    collab_id: collabName,
-                  }),
-                }
-              );
-
-              const data = await response.json();
-
-              if (data.success || response.status === 409) {
-                setBucketName(collabName);
-              } else {
-                throw new Error("Failed to initialize collab");
-              }
-            } catch (error) {
-              logger.error("Error initializing collab", error);
-              setProjectIssue({
-                problem: true,
-                message: "Failed to initialize collab",
-                severity: "error",
-                loading: false,
-              });
+          // Try to set default bucket based on user if available
+          if (user?.username) {
+            const defaultBucketName = `rwb-${user.username}`;
+            const defaultBucket = bucketList.find(
+              (b) => b.name === defaultBucketName
+            );
+            if (defaultBucket) {
+              setSelectedBucket(defaultBucket);
+              setBucketName(defaultBucket.name);
             }
           }
-        } catch (error) {
-          logger.error("Error initializing workspace", error);
-          setProjectIssue({
-            problem: true,
-            message: "Failed to initialize workspace",
-            severity: "error",
-            loading: false,
-          });
-        }
-      };
-
-      initializeWorkspace();
-    } catch (error) {
-      logger.error("Error parsing userInfo", error);
+          setFetchingBuckets(false);
+        })
+        .catch((error) => {
+          logger.error("Error fetching buckets", error);
+          setFetchingBuckets(false);
+        });
     }
-  }, [user, token]); // only token hook here to avoid infinite loop
+  }, [token, user?.username]);
+
+  useEffect(() => {
+    // Initialize workspace for default bucket if needed
+    if (token && selectedBucket && user?.username) {
+      const collabName = selectedBucket.name;
+
+      // Only initialize if it's the user's own bucket (rwb-username format)
+      if (collabName === `rwb-${user.username}`) {
+        const initializeWorkspace = async () => {
+          try {
+            const resp = await checkBucketExists(token, collabName);
+            if (resp) {
+              logger.debug("Bucket already exists (workspace init)");
+            } else {
+              try {
+                const response = await fetch(
+                  "https://createzoom.apps.ebrains.eu/api/initialize-collab",
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      token: token,
+                      collab_id: collabName,
+                    }),
+                  }
+                );
+
+                const data = await response.json();
+
+                if (!data.success && response.status !== 409) {
+                  throw new Error("Failed to initialize collab");
+                }
+              } catch (error) {
+                logger.error("Error initializing collab", error);
+                setProjectIssue({
+                  problem: true,
+                  message: "Failed to initialize collab",
+                  severity: "error",
+                  loading: false,
+                });
+              }
+            }
+          } catch (error) {
+            logger.error("Error initializing workspace", error);
+            setProjectIssue({
+              problem: true,
+              message: "Failed to initialize workspace",
+              severity: "error",
+              loading: false,
+            });
+          }
+        };
+
+        initializeWorkspace();
+      }
+    }
+  }, [token, selectedBucket, user?.username]);
 
   // Second effect: Fetch projects when we have both token and bucketName
   useEffect(() => {
-    if (token && bucketName && projects.length === 0) {
+    if (token && bucketName) {
       localStorage.setItem("bucketName", bucketName);
       fetchAndUpdateProjects(bucketName);
     }
@@ -411,6 +441,22 @@ export default function QuintTable({ token, user }) {
   const handleOpenDialog = () => setIsDialogOpen(true);
   const handleCloseDialog = () => setIsDialogOpen(false);
 
+  const handleBucketSelect = async (event, newValue) => {
+    setSelectedBucket(newValue);
+    if (newValue) {
+      setBucketName(newValue.name);
+      // Reset project and brain selections when switching buckets
+      setSelectedProject(null);
+      setSelectedBrain(null);
+      setProjects([]);
+      setRows([]);
+      setSelectedBrainStats(null);
+      setWalnContent(null);
+    } else {
+      setBucketName(null);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -436,6 +482,45 @@ export default function QuintTable({ token, user }) {
                 backgroundColor: "white",
               }}
             >
+              {/* Bucket Selection Dropdown */}
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 2,
+                  mb: 2,
+                  pb: 2,
+                  borderBottom: "1px solid #e0e0e0",
+                }}
+              >
+                <Typography variant="h6" sx={{ minWidth: "fit-content" }}>
+                  Workspace:
+                </Typography>
+                <Autocomplete
+                  size="small"
+                  options={buckets}
+                  sx={{ flexGrow: 1 }}
+                  getOptionLabel={(option) => option.name}
+                  onChange={handleBucketSelect}
+                  value={selectedBucket}
+                  loading={fetchingBuckets}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Select Bucket"
+                      variant="outlined"
+                      size="small"
+                      error={!selectedBucket}
+                      helperText={
+                        !selectedBucket ? "Please select a workspace" : ""
+                      }
+                    />
+                  )}
+                  disabled={!token}
+                />
+              </Box>
+
               <Box
                 sx={{
                   display: "flex",
@@ -448,9 +533,9 @@ export default function QuintTable({ token, user }) {
                   mb: 2,
                 }}
               >
-                {/* Main header with the bucket title as rwb-username */}
-                <Typography variant="h5" align="left">
-                  Projects in {bucketName}
+                {/* Main header with the bucket title */}
+                <Typography variant="h6" align="left">
+                  Projects in {bucketName || "..."}
                 </Typography>
                 <Box
                   sx={{
@@ -466,6 +551,7 @@ export default function QuintTable({ token, user }) {
                     value={newProjectName}
                     onChange={(e) => setNewProjectName(e.target.value)}
                     sx={{ width: "150px", height: "40px" }}
+                    disabled={!selectedBucket}
                   />
                   <Tooltip title="Create new project">
                     <IconButton
@@ -476,7 +562,7 @@ export default function QuintTable({ token, user }) {
                           setNewProjectName("");
                         }
                       }}
-                      disabled={!newProjectName.trim()}
+                      disabled={!newProjectName.trim() || !selectedBucket}
                     >
                       <AddIcon />
                     </IconButton>
@@ -490,6 +576,7 @@ export default function QuintTable({ token, user }) {
                           "_blank"
                         );
                       }}
+                      disabled={!selectedBucket}
                     >
                       <FolderRoundedIcon
                         sx={{ cursor: "pointer" }}
@@ -501,7 +588,7 @@ export default function QuintTable({ token, user }) {
               </Box>
 
               <Box sx={{ display: "flex", gap: 2 }}>
-                {projectIssue.loading && !projectIssue.problem ? (
+                {getProjectState() !== "ready" ? (
                   renderProjectContent()
                 ) : (
                   <List
