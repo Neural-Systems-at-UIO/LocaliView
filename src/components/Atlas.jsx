@@ -53,6 +53,11 @@ const atlasValueToName = {
 // Main function to get called with a list
 
 function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
+  // Early return before any hooks are called
+  if (!bucketName || !dzips || !token) {
+    return null;
+  }
+
   const [atlasName, setAtlasName] = useState(null);
   const [creating, setCreating] = useState(false);
   const [imageCount, setImageCount] = useState(0);
@@ -137,10 +142,6 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
       throw error;
     }
   };
-
-  if (!bucketName || !dzips || !token) {
-    return null;
-  }
 
   useEffect(() => {
     logger.info("Files staged for registration", { count: dzips?.length });

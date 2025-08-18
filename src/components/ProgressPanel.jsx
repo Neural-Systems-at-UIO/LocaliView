@@ -209,6 +209,7 @@ export default function ProgressPanel({
                   }
                   sx={{ fontSize: "0.8rem", mt: 0.5, textTransform: "none" }}
                   fullWidth
+                  className="glass-button"
                 >
                   Continue in WebAlign
                 </Button>
@@ -303,6 +304,7 @@ export default function ProgressPanel({
                   disableElevation
                   onClick={() => navigateToWebWarp(currentRegistration)}
                   color="success"
+                  className="glass-button"
                   sx={{ fontSize: "0.8rem", mt: 0.5, textTransform: "none" }}
                   fullWidth
                 >
@@ -362,7 +364,7 @@ export default function ProgressPanel({
                   <Box sx={{ position: "relative", display: "inline-flex" }}>
                     <CircularProgress
                       variant="determinate"
-                      value={(segmented / totalImages) * 100}
+                      value={Math.min((segmented / totalImages) * 100, 100)}
                       size={60}
                       thickness={2.5}
                       color="warning"
@@ -385,7 +387,10 @@ export default function ProgressPanel({
                         color="warning"
                         fontWeight="bold"
                       >
-                        {((segmented / totalImages) * 100).toFixed(2)}%
+                        {Math.min((segmented / totalImages) * 100, 100).toFixed(
+                          2
+                        )}
+                        %
                       </Typography>
                     </Box>
                   </Box>
@@ -395,6 +400,7 @@ export default function ProgressPanel({
                   size="small"
                   variant="contained"
                   endIcon={<ArrowOutward />}
+                  className="glass-button"
                   disableElevation
                   onClick={navigateToWebIlastik}
                   color="warning"
@@ -437,7 +443,7 @@ export default function ProgressPanel({
                       Quantify
                     </Typography>
                   </Box>
-                  <Tooltip title={`Pynutil tooltip`}>
+                  {/*<Tooltip title={`Pynutil tooltip`}>
                     <Chip
                       label={`?`}
                       size="small"
@@ -446,6 +452,7 @@ export default function ProgressPanel({
                       sx={{ height: 22 }}
                     />
                   </Tooltip>
+                  */}
                 </Stack>
 
                 <Box
@@ -483,7 +490,7 @@ export default function ProgressPanel({
                         color="secondary"
                         fontWeight="bold"
                       >
-                        {nutilResults?.length} Results ready
+                        {nutilResults?.length} results ready
                       </Typography>
                     </Box>
                   </Box>
@@ -501,6 +508,7 @@ export default function ProgressPanel({
                     mt: 0.5,
                     textTransform: "none",
                   }}
+                  className="glass-button"
                   fullWidth
                 >
                   Continue in WebNutil

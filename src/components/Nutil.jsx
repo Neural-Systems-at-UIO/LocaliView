@@ -10,7 +10,6 @@ import {
   LinearProgress,
   Typography,
   Stack,
-  CircularProgress,
   Tooltip,
 } from "@mui/material";
 import {
@@ -37,6 +36,7 @@ import mBrain from "../mBrain.ico";
 import {
   fetchBrainSegmentations,
   fetchPyNutilResults,
+  deleteItem, // Start implementing possibly click delete -> to delete all files in segmentations?
 } from "../actions/handleCollabs";
 import { getBrainStats } from "../actions/brainRepository.ts";
 import UploadSegments from "./UploadSegments";
@@ -769,13 +769,20 @@ const Nutil = ({ token }) => {
             ))
           ) : (
             <ListItem>
-              <ListItemText
-                primary={
-                  <Typography variant="body2">
-                    No segmentations found
-                  </Typography>
-                }
-              />
+              <Box
+                sx={{
+                  width: "100%",
+
+                  py: 1,
+                  flexDirection: "row",
+                  display: "flex",
+                  justifyContent: "left",
+                  gap: 1,
+                }}
+              >
+                {" "}
+                <Typography sx={{ mr: 2 }}> No segmentations found</Typography>
+              </Box>
             </ListItem>
           )}
         </List>
