@@ -108,6 +108,45 @@ export const TabProvider = ({ children }) => {
     return true;
   };
 
+  const navigateToLocaliZoom = () => {
+    // Current working registration as alignment
+    const alignment = localStorage.getItem("alignment");
+    const bucketName = localStorage.getItem("bucketName");
+
+    // wtf it this?
+    const driveId = localStorage.getItem("driveId"); // no idea what this is
+    const token = localStorage.getItem("accessToken");
+    // so this is driveId/filename xxx.lz?
+    const docName = "5. Annotations and export of points with LocaliZoom";
+    const filename = "my points.lz";
+
+    if (!alignment || alignment === "") {
+      alert("Please set a working alignment first");
+      return false;
+    }
+
+    // Tab index is 3 in this case
+    setCurrentTab(3);
+
+    const queryObj = {
+      app: "localizoom",
+      "clb-collab-id": bucketName,
+      // doc path will be bucket/project/.../something.lz
+      "clb-doc-path": "",
+      "clb-doc-name": docName,
+      // "clb-drive-id": driveId,
+      token: token,
+      filename: filename,
+    };
+
+    const encodedQuery = encodeURIComponent(JSON.stringify(queryObj));
+    const url = `https://webwarp.apps.ebrains.eu/filmstripzoom.html?${encodedQuery}`;
+    logger.debug("LocaliZoom URL", { url });
+    handleFrameChange(url);
+
+    return true;
+  };
+
   const navigateToWebNutil = () => {
     // Tab index 4 is for WebNutil
     setCurrentTab(4);
@@ -143,6 +182,7 @@ export const TabProvider = ({ children }) => {
         handleFrameChange,
         navigateToWebIlastik,
         navigateToWebNutil,
+        navigateToLocaliZoom,
       }}
     >
       {children}

@@ -67,7 +67,7 @@ const tabs = [
     url: "https://webwarp.apps.ebrains.eu/webwarp.php",
     disabled: false,
   },
-  {
+  /*{
     label: "WebIlastik",
     url: "https://app.ilastik.org/public/nehuba/index.html#!%7B%22layout%22:%22xy%22%7D",
     disabled: false,
@@ -76,9 +76,14 @@ const tabs = [
     label: "WebNutil",
     url: null,
     disabled: false,
+  },*/
+  {
+    label: "LocaliZoom",
+    url: null,
+    disabled: false,
   },
   {
-    label: "Sandbox",
+    label: "MeshView",
     url: null,
     disabled: true,
   },
@@ -105,6 +110,7 @@ const Header = () => {
     setNativeSelection,
     currentUrl,
     handleFrameChange,
+    navigateToLocaliZoom,
   } = useTabContext();
   const [docsOpen, setDocsOpen] = useState(false);
 
@@ -249,7 +255,7 @@ const Header = () => {
         }}
       >
         <Typography variant="h5" color="text.primary">
-          QUINT Online
+          LocaliView
         </Typography>
         <Typography variant="body2" className="loading-shine">
           Connecting to EBRAINS services...
@@ -414,6 +420,9 @@ const Header = () => {
                           app: "sandbox",
                         });
                         break;
+                      case "LocaliZoom":
+                        navigateToLocaliZoom();
+                        break;
                       default:
                         handleFrameChange(tab.url);
                     }
@@ -440,7 +449,7 @@ const Header = () => {
                 color: "white",
               }}
             >
-              QUINT Online
+              LocaliView
             </Typography>
           </Box>
           <Box

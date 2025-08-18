@@ -51,9 +51,9 @@ const theme = createTheme({
       disabled: "#999999",
     },
     primary: {
-      main: "#09964fff",
+      main: "#7e16c4ff",
       light: "#94221b",
-      dark: "#00904fff",
+      dark: "#221160ff",
       contrastText: "#ffffff",
       highlight: "rgba(9, 184, 100, 0.44)",
     },
