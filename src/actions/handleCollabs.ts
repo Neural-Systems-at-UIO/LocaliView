@@ -112,7 +112,12 @@ const fetchSingleBrainSubdir = async (
   } else if (subdir === "zipped_images") {
     base.zips = data.objects.filter((o: any) => o.name.endsWith(".dzip"));
   } else if (subdir === "jsons") {
-    base.jsons = data.objects.filter((o: any) => o.name.endsWith(".waln"));
+    base.jsons = data.objects.filter(
+      (o: any) =>
+        o.name.endsWith(".waln") ||
+        o.name.endsWith(".json") ||
+        o.name.endsWith(".lz")
+    );
   } else if (subdir === "pynutil_results") {
     const nutilResults = await fetchPyNutilResults(
       token,

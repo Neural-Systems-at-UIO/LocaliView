@@ -421,7 +421,7 @@ const Header = () => {
                         });
                         break;
                       case "LocaliZoom":
-                        navigateToLocaliZoom();
+                        navigateToLocaliZoom(token);
                         break;
                       default:
                         handleFrameChange(tab.url);

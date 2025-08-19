@@ -108,15 +108,14 @@ export const TabProvider = ({ children }) => {
     return true;
   };
 
-  const navigateToLocaliZoom = () => {
+  const navigateToLocaliZoom = (token) => {
     // Current working registration as alignment
     const alignment = localStorage.getItem("alignment");
     const bucketName = localStorage.getItem("bucketName");
 
     // wtf it this?
     const driveId = localStorage.getItem("driveId"); // no idea what this is
-    const token = localStorage.getItem("accessToken");
-    // so this is driveId/filename xxx.lz?
+    // Use the passed token parameter
     const docName = "5. Annotations and export of points with LocaliZoom";
     const filename = "my points.lz";
 
@@ -132,14 +131,15 @@ export const TabProvider = ({ children }) => {
       app: "localizoom",
       "clb-collab-id": bucketName,
       // doc path will be bucket/project/.../something.lz
-      "clb-doc-path": "",
-      "clb-doc-name": docName,
+      "clb-doc-path": alignment,
+      //"clb-doc-name": docName,
       // "clb-drive-id": driveId,
-      token: token,
-      filename: filename,
+      token: token, // Use the passed token parameter
+      filename: alignment, // Use the filename from the alignment path
     };
 
     const encodedQuery = encodeURIComponent(JSON.stringify(queryObj));
+    console.debug("Encoded query for LocaliZoom", { encodedQuery });
     const url = `https://webwarp.apps.ebrains.eu/filmstripzoom.html?${encodedQuery}`;
     logger.debug("LocaliZoom URL", { url });
     handleFrameChange(url);
