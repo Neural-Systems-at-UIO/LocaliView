@@ -28,17 +28,30 @@ const atlasNames = {
 
 // TODO - Get the vanilla atlas screen from QuickActions to here
 
+// Progress Card colors
+const meshviewColor = {
+  button: "rgba(224, 68, 146, 1)",
+  background: "rgba(224, 68, 146, 0.1)",
+};
+const localizoomColor = {
+  button: "rgba(247, 125, 59, 1)",
+  background: "rgba(247, 125, 59, 0.1)",
+};
+
 export default function ProgressPanel({
   walnContent,
   currentRegistration,
+  // The two following are not relevant
   segmented,
   nutilResults,
+  token,
 }) {
   const {
     navigateToWebAlign,
     navigateToWebWarp,
     navigateToWebIlastik,
     navigateToWebNutil,
+    navigateToLocaliZoom,
   } = useTabContext();
 
   if (!walnContent) {
@@ -312,10 +325,219 @@ export default function ProgressPanel({
                 </Button>
               </Stack>
             </Paper>
-            {/* WebIlastik Card
+
+            {/* LocaliZoom Card */}
+            <Paper
+              elevation={0}
+              sx={{
+                flex: 1,
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: localizoomColor.background,
+              }}
+            >
+              <Stack spacing={1.5}>
+                <Stack
+                  direction="row"
+                  spacing={0.5}
+                  justifyContent="space-between"
+                  alignItems="center"
+                >
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <Typography
+                      variant="body2"
+                      fontWeight="medium"
+                      sx={{ ml: 0.8, color: localizoomColor.button }}
+                    >
+                      Localize
+                    </Typography>
+                  </Box>
+                  <Tooltip title="LocaliZoom for annotation">
+                    <Chip
+                      label="Ready"
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        height: 22,
+                        borderColor: localizoomColor.button,
+                        color: localizoomColor.button,
+                      }}
+                    />
+                  </Tooltip>
+                </Stack>
+
+                <Box
+                  sx={{
+                    position: "relative",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    my: 1,
+                  }}
+                >
+                  <Box sx={{ position: "relative", display: "inline-flex" }}>
+                    <CircularProgress
+                      variant="determinate"
+                      value={0}
+                      size={60}
+                      thickness={2.5}
+                      sx={{ color: localizoomColor.button }}
+                    />
+                    <Box
+                      sx={{
+                        top: 0,
+                        left: 0,
+                        bottom: 0,
+                        right: 0,
+                        position: "absolute",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        component="div"
+                        sx={{ color: localizoomColor.button }}
+                        fontWeight="bold"
+                      >
+                        Annotation ready
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+
+                <Button
+                  size="small"
+                  variant="contained"
+                  endIcon={<ArrowOutward />}
+                  disableElevation
+                  onClick={() => navigateToLocaliZoom(token)}
+                  className="glass-button"
+                  sx={{
+                    fontSize: "0.8rem",
+                    mt: 0.5,
+                    textTransform: "none",
+                    backgroundColor: localizoomColor.button,
+                    "&:hover": {
+                      backgroundColor: localizoomColor.button,
+                    },
+                  }}
+                  fullWidth
+                >
+                  Continue in LocaliZoom
+                </Button>
+              </Stack>
+            </Paper>
+
+            {/* MeshView Card */}
+            <Paper
+              elevation={0}
+              sx={{
+                flex: 1,
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: meshviewColor.background,
+              }}
+            >
+              <Stack spacing={1.5}>
+                <Stack
+                  direction="row"
+                  spacing={0.5}
+                  justifyContent="space-between"
+                  alignItems="center"
+                >
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <Typography
+                      variant="body2"
+                      fontWeight="medium"
+                      sx={{ ml: 0.8, color: meshviewColor.button }}
+                    >
+                      Visualize
+                    </Typography>
+                  </Box>
+                  <Tooltip title="MeshView for 3D visualization">
+                    <Chip
+                      label="Coming Soon"
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        height: 22,
+                        borderColor: meshviewColor.button,
+                        color: meshviewColor.button,
+                      }}
+                    />
+                  </Tooltip>
+                </Stack>
+
+                <Box
+                  sx={{
+                    position: "relative",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    my: 1,
+                  }}
+                >
+                  <Box sx={{ position: "relative", display: "inline-flex" }}>
+                    <CircularProgress
+                      variant="determinate"
+                      value={0}
+                      size={60}
+                      thickness={2.5}
+                      sx={{ color: meshviewColor.button }}
+                    />
+                    <Box
+                      sx={{
+                        top: 0,
+                        left: 0,
+                        bottom: 0,
+                        right: 0,
+                        position: "absolute",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        component="div"
+                        sx={{ color: meshviewColor.button }}
+                        fontWeight="bold"
+                      >
+                        3D Ready
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+
+                <Button
+                  size="small"
+                  variant="contained"
+                  endIcon={<ArrowOutward />}
+                  disableElevation
+                  disabled
+                  className="glass-button"
+                  sx={{
+                    fontSize: "0.8rem",
+                    mt: 0.5,
+                    textTransform: "none",
+                    backgroundColor: meshviewColor.button,
+                    "&:hover": {
+                      backgroundColor: meshviewColor.button,
+                    },
+                  }}
+                  fullWidth
+                >
+                  Continue in MeshView
+                </Button>
+              </Stack>
+            </Paper>
+
+            {/* WebIlastik Card - COMMENTED OUT (not available in current tabs)
             The info for this section is available via the segments function
             */}
-            <Paper
+            {/*<Paper
               elevation={0}
               sx={{
                 flex: 1,
@@ -414,10 +636,11 @@ export default function ProgressPanel({
                   Continue in WebIlastik
                 </Button>
               </Stack>
-            </Paper>
-            {/* WebNutil 
+            </Paper>*/}
+
+            {/* WebNutil - COMMENTED OUT (not available in current tabs)
             integrity is verified via the csv/other type of result presence WIP */}
-            <Paper
+            {/*<Paper
               elevation={0}
               sx={{
                 flex: 1,
@@ -452,7 +675,8 @@ export default function ProgressPanel({
                       sx={{ height: 22 }}
                     />
                   </Tooltip>
-                  */}
+                  */
+            /*}
                 </Stack>
 
                 <Box
@@ -514,7 +738,7 @@ export default function ProgressPanel({
                   Continue in WebNutil
                 </Button>
               </Stack>
-            </Paper>
+            </Paper>*/}
           </Stack>
         </Stack>
       </Stack>

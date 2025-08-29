@@ -51,7 +51,7 @@ const theme = createTheme({
       disabled: "#999999",
     },
     primary: {
-      main: "#7e16c4ff",
+      main: "#00d2eaff",
       light: "#94221b",
       dark: "#221160ff",
       contrastText: "#ffffff",

@@ -6,9 +6,9 @@ if (-not $env:REGISTRY) {
 
 Write-Host "Building and pushing Docker image..."
 
-docker build . -t "$env:REGISTRY/workbench-quint:latest"
+docker build . -t "$env:REGISTRY/localiview:latest"
 
 Write-Host "Built fine"
 
 Write-Host "Pushing image"
-docker push "$env:REGISTRY/workbench-quint:latest"
+docker push "$env:REGISTRY/localiview:latest"

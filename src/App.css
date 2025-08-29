@@ -103,7 +103,7 @@ className="loading-shine"
 .loading-shine {
   display: inline-block;
   color: #373737;
-  background: linear-gradient(90deg, #373737 25%, #9600d1 50%, #373737 75%);
+  background: linear-gradient(90deg, #373737 25%, #00b5d1 50%, #373737 75%);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;

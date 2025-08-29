@@ -12,7 +12,6 @@ import {
   Button,
   LinearProgress,
   IconButton,
-  CircularProgress,
   Tooltip,
   Alert,
   Snackbar,
@@ -1037,6 +1036,7 @@ const QuickActions = ({
           currentRegistration={walnJson.jsons?.[0]?.name}
           segmented={segmented}
           nutilResults={nutilResults}
+          token={token}
         />
       )}
     </Box>
