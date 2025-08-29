@@ -52,6 +52,7 @@ export default function ProgressPanel({
     navigateToWebIlastik,
     navigateToWebNutil,
     navigateToLocaliZoom,
+    navigateToMeshView,
   } = useTabContext();
 
   if (!walnContent) {
@@ -458,7 +459,7 @@ export default function ProgressPanel({
                   </Box>
                   <Tooltip title="MeshView for 3D visualization">
                     <Chip
-                      label="Coming Soon"
+                      label="Ready"
                       size="small"
                       variant="outlined"
                       sx={{
@@ -505,7 +506,7 @@ export default function ProgressPanel({
                         sx={{ color: meshviewColor.button }}
                         fontWeight="bold"
                       >
-                        3D Ready
+                        View 3D
                       </Typography>
                     </Box>
                   </Box>
@@ -516,7 +517,7 @@ export default function ProgressPanel({
                   variant="contained"
                   endIcon={<ArrowOutward />}
                   disableElevation
-                  disabled
+                  onClick={navigateToMeshView}
                   className="glass-button"
                   sx={{
                     fontSize: "0.8rem",

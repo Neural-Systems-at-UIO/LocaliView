@@ -85,7 +85,7 @@ const tabs = [
   {
     label: "MeshView",
     url: null,
-    disabled: true,
+    disabled: false,
   },
 ];
 
@@ -111,6 +111,7 @@ const Header = () => {
     currentUrl,
     handleFrameChange,
     navigateToLocaliZoom,
+    navigateToMeshView,
   } = useTabContext();
   const [docsOpen, setDocsOpen] = useState(false);
 
@@ -422,6 +423,9 @@ const Header = () => {
                         break;
                       case "LocaliZoom":
                         navigateToLocaliZoom(token);
+                        break;
+                      case "MeshView":
+                        navigateToMeshView();
                         break;
                       default:
                         handleFrameChange(tab.url);

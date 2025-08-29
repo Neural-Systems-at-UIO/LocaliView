@@ -1,6 +1,14 @@
 import logger from "../utils/logger.js";
 import React, { createContext, useContext, useState } from "react";
 
+// Constants for MeshView
+const MESH_URL = "https://meshview.apps.ebrains.eu/collab.php";
+const atlasLookup = {
+  aba_mouse_ccfv3_2017_25um: "ABA_Mouse_CCFv3_2017_25um",
+  whs_sd_rat_v3_39um: "WHS_SD_Rat_v3_39um",
+  whs_sd_rat_v4_39um: "WHS_SD_Rat_v4_39um",
+};
+
 const TabContext = createContext();
 
 export const TabProvider = ({ children }) => {
@@ -169,6 +177,42 @@ export const TabProvider = ({ children }) => {
     return true;
   };
 
+  const navigateToMeshView = () => {
+    const urlPrefix = "https://data-proxy.ebrains.eu/api/v1/public/buckets/";
+    const collabName = localStorage.getItem("bucketName");
+    const alignment = localStorage.getItem("alignment");
+
+    if (!alignment || alignment === "") {
+      alert("Please set a working alignment first");
+      return false;
+    }
+
+    // Extract atlas from alignment path
+    const atlasMatch = alignment.match(
+      /(aba_mouse_ccfv3_2017_25um|whs_sd_rat_v[34]_39um)/i
+    );
+    if (!atlasMatch) {
+      alert("Could not determine atlas from alignment file");
+      return false;
+    }
+
+    const atlas = atlasMatch[0].toLowerCase();
+    if (!atlasLookup[atlas]) {
+      alert("Atlas not supported for MeshView");
+      return false;
+    }
+
+    // Extract the base path from alignment (remove the filename)
+    const pathParts = alignment.split("/");
+    pathParts.pop(); // Remove filename
+    const basePath = pathParts.join("/");
+
+    const url = `${MESH_URL}?atlas=${atlasLookup[atlas]}&cloud=${urlPrefix}${collabName}/${alignment}`;
+    logger.debug("MeshView URL", { url });
+    window.open(url, "_blank");
+    return true;
+  };
+
   return (
     <TabContext.Provider
       value={{
@@ -183,6 +227,7 @@ export const TabProvider = ({ children }) => {
         navigateToWebIlastik,
         navigateToWebNutil,
         navigateToLocaliZoom,
+        navigateToMeshView,
       }}
     >
       {children}

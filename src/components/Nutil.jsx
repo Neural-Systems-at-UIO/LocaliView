@@ -105,7 +105,6 @@ const atlasLookup = {
 const MeshviewButton = ({ atlas, clouds }) => {
   // Mesh View viewer route
   // Supports a single json for now,
-  // TODO allow multiple jsons to be passed in the url after private bucket is resolved
   const handleClick = () => {
     const urlPrefix = "https://data-proxy.ebrains.eu/api/v1/public/buckets/";
     const collabName = localStorage.getItem("bucketName");
