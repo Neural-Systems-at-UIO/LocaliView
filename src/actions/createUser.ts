@@ -33,13 +33,13 @@ function createUser(token: string): UserInfo {
 }
 
 async function checkAgreement(
-  fullName: string,
+  username: string,
   email: string
 ): Promise<boolean> {
   try {
     const url = new URL(`${API}/check-signature`);
     url.searchParams.append("email", email);
-    url.searchParams.append("fullname", fullName);
+    url.searchParams.append("username", username.normalize("NFC"));
 
     const response = await fetch(url.toString(), {
       method: "GET",

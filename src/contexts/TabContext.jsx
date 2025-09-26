@@ -209,7 +209,11 @@ export const TabProvider = ({ children }) => {
 
     const url = `${MESH_URL}?atlas=${atlasLookup[atlas]}&cloud=${urlPrefix}${collabName}/${alignment}`;
     logger.debug("MeshView URL", { url });
-    window.open(url, "_blank");
+
+    // Tab index 4 is for MeshView
+    setCurrentTab(4);
+    handleFrameChange(url);
+
     return true;
   };
 
