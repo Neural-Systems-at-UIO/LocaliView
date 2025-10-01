@@ -200,7 +200,11 @@ export default function QuintTable({ token, user }) {
       setFetchingBuckets(true);
       listAvailableWorkspaces(token)
         .then((workspaceNames) => {
-          const bucketList = workspaceNames.map((name) => ({ name }));
+          // Filter for buckets that start with "rwb-"
+          const filteredNames = workspaceNames.filter((name) =>
+            name.startsWith("rwb-")
+          );
+          const bucketList = filteredNames.map((name) => ({ name }));
           setBuckets(bucketList);
 
           // Try to set default bucket based on user if available
