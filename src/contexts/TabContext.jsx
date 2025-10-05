@@ -116,9 +116,9 @@ export const TabProvider = ({ children }) => {
     return true;
   };
 
-  const navigateToLocaliZoom = (token) => {
+  const navigateToLocaliZoom = (customAlignment, token) => {
     // Current working registration as alignment
-    const alignment = localStorage.getItem("alignment");
+    const alignment = customAlignment || localStorage.getItem("alignment");
     const bucketName = localStorage.getItem("bucketName");
 
     // wtf it this?
@@ -130,6 +130,14 @@ export const TabProvider = ({ children }) => {
     if (!alignment || alignment === "") {
       alert("Please set a working alignment first");
       return false;
+    }
+
+    // Updating localstorage in case the registrations are not the same
+    if (
+      customAlignment &&
+      customAlignment !== localStorage.getItem("alignment")
+    ) {
+      localStorage.setItem("alignment", customAlignment);
     }
 
     // Tab index is 3 in this case
@@ -177,13 +185,21 @@ export const TabProvider = ({ children }) => {
     return true;
   };
 
-  const navigateToMeshView = () => {
+  const navigateToMeshView = (customAlignment) => {
     const bucketName = localStorage.getItem("bucketName");
-    const alignment = localStorage.getItem("alignment");
+    const alignment = customAlignment || localStorage.getItem("alignment");
 
     if (!alignment || alignment === "") {
       alert("Please set a working alignment first");
       return false;
+    }
+
+    // Updating localstorage in case the registrations are not the same
+    if (
+      customAlignment &&
+      customAlignment !== localStorage.getItem("alignment")
+    ) {
+      localStorage.setItem("alignment", customAlignment);
     }
 
     const url = `${MESH_URL}?clb-collab-id=${bucketName}&cloud=${alignment}`;
