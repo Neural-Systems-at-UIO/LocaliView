@@ -982,7 +982,7 @@ const QuickActions = ({
                             // Construct MeshView URL (same pattern as navigateToMeshView)
                             const MESH_URL =
                               import.meta.env.VITE_APP_MESH_URL ||
-                              "https://meshview.apps.ebrains.eu";
+                              "https://meshview.apps.ebrains.eu/collab.php";
                             const url = `${MESH_URL}?clb-collab-id=${bucketName}&cloud=${alignmentPath}`;
 
                             // Get existing share links
