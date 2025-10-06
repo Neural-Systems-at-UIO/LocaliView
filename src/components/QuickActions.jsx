@@ -1,5 +1,6 @@
 import logger from "../utils/logger.js";
 import { useState, useEffect, useMemo } from "react";
+import { useNotification } from "../contexts/NotificationContext";
 // MUI Components
 import {
   Box,
@@ -13,8 +14,6 @@ import {
   LinearProgress,
   IconButton,
   Tooltip,
-  Alert,
-  Snackbar,
   Table,
   TableBody,
   TableCell,
@@ -114,6 +113,7 @@ const QuickActions = ({
   }, [rawStats, pyramidStats]);
 
   let pyramidCount = pyramidStats?.zips?.length ?? 0;
+  const { showWarning, showInfo, showSuccess, showError } = useNotification();
   const [user, setUser] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [bucketName, setBucketName] = useState(null);
@@ -121,12 +121,6 @@ const QuickActions = ({
   const [alignment, setAlignment] = useState(
     localStorage.getItem("alignment") || null
   );
-  // Info messages
-  const [infoMessage, setInfoMessage] = useState({
-    open: false,
-    message: "",
-    severity: "info",
-  });
 
   const [taskStatus, setTaskStatus] = useState({});
   const [pollingInterval, setPollingInterval] = useState(null);
@@ -408,20 +402,6 @@ const QuickActions = ({
 
   return (
     <Box sx={{ height: "auto" }}>
-      <Snackbar
-        open={infoMessage.open}
-        anchorOrigin={{ vertical: "center", horizontal: "center" }}
-        autoHideDuration={3000}
-      >
-        <Alert
-          variant="outlined"
-          onClose={() => setInfoMessage({ ...infoMessage, open: false })}
-          severity={infoMessage.severity}
-          elevation={0}
-        >
-          {infoMessage.message}
-        </Alert>
-      </Snackbar>
       <Grid
         container
         spacing={1}
@@ -900,7 +880,9 @@ const QuickActions = ({
             token={token}
             bucketName={bucketName}
             dzips={brainPyramids.zips}
-            updateInfo={setInfoMessage}
+            showWarning={showWarning}
+            showError={showError}
+            showInfo={showInfo}
             refreshBrain={refreshBrain}
           />
         )}
@@ -960,12 +942,7 @@ const QuickActions = ({
                         }}
                         onClick={() => {
                           if (!(bucketName && walnJson.jsons?.[0]?.name)) {
-                            setInfoMessage({
-                              open: true,
-                              message: "No registration file to delete",
-                              severity: "warning",
-                            });
-
+                            showWarning("No registration file to delete");
                             return;
                           }
                           deleteItem(
@@ -976,11 +953,7 @@ const QuickActions = ({
                             "Deleting",
                             bucketName + "/" + walnJson.jsons?.[0]?.name
                           );
-                          setInfoMessage({
-                            open: true,
-                            message: "Registration file is being deleted",
-                            severity: "info",
-                          });
+                          showInfo("Registration file is being deleted");
                           setTimeout(() => {
                             refreshBrain();
                           }, 2000);
@@ -1005,11 +978,7 @@ const QuickActions = ({
                               : "primary.main",
                         }}
                         onClick={() => {
-                          setInfoMessage({
-                            open: true,
-                            message: "Alignment set",
-                            severity: "info",
-                          });
+                          showInfo("Alignment set");
 
                           setAlignment(walnJson.jsons?.[0]?.name);
                           localStorage.setItem(

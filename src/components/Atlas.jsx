@@ -52,7 +52,15 @@ const atlasValueToName = {
 
 // Main function to get called with a list
 
-function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
+function Atlas({
+  bucketName,
+  dzips,
+  token,
+  showWarning,
+  showError,
+  showInfo,
+  refreshBrain,
+}) {
   // Early return before any hooks are called
   if (!bucketName || !dzips || !token) {
     return null;
@@ -258,29 +266,17 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
               }}
               onClick={async () => {
                 if (!atlasName) {
-                  updateInfo({
-                    open: true,
-                    message: `Please select an atlas`,
-                    severity: "error",
-                  });
+                  showError("Please select an atlas");
                   return;
                 }
                 if (!bucketName || !dzips || !token) {
-                  updateInfo({
-                    open: true,
-                    message: `Missing required parameters for createAtlas`,
-                    severity: "error",
-                  });
+                  showError("Missing required parameters for createAtlas");
 
                   logger.warn("Missing required parameters for createAtlas");
                   return;
                 }
                 if (dzips.length === 0) {
-                  updateInfo({
-                    open: true,
-                    message: `No DZIPs provided for atlas creation`,
-                    severity: "error",
-                  });
+                  showError("No DZIPs provided for atlas creation");
                   // Reset creating state to false
                   // moved to logic onclick as the button carried onto execute refreshBrain
                   logger.warn("No DZIPs provided for atlas creation");
@@ -289,11 +285,9 @@ function Atlas({ bucketName, dzips, token, updateInfo, refreshBrain }) {
 
                 setCreating(true);
                 logger.debug("Submitting atlas creation request");
-                updateInfo({
-                  open: true,
-                  message: `Generation of the registration file is in progress...`,
-                  severity: "info",
-                });
+                showInfo(
+                  "Generation of the registration file is in progress..."
+                );
                 await createAtlas(
                   atlasName,
                   bucketName,

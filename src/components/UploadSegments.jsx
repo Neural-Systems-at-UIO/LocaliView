@@ -7,13 +7,12 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Snackbar,
   Box,
-  Alert,
   LinearProgress,
   Typography,
 } from "@mui/material";
 import { uploadToPath } from "../actions/handleCollabs";
+import { useNotification } from "../contexts/NotificationContext";
 import UploadZone from "./UploadZone";
 
 export default function UploadSegments({
@@ -24,12 +23,8 @@ export default function UploadSegments({
   brain,
   onUploadComplete,
 }) {
+  const { showSuccess, showError } = useNotification();
   const [filesToUpload, setFilesToUpload] = useState([]);
-  const [infoMessage, setInfoMessage] = useState({
-    open: false,
-    message: "",
-    severity: "info",
-  });
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -60,20 +55,12 @@ export default function UploadSegments({
           setUploadProgress(((i + 1) / filesToUpload.length) * 100);
         }
         setIsUploading(false);
-        setInfoMessage({
-          open: true,
-          message: "Segments uploaded successfully!",
-          severity: "success",
-        });
+        showSuccess("Segments uploaded successfully!");
         return uploadedFiles;
       } catch (error) {
         setIsUploading(false);
         logger.error("Error uploading segments", error);
-        setInfoMessage({
-          open: true,
-          message: "Error uploading segments",
-          severity: "error",
-        });
+        showError("Error uploading segments");
         throw error;
       }
     }
@@ -93,19 +80,6 @@ export default function UploadSegments({
 
   return (
     <>
-      <Snackbar
-        open={infoMessage.open}
-        autoHideDuration={6000}
-        onClose={() => setInfoMessage({ ...infoMessage, open: false })}
-      >
-        <Alert
-          onClose={() => setInfoMessage({ ...infoMessage, open: false })}
-          severity={infoMessage.severity}
-          sx={{ width: "100%" }}
-        >
-          {infoMessage.message}
-        </Alert>
-      </Snackbar>
       <Dialog
         open={open}
         onClose={onClose}

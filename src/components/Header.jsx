@@ -17,15 +17,18 @@ import {
   Typography,
   IconButton,
   Dialog,
+  Paper,
 } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import HelpRoundedIcon from "@mui/icons-material/HelpRounded";
 import FindInPageIcon from "@mui/icons-material/FindInPage";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
+import InfoIcon from "@mui/icons-material/Info";
 
 import Mainframe from "./Mainframe";
 import UserAgreement from "./UserAgreement";
+import AlignmentInfoPanel from "./AlignmentInfoPanel";
 import {
   createUser,
   checkAgreement,
@@ -39,6 +42,14 @@ const OIDC = import.meta.env.VITE_APP_OIDC;
 // Dev instance switch pain points
 const TOKEN_URL = import.meta.env.VITE_APP_TOKEN_URL;
 const MY_URL = import.meta.env.VITE_APP_MY_URL;
+
+// Atlas names for display
+const atlasNames = {
+  WHS_SD_Rat_v3_39um: "Waxholm Space Atlas of the Sprague Dawley rat v3",
+  WHS_SD_Rat_v4_39um: "Waxholm Space Atlas of the Sprague Dawley rat v4",
+  ABA_Mouse_CCFv3_2017_25um: "Allen Mouse Brain Atlas CCFv3 2017 25um",
+  // More atlases later on maybe
+};
 
 const tabs = [
   /*
@@ -118,6 +129,7 @@ const Header = () => {
   // Login alert
   const [loginAlert, setLoginAlert] = useState(false); // Default to false
   const [userAgreementOpen, setUserAgreementOpen] = useState(false); // Default to false
+  const [alignmentInfoOpen, setAlignmentInfoOpen] = useState(false);
 
   // Tab context to interact
 
@@ -133,6 +145,10 @@ const Header = () => {
 
   const toggleDocs = () => {
     setDocsOpen(!docsOpen);
+  };
+
+  const toggleAlignmentInfo = () => {
+    setAlignmentInfoOpen(!alignmentInfoOpen);
   };
 
   const sharedListItemSx = {
@@ -466,6 +482,22 @@ const Header = () => {
               mr: 2,
             }}
           >
+            <Tooltip title="Alignment Info">
+              <IconButton
+                onClick={toggleAlignmentInfo}
+                size="small"
+                sx={{
+                  color: "white",
+                  padding: 0,
+                  "&:hover": {
+                    backgroundColor: "transparent",
+                  },
+                  mr: 1,
+                }}
+              >
+                <InfoIcon />
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Docs">
               <IconButton
                 onClick={() =>
@@ -487,6 +519,7 @@ const Header = () => {
                 <FindInPageIcon />
               </IconButton>
             </Tooltip>
+
             <Tooltip title="Account, settings and FAQ">
               <Button
                 // Always use handleLogin if user is not present
@@ -605,6 +638,7 @@ const Header = () => {
           title="Rodent Workbench Documentation"
         />
       </Dialog>
+      {alignmentInfoOpen && <AlignmentInfoPanel />}
       {auth && user && (
         <Mainframe
           url={currentUrl}
