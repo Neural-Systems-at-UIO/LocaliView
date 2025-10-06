@@ -34,6 +34,8 @@ import {
   PendingOutlined,
   Delete,
   Info,
+  BookmarkAdd,
+  Checklist,
 } from "@mui/icons-material";
 
 import ImageSearchIcon from "@mui/icons-material/ImageSearch";
@@ -930,6 +932,95 @@ const QuickActions = ({
                   </Box>
 
                   <Box sx={{ display: "flex", gap: 2 }}>
+                    <Tooltip title="Set this registration to use as working alignment">
+                      <Button
+                        size="small"
+                        variant={
+                          alignment === walnJson.jsons?.[0]?.name
+                            ? "contained"
+                            : "outlined"
+                        }
+                        startIcon={<Checklist />}
+                        sx={{
+                          textTransform: "none",
+                          fontSize: 12,
+                          borderColor: "primary.main",
+                        }}
+                        onClick={() => {
+                          showInfo("Alignment set");
+                          setAlignment(walnJson.jsons?.[0]?.name);
+                          localStorage.setItem(
+                            "alignment",
+                            walnJson.jsons?.[0].name
+                          );
+                          // Dispatch storage event for AlignmentInfoPanel
+                          window.dispatchEvent(new Event("storage"));
+                        }}
+                      >
+                        {alignment === walnJson.jsons?.[0]?.name
+                          ? "Current Registration"
+                          : "Set as Registration"}
+                      </Button>
+                    </Tooltip>
+                    <Tooltip title="Save MeshView link for sharing">
+                      <Button
+                        size="small"
+                        disabled={!walnJson.jsons?.[0]}
+                        sx={{
+                          textTransform: "none",
+                          fontSize: 12,
+                        }}
+                        startIcon={<BookmarkAdd />}
+                        onClick={() => {
+                          try {
+                            const alignmentPath = walnJson.jsons?.[0]?.name;
+                            if (!alignmentPath) {
+                              showWarning("No registration file available");
+                              return;
+                            }
+
+                            // Construct MeshView URL (same pattern as navigateToMeshView)
+                            const MESH_URL =
+                              import.meta.env.VITE_APP_MESH_URL ||
+                              "https://meshview.apps.ebrains.eu";
+                            const url = `${MESH_URL}?clb-collab-id=${bucketName}&cloud=${alignmentPath}`;
+
+                            // Get existing share links
+                            const storedLinks =
+                              localStorage.getItem("shareLinks");
+                            const shareLinks = storedLinks
+                              ? JSON.parse(storedLinks)
+                              : [];
+
+                            // Add new link with alignment name
+                            const alignmentName =
+                              alignmentPath.split("/").slice(-1)[0] ||
+                              "Unknown";
+                            const newLink = {
+                              name: `${alignmentName} - ${braininfo.name}`,
+                              url: url,
+                              createdAt: new Date().toISOString(),
+                            };
+
+                            shareLinks.push(newLink);
+                            localStorage.setItem(
+                              "shareLinks",
+                              JSON.stringify(shareLinks)
+                            );
+
+                            // Dispatch storage event for AlignmentInfoPanel
+                            window.dispatchEvent(new Event("storage"));
+
+                            showInfo("MeshView link saved to Share Links!");
+                          } catch (e) {
+                            logger.warn("Failed to save share link", e);
+                            showError("Failed to save share link");
+                          }
+                        }}
+                      >
+                        Save as Share Link
+                      </Button>
+                    </Tooltip>
                     <Tooltip title="Delete registration">
                       <IconButton
                         size="small"
@@ -962,35 +1053,6 @@ const QuickActions = ({
                       >
                         <Delete fontSize="small" />
                       </IconButton>
-                    </Tooltip>
-
-                    <Tooltip title="Set this registration to use as working alignment">
-                      <Button
-                        size="small"
-                        sx={{
-                          backgroundColor:
-                            alignment === walnJson.jsons?.[0]?.name
-                              ? "primary.main"
-                              : "transparent",
-                          color:
-                            alignment === walnJson.jsons?.[0]?.name
-                              ? "white"
-                              : "primary.main",
-                        }}
-                        onClick={() => {
-                          showInfo("Alignment set");
-
-                          setAlignment(walnJson.jsons?.[0]?.name);
-                          localStorage.setItem(
-                            "alignment",
-                            walnJson.jsons?.[0].name
-                          );
-                        }}
-                      >
-                        {alignment === walnJson.jsons?.[0]?.name
-                          ? "current registration"
-                          : "set as registration"}
-                      </Button>
                     </Tooltip>
                   </Box>
                 </Box>

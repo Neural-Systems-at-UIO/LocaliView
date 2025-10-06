@@ -116,10 +116,11 @@ export const TabProvider = ({ children }) => {
     return true;
   };
 
-  const navigateToLocaliZoom = (customAlignment, token) => {
+  const navigateToLocaliZoom = ({ alignment: customAlignment, token } = {}) => {
     // Current working registration as alignment
     const alignment = customAlignment || localStorage.getItem("alignment");
     const bucketName = localStorage.getItem("bucketName");
+    const accessToken = token || localStorage.getItem("accessToken");
 
     // wtf it this?
     const driveId = localStorage.getItem("driveId"); // no idea what this is
@@ -150,7 +151,7 @@ export const TabProvider = ({ children }) => {
       "clb-doc-path": alignment,
       //"clb-doc-name": docName,
       // "clb-drive-id": driveId,
-      token: token, // Use the passed token parameter
+      token: accessToken, // Use the accessToken (either passed or from localStorage)
       filename: alignment, // Use the filename from the alignment path
     };
 
@@ -185,7 +186,7 @@ export const TabProvider = ({ children }) => {
     return true;
   };
 
-  const navigateToMeshView = (customAlignment) => {
+  const navigateToMeshView = ({ alignment: customAlignment } = {}) => {
     const bucketName = localStorage.getItem("bucketName");
     const alignment = customAlignment || localStorage.getItem("alignment");
 

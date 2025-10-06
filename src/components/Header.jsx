@@ -24,7 +24,7 @@ import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import HelpRoundedIcon from "@mui/icons-material/HelpRounded";
 import FindInPageIcon from "@mui/icons-material/FindInPage";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
-import InfoIcon from "@mui/icons-material/Info";
+import EditNoteIcon from "@mui/icons-material/EditNote";
 
 import Mainframe from "./Mainframe";
 import UserAgreement from "./UserAgreement";
@@ -438,7 +438,7 @@ const Header = () => {
                         });
                         break;
                       case "LocaliZoom":
-                        navigateToLocaliZoom(token);
+                        navigateToLocaliZoom({ token });
                         break;
                       case "MeshView":
                         navigateToMeshView();
@@ -495,7 +495,7 @@ const Header = () => {
                   mr: 1,
                 }}
               >
-                <InfoIcon />
+                <EditNoteIcon />
               </IconButton>
             </Tooltip>
             <Tooltip title="Docs">
