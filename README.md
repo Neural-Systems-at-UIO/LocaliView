@@ -17,14 +17,12 @@ The workflow comprises a suite of tools designed to support atlas-based analyses
 <img width="2091" height="1170" alt="LocaliView UI" src="https://github.com/user-attachments/assets/ed8b2172-fccf-45be-ae8a-34c7f22e219f" />
 
 
-# Developper
-Arda Balkir, Gergely Csucs
+# Contributors
+- Programming: Arda Balkir, Gergely Csucs
+- Conception, design, validation and documentation: Arda Balkir, Gergely Csucs, Maja A Puchades, Sharon Yates, Jan G Bjaalie.
 
 # Documentation
 
-
-# Authors
- Maja A Puchades, Sharon Yates, Jan G Bjaalie. 
 
 # Licence
 - Source code: MIT licence
