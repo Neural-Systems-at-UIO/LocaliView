@@ -16,19 +16,15 @@ The workflow comprises a suite of tools designed to support atlas-based analyses
 
 <img width="2091" height="1170" alt="LocaliView UI" src="https://github.com/user-attachments/assets/ed8b2172-fccf-45be-ae8a-34c7f22e219f" />
 
-
-# Contributors
-- Programming: Arda Balkir, Gergely Csucs
-- Conception, design, validation and documentation: Arda Balkir, Gergely Csucs, Maja A Puchades, Sharon Yates, Jan G Bjaalie.
-
 # Documentation
 
 
-# Licence
-- Source code: MIT licence
+# Contributors
+- Programming: Arda Balkir, Gergely Csucs
+- Conception, design, validation and documentation: Arda Balkir, Gergely Csucs, Maja A Puchades, Sharon C Yates, Jan G Bjaalie.
 
-# Current version
-Version 
+# Licence
+- Source code: MIT licence 
 
 # Citation
 Puchades MA, Yates SC, Csucs G, Carey H, Balkir A, Leergaard TB, Bjaalie JG. Software and pipelines for registration and analyses of rodent brain image data in reference atlas space. Front Neuroinform. 2025 Sep 24;19:1629388. https://doi.org/10.3389/fninf.2025.1629388
