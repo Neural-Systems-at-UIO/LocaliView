@@ -5,8 +5,8 @@ LocaliView: Workflow for registration and annotation of 2D rodent brain section 
    :caption: LocaliView documentation
    :maxdepth: 3
 
-   introduction
-   installation
+   Introduction
+   Installation
    Acknowledgements
    support
    FAQ
