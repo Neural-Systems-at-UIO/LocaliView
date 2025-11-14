@@ -2,7 +2,7 @@
 -----------------------------
 **System requirements**
 ~~~~~~~~~~~~~~~~~~~~~~~~
-Series of web application accessible using the web browsers Firefox, Edge and Chrome. Safari is not supported.
+Series of web application accessible using the web browsers Firefox, Edge and Chrome. 
 An EBRAINS account is required for access.
 
 
