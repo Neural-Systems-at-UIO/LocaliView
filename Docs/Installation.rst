@@ -1,4 +1,4 @@
-**Installation**
+**Access**
 -----------------------------
 **System requirements**
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -19,7 +19,7 @@ Source code: MIT License.
    Software and pipelines for registration and analyses of rodent brain image data in reference atlas space. Frontiers of Neuroinformations. 2025. https://doi.org/10.3389/fninf.2025.1629388
   
 
-**Access**
+**Access link**
 ~~~~~~~~~~~~
 The LocaliView workflow is accesible with an EBRAINS account here:
   https://localiview.apps.ebrains.eu/ 
