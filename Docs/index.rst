@@ -11,20 +11,31 @@ LocaliView: Workflow for registration and annotation of 2D rodent brain section 
    support
    FAQ
  
-   
-   
-   
-   
+.. toctree::
+   :caption: Getting started
+   :maxdepth: 3
+
+   MyWorkspace
+
+.. toctree::
+   :caption: Upload files
+   :maxdepth: 3
+
+   Requirements
+   CreateBrain   
    
    
 .. toctree::
-   :caption: Workflow steps
-   :numbered:
+   :caption: Register to atlas
    :maxdepth: 3
-   
-   CreateZoom
+
    WebAlign
    WebWarp
+
+.. toctree::
+   :caption: Image annotation and visualisation
+   :maxdepth: 3
+
    LocaliZoom
-   MeshView
+   Meshview
    
