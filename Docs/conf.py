@@ -61,4 +61,5 @@ html_logo = ""
 html_theme_options = {
     'logo_only': True,
     'display_version': False
+    html_logo = "Logos_LocaliView.png"
 }
