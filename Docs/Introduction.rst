@@ -7,7 +7,7 @@ LocaliView is composed of a suite of apps allowing users to register their brain
 
 .. image:: images/LocaliView UI.png
    :width: 9.12083in
-   :height: 5.44028in
+   :height: 2.44028in
    
 
 *Web applications*:
