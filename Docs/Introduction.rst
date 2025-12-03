@@ -4,13 +4,10 @@ Localiview  is a web application developed by by the NeSys laboratory at Univers
 integration of experimental data and knowledge about the rodent brain.
 LocaliView is composed of a suite of apps allowing users to register their brain section images to a reference atlas and annotate the registered image sections in order to extract point coordinates of objects of interest like cell somas, aggregated proteins or connection fibers in tract -tracing experiments for example.
 
-
 .. image:: LocaliView UI.png
    :width: 6.12083in
    :height: 3.44028in
    
-
-
 
 *Web applications*:
   - CreateZoom for transformation of brain section images to DZI pyramid format allowing annotation of high resolution images
