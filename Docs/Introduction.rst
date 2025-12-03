@@ -11,6 +11,7 @@ LocaliView is composed of a suite of apps allowing users to register their brain
    
 
 
+
 *Web applications*:
   - CreateZoom for transformation of brain section images to DZI pyramid format allowing annotation of high resolution images
   - WebAlign and WebWarp for registration to a reference atlas in two steps, affine and non-linear
