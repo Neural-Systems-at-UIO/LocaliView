@@ -45,10 +45,10 @@ Each project can contain:
 ~~~~~~~~~~~~~~~~~~
 Once a project is created, you can upload your brain image data to the project, via the ADD/EDIT SERIES button.
 
-.. image:: images/AddEditSeries.png
-    :height: 400
-    :align: center
 
+.. image:: images/AddEditSeries.png
+    :height: 600
+    :align: center
 
 
 **Next Steps**
