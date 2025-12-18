@@ -10,7 +10,7 @@ The online workbench supports upload of images of histological brain sections at
 -------------------------------
 
 .. note::
-   Images of brain sections from one brain are analysed together in an image series. The unique IDs are used to position the histological images in the correct anatomical order in the QUINT tools. 
+   Images of brain sections from one brain are analysed together in an image series. The unique IDs are used to position the histological images in the correct anatomical order in the tools. 
 
 * To be compatible with the tools, the image files must be named with a unique ID reflecting the serial order and spacing of the sections in the brain. The format is: _sXXX with XXX representing the section number (not restricted to three digits). Choose a starting point in the brain, either the most anterior or most posterior section, and number all the sections relative to this. 
 * Do not use periods "." or spaces (" ") in the file name. This will not work. 
