@@ -8,9 +8,9 @@ WebAlign is used to register brain sections to a reference brain atlas using a l
 
 Once the atlas is correctly registered to the sections using WebAlign, WebWarp can be used to make in-plane nonlinear refinements to match anatomical landmarks. 
 
-.. image:: images/WebAlign_Calb.png
+.. image:: images/WA_GUI.png
 
-**Data from**: Bjerke, I. E et al. (2025). Distribution of calbindin-positive neurons in the normal adult mouse brain (v2) [Data set]. EBRAINS. https://doi.org/10.25493/QVCB-Y3G
+**Data from**: Laja et al. (2025). Distribution of parvalbumin-positive interneurons in the normal adult rat brain (v2) [Data set]. EBRAINS. https://doi.org/10.25493/MB6S-K0S
 
 
 **How to use WebAlign?**
@@ -22,7 +22,7 @@ Once the atlas is correctly registered to the sections using WebAlign, WebWarp c
 
 2. Select the atlas orientation that best fits your sections using the drop-down menu in the Control Panel (coronal, sagittal or horizontal). This adjusts the plane through the atlas template for all the sections.
 
-3. Select a section to register in the filmstrip. Start with the first and last sections in the series (see tip below). The Main Window shows the selected image with an atlas overlay. The colour of the image border reflects the registration status (white - not registered, orange - in progress, green - registered).
+3. Select a section to register in the filmstrip. Start with the first and last sections in the series (see tip below). The Main Window shows the selected image with an atlas overlay. The colour of the image border reflects the registration status (white - not registered, pink - in progress, green - registered).
 
 .. tip::  It is recommended to register one section in the beginning of the series and one section in the end of the series as the first step in the registration process. This is because WebAlign automatically updates the position of remaining sections based on the section numbering, making the registration process more efficient.  
 
@@ -32,9 +32,9 @@ Once the atlas is correctly registered to the sections using WebAlign, WebWarp c
 
 * Markers are positioned using the "Space bar". Markers are crosses initially and are the anchor point of transformations to the atlas overlay. The "Esc key" can be used to remove the marker (in full screen mode the "Esc key" escapes full screen). 
 * If there is no marker, or the marker is a cross, mouse drag slides the cut in its plane (translation).
-* With a cross in place, press the Up and Down arrows or Left and Right arrows to activate stretch mode (a line will appear). Adjust the atlas overlay to match your section. The panel can be resized towards the left (common border with Control Panel) and towards the bottom (common border with Filmstrip). 
+* With a cross in place, press the Up and Down arrows or Left and Right arrows to activate stretch mode (a line will appear) or choose direction with the arrows present in the top left corner of the mian window. Adjust the atlas overlay to match your section. The panel can be resized towards the left (common border with Control Panel) and towards the bottom (common border with Filmstrip). 
 
-6. Once a section is registered to a satisfactory standard, tick the box in the filmstrip to save the registration. This will change the registration status from orange (in progress) to green (registered). This automatically propagates the registration to the remaining sections to help with scaling.  
+6. Once a section is registered to a satisfactory standard, tick the box in the filmstrip to save the registration. This will change the registration status from pink (in progress) to green (registered). This automatically propagates the registration to the remaining sections to help with scaling.  
 
 7. To establish the series cutting angle, look through sections with `key anatomical landmarks <https://zenodo.org/records/7575515>`_. Once the angle is established, apply this to all the registered sections. The angles will automatically propagate to remaining sections.  
 
@@ -85,24 +85,26 @@ Control panel
    
    * - **Button**   
      - **Function**  
-   * -   Save     
-     -   Save the current alignment to the bucket and propagate to unaligned sections
-   * -   Export overlays
-     -   Generates a series of .flat files (for Nutil or similar utility), and stores them into a .zip file in the bucket
-   * -   Undo 
-     -   Undo the current alignment to the last stored position
-   * -   Clear
-     -   Reset the current alignment to the default position
-   * -   Approve
-     -   Mark up the the current alignment as complete (green)
-   * -   Center
-     -   Adjust and center the cutting plane through the atlas to match the orientation selected in the drop-down menu (coronal, horizontal or sagittal)
+   * -   Segmentation/Template     
+     -   Allow to switch between visualisation of the atlas segmentation or the atlas template
    * -   Overlay Slider
      -   Opacity of the atlas overlay, when fully opaque, it becomes an outline
    * -   Overlay color
      -   The outline color
    * -   Filmstrip slider and color
      -   The above settings, applied to the filmstrip
+   * -   Undo 
+     -   Undo the current alignment to the last stored position
+   * -   Redo 
+     -   Return to last previous position
+   * -   Clear
+     -   Reset the current alignment to the default position
+   * -   Center
+     -   Adjust and center the cutting plane through the atlas to match the orientation selected in the drop-down menu (coronal, horizontal or sagittal)
+   * -   Angles
+     -   Switch between Coronal/Sagittal and Horizontal planes and displays angle values. Angles are color coded to their respective planes.
+   * -   Apply to all
+     -   applies chosen angles to all sections in the series
    * -   Diagrams
      -   Open a new window with diagrams displaying the relative position of the sections in atlas space, section spacing, primary and secondary angle.     
 
