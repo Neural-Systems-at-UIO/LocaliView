@@ -28,7 +28,7 @@ In your project, Open WebWarp by selecting "Continue to WebWarp" or from the top
  
  Try to keep the number of markers to a minimum. 
 
-6. Once you are satisfied with the result, tick the checkbox on the section. This will save your markers. The contour of the section will change color from burgundy to stippled orange/green.
+6. Once you are satisfied with the result, tick the checkbox on the section. This will save your markers. The contour of the section in the filmstrip will change color from burgundy to stippled orange/green.
 You can now proceedto the next section image. Repeat the operation to all images.
 
 7. You are now ready for the next step of the workflow, which is annotations of features with LocaliZoom.
