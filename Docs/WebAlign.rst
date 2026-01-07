@@ -18,7 +18,7 @@ Once the atlas is correctly registered to the sections using WebAlign, WebWarp c
 
 1. In your project, Open WebAlign by selecting "Continue to WebAlign". 
 
-.. image:: images/navigate_to_apps.png 
+.. image:: images/Navigate_to_apps.png 
 
 2. Select the atlas orientation that best fits your sections using the drop-down menu in the Control Panel (coronal, sagittal or horizontal). This adjusts the plane through the atlas template for all the sections.
 
