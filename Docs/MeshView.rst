@@ -2,7 +2,7 @@ MeshView
 =========
 
 MeshView is a web application for real-time 3D display of surface mesh data representing structural parcellations from volumetric atlases, such as the Waxholm Space Atlas of the Sprague Dawley Rat Brain.
-
+As in the previous cases you will access the app from the project page or through the tab on top of your main page.
 
 
 
