@@ -46,7 +46,7 @@ Once the atlas is correctly registered to the sections using WebAlign, WebWarp c
 .. note::
   The "undo" button allows you to go back to the saved position if necessary.
 
-7. To complete the registration, apply fine adjustments with `WebWarp <https://quint-webtools.readthedocs.io/en/latest/WebWarp.html>`_. This step is optional. 
+7. To complete the registration, apply fine adjustments with `WebWarp <https://webwarp.readthedocs.io/en/latest/>`_. This step is optional. 
 
 Short keys
 ----------------
