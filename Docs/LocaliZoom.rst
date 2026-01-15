@@ -9,7 +9,7 @@ By clicking on the viewer link at the bottom of the dataset card, you can open t
 **Basic operations**
 
 
-.. image:: vertopal_f685c684f9f741c382a00fa63533872a/media/image2.png
+.. image:: image2.png
    :width: 6.3in
    :height: 2.75417in
 
@@ -38,7 +38,7 @@ name (5). The main image can be zoomed and panned.
 The user can visualise the coordinates of the mouse pointer (7) and
 switch between different coordinate spaces when available.
 
-.. image:: vertopal_f685c684f9f741c382a00fa63533872a/media/image3.png
+.. image:: image3.png
    :width: 6.3in
    :height: 2.75417in
 
