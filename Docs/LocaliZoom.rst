@@ -1,13 +1,8 @@
-**LocaliZoom viewer service in dataset cards**
--------------------------------
-These links can be found in certain EBRAINS datasets like e.g. Cullity et al. (2021). Distribution of dopamine 2 receptor positive neurons in the juvenile female mouse brain (v1) [Data set]. EBRAINS. https://doi.org/10.25493/G5VR-63E
 
-By clicking on the viewer link at the bottom of the dataset card, you can open the image series in LocaliZoom.
-
-
+**LocaliZoom viewer and annotation tool**
+--------------------------------------------
 
 **Basic operations**
-
 
 .. image:: image2.png
    :width: 6.3in
@@ -42,9 +37,8 @@ switch between different coordinate spaces when available.
    :width: 6.3in
    :height: 2.75417in
 
+**Annotations**
 
-**LocaliZoom viewer and annotation tool**
---------------------------------------------
 The same basic viewing controls applies and in addition extraction of a limited
 number of coordinates, e.g. representing an electrode track or labelling
 within a small region of interest is possible. Users can inspect the
@@ -66,6 +60,7 @@ Dataset DOI: https://doi.org/10.25493/G6CQ-D4D
 
 The points are saved automatically.
 
+More details can be found here: https://localiview.readthedocs.io/en/latest/index.html
 
 **Viewing point coordinates in MeshView**
 
