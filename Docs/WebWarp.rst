@@ -33,3 +33,4 @@ You can now proceedto the next section image. Repeat the operation to all images
 
 7. You are now ready for the next step of the workflow, which is annotations of features with LocaliZoom.
  
+More details about WebWarp can be found here: https://webwarp.readthedocs.io/en/latest/
