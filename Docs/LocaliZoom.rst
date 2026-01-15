@@ -60,7 +60,7 @@ Dataset DOI: https://doi.org/10.25493/G6CQ-D4D
 
 The points are saved automatically.
 
-More details can be found here: https://localiview.readthedocs.io/en/latest/index.html
+More details can be found here: https://localizoom.readthedocs.io/en/latest/index.html
 
 **Viewing point coordinates in MeshView**
 
