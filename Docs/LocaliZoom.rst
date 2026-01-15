@@ -1,8 +1,9 @@
 
 **LocaliZoom viewer and annotation tool**
---------------------------------------------
+========================================
 
 **Basic operations**
+---------------------------
 
 .. image:: images/image2.png
    :width: 6.3in
@@ -24,6 +25,7 @@ In the middle panel, the pointer of the mouse will show the atlas region
 name (5). The main image can be zoomed and panned.
 
 **Controls**:
+------------------
 
 • Pan and zoom with mouse drag and mouse scroll wheel            
 • Step backwards and forwards in series with left and right arrow keys                                                      
@@ -31,6 +33,7 @@ name (5). The main image can be zoomed and panned.
 • Drag an annotation marker to refine its position                
 
 **Coordinates of points**
+---------------------------
 
 The user can visualise the coordinates of the mouse pointer (7) and
 switch between different coordinate spaces when available.
@@ -42,7 +45,7 @@ switch between different coordinate spaces when available.
 
 
 **Annotations**
-
+---------------------
 The same basic viewing controls applies and in addition extraction of a limited
 number of coordinates, e.g. representing an electrode track or labelling
 within a small region of interest is possible. Users can inspect the
@@ -59,6 +62,7 @@ Use the webapp here: https://localiview.apps.ebrains.eu/
 Dataset DOI: https://doi.org/10.25493/G6CQ-D4D
 
 **Controls**:
+-----------------
 
 • Press Space to annotate points of interest. The color of the points can be changed by clicking on the "Settings button" and on the color. 
 • Press Delete to remove an annotation marker under the mouse cursor
