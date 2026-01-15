@@ -4,9 +4,10 @@
 
 **Basic operations**
 
-.. image::image2.png
+.. image:: image2.png
    :width: 6.3in
    :height: 2.75417in
+
 
 
 In LocaliZoom viewer, serial section images (1) are represented in a
@@ -34,9 +35,10 @@ name (5). The main image can be zoomed and panned.
 The user can visualise the coordinates of the mouse pointer (7) and
 switch between different coordinate spaces when available.
 
-.. image::image3.png
+.. image:: image3.png
    :width: 6.3in
    :height: 2.75417in
+
 
 
 **Annotations**
@@ -52,6 +54,7 @@ Use the webapp here: https://localiview.apps.ebrains.eu/
 .. image:: images/LZ_GUI.png
    :width: 5.4in
    :height: 2.88611in
+
 
 Dataset DOI: https://doi.org/10.25493/G6CQ-D4D
 
