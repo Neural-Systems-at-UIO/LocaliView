@@ -4,7 +4,7 @@
 
 **Basic operations**
 
-.. images:: image2.png
+.. image:: images/image2.png
    :width: 6.3in
    :height: 2.75417in
 
@@ -35,7 +35,7 @@ name (5). The main image can be zoomed and panned.
 The user can visualise the coordinates of the mouse pointer (7) and
 switch between different coordinate spaces when available.
 
-.. images:: image3.png
+.. image:: images/image3.png
    :width: 6.3in
    :height: 2.75417in
 
@@ -51,7 +51,7 @@ boundaries and annotate points in order to extract coordinates.
 
 Use the webapp here: https://localiview.apps.ebrains.eu/
 
-.. images:: images/LZ_GUI.png
+.. image:: images/LZ_GUI.png
    :width: 5.4in
    :height: 2.88611in
 
