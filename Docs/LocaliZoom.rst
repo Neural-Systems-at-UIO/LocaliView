@@ -5,8 +5,7 @@
 LocaliZoom is the next step in the workflow where you can annotate points of interest in your images. As for the other apps, you can use the tab on top of the page or access LocaliZoom from the project page.
 
 .. image:: images/Navigate_to_apps.png
-   :width: 15.3in
-   :height: 1.75417in
+ 
 
 
 
