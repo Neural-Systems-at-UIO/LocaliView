@@ -34,7 +34,7 @@ Once the atlas is correctly registered to the sections using WebAlign, WebWarp c
 * If there is no marker, or the marker is a cross, mouse drag slides the cut in its plane (translation).
 * With a cross in place, press the Up and Down arrows or Left and Right arrows to activate stretch mode (a line will appear) or choose direction with the arrows present in the top left corner of the mian window. Adjust the atlas overlay to match your section. The panel can be resized towards the left (common border with Control Panel) and towards the bottom (common border with Filmstrip). 
 
-6. Once a section is registered to a satisfactory standard, tick the box in the filmstrip to save the registration. This will change the registration status from pink (in progress) to green (registered). This automatically propagates the registration to the remaining sections to help with scaling.  
+6. **Once a section is registered to a satisfactory standard, tick the box in the filmstrip to save the registration**. This will change the registration status from pink (in progress) to green (registered). This automatically propagates the registration to the remaining sections to help with scaling.  
 
 7. To establish the series cutting angle, look through sections with `key anatomical landmarks <https://zenodo.org/records/7575515>`_. Once the angle is established, apply this to all the registered sections. The angles will automatically propagate to remaining sections.  
 
@@ -85,14 +85,16 @@ Control panel
    
    * - **Button**   
      - **Function**  
-   * -   Segmentation/Template     
-     -   Allow to switch between visualisation of the atlas segmentation or the atlas template
+   * -   Pan/Rotate step     
+     -   Allow to change step size for pan or rotate functions
    * -   Overlay Slider
      -   Opacity of the atlas overlay, when fully opaque, it becomes an outline
    * -   Overlay color
      -   The outline color
    * -   Filmstrip slider and color
      -   The above settings, applied to the filmstrip
+   * -   Segmentation/Template     
+     -   Allow to switch between visualisation of the atlas segmentation or the atlas template
    * -   Undo 
      -   Undo the current alignment to the last stored position
    * -   Redo 
@@ -114,7 +116,8 @@ Control panel
 
 Filmstrip
 --------------
-Drag horizontally to see series, click on a section in order to load it into the main view. The top border of the filmstrip can be dragged vertically, allowing to resize the panel and the main view
+Drag horizontally to see series, click on a section in order to load it into the main view. **Save your registration by clicking on the small square on top left**.
+The top border of the filmstrip can be dragged vertically, allowing to resize the panel and the main view
 
 Navigation panel
 ----------------------
