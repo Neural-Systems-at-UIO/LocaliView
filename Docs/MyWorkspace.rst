@@ -47,8 +47,7 @@ Once a project is created, you can upload your brain image data to the project, 
 
 
 .. image:: images/AddEditSeries.png
-    :height: 600
-    :align: center
+   
 
 
 **Next Steps**
