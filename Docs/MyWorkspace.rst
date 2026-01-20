@@ -57,7 +57,7 @@ Once a project is created, you can upload your brain image data to the project, 
 Once you're familiar with your workspace, proceed to:
 
 * :doc:`Requirements` - Check system requirements
-* :doc:`CreateBrain` - Upload your brain image data
+
 
 **Need Help?**
 ----------
