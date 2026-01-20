@@ -64,5 +64,5 @@ Once you're familiar with your workspace, proceed to:
 
 If you need assistance with your workspace, check out:
 
-* :doc:`Contact` - Get in touch with support
-* :doc:`Publications` - Read about QUINT methodology
+* :doc:`support` - Get in touch with support
+
