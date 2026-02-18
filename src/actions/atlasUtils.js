@@ -1,0 +1,254 @@
+async function netunzip(t) {
+    const e = "function" == typeof t ? t : () => t,
+        n = await fetch(await e(), { headers: { range: "bytes=-22" } })
+            .then((t) => t.arrayBuffer())
+            .then((t) => new DataView(t));
+    if (101010256 !== n.getUint32(0, !0))
+        throw "0x06054b50, EODC header signature not found, file may not be a .zip or contains a comment field.";
+    const a = n.getUint32(12, !0);
+    let i = n.getUint32(16, !0);
+    if (4294967295 === i) {
+        const t = await fetch(await e(), { headers: { range: "bytes=-42" } })
+            .then((t) => t.arrayBuffer())
+            .then((t) => new DataView(t));
+        if (117853008 !== t.getUint32(0, !0))
+            throw "0x07064b50, EODC64locator header signature not found, file may not be a .zip or contains a comment field.";
+        const n = Number(t.getBigUint64(8, !0)),
+            a = await fetch(await e(), { headers: { range: `bytes=${n}-` } })
+                .then((t) => t.arrayBuffer())
+                .then((t) => new DataView(t));
+        if (101075792 !== a.getUint32(0, !0))
+            throw "0x06064b50, EODC64 header signature not found, file may not be a .zip or contains a comment field.";
+        i = Number(a.getBigUint64(48, !0));
+    }
+    const r = await fetch(await e(), {
+        headers: { range: `bytes=${i}-${i + a - 1}` },
+    }).then((t) => t.arrayBuffer());
+    let o = 0;
+    const g = new TextDecoder(),
+        f = new Map();
+    for (; o < r.byteLength;) {
+        const t = new DataView(r, o);
+        if (((o += 46), 33639248 !== t.getUint32(0, !0)))
+            throw "0x02014b50, directory entry signature not found, file may be damaged.";
+        const e = t.getUint16(12, !0),
+            n = e >> 11,
+            a = (e >> 5) & 63,
+            i = 2 * (31 & e),
+            s = t.getUint16(14, !0),
+            h = 1980 + (s >> 9),
+            c = (s >> 5) & 15,
+            m = 31 & s,
+            w = {
+                vermade: t.getUint16(4, !0),
+                verext: t.getUint16(6, !0),
+                gpflags: t.getUint16(8, !0),
+                method: t.getUint16(10, !0),
+                timestamp: new Date(h, c, m, n, a, i),
+                crc: t.getUint32(16, !0),
+                compsize: t.getUint32(20, !0),
+                uncompsize: t.getUint32(24, !0),
+                namelength: t.getUint16(28, !0),
+                extralength: t.getUint16(30, !0),
+                commentlength: t.getUint16(32, !0),
+                diskno: t.getUint16(34, !0),
+                intattrs: t.getUint16(36, !0),
+                extattrs: t.getUint32(38, !0),
+                offset: t.getUint32(42, !0),
+            };
+        if (
+            ((w.name = g.decode(new Uint8Array(r, o, w.namelength))),
+                (o += w.namelength),
+                (w.extra = new Uint8Array(r, o, w.extralength)),
+                4294967295 === w.offset)
+        ) {
+            const t = new DataView(r, o, w.extralength);
+            let e = 0;
+            for (; e < t.byteLength;) {
+                const n = t.getUint16(e, !0),
+                    a = t.getUint16(e + 2, !0);
+                if (1 === n) {
+                    if (8 !== a)
+                        throw `Zip64 extra field length ${a} is not supported yet.`;
+                    w.offset = Number(t.getBigUint64(e + 4, !0));
+                    break;
+                }
+                e += a + 4;
+            }
+        }
+        (o += w.extralength),
+            (w.comment = g.decode(new Uint8Array(r, o, w.commentlength))),
+            (o += w.commentlength),
+            f.set(w.name, w);
+    }
+    return {
+        entries: f,
+        async get(t, n) {
+            const a = t.method;
+            if (!n && 0 !== a && 8 !== a)
+                throw `Unsupported compression method ${a}.`;
+            const i = new DataView(
+                await fetch(await e(), {
+                    headers: { range: `bytes=${t.offset}-${t.offset + 30 - 1}` },
+                }).then((t) => t.arrayBuffer())
+            );
+            if (67324752 !== i.getUint32(0, !0))
+                throw "0x04034b50, local file signature not found, file may be damaged.";
+            const r = i.getUint16(8, !0);
+            if (!n && 0 !== r && 8 !== a)
+                throw `Unsupported compression method ${a}. Sus.`;
+            const o = i.getUint32(18, !0),
+                g = i.getUint32(22, !0),
+                f = i.getUint16(26, !0),
+                s = i.getUint16(28, !0),
+                h = t.offset + 30 + f + s,
+                c = new Uint8Array(
+                    await fetch(await e(), {
+                        headers: { range: `bytes=${h}-${h + o - 1}` },
+                    }).then((t) => t.arrayBuffer())
+                );
+            return n || 0 === a ? c : inflate(c, 0, g);
+        },
+    };
+}
+function inflate(e, t, l) {
+    if (!inflate.basehuff) {
+        let e = (e, t, l) => {
+            for (; t <= l;) e.push(t++);
+        },
+            t = s(10);
+        e(t[8], 0, 143),
+            e(t[9], 144, 255),
+            e(t[7], 256, 279),
+            e(t[8], 280, 287),
+            (inflate.basehuff = a(t));
+    }
+    t ? (t *= 8) : (t = 0), l || (l = e.length);
+    let f,
+        n = new Uint8Array(l),
+        r = 0;
+    do {
+        f = i();
+        let e = o(2);
+        if (3 === e) throw "Type3?";
+        if (0 === e) {
+            u();
+            let e = o(16);
+            if (65535 != (e ^ o(16))) throw "Type0 len-nlen mismatch";
+            for (; e--;) c(o(8));
+        } else {
+            let t, l;
+            if (1 === e) t = inflate.basehuff;
+            else {
+                let e = o(5) + 257,
+                    f = o(5) + 1,
+                    n = o(4) + 4,
+                    r = [
+                        16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15,
+                    ],
+                    i = new Array(19).fill(0);
+                for (let e = 0; e < n; e++) i[r[e]] = o(3);
+                let u = s(8);
+                for (let e = 0; e < i.length; e++) u[i[e]].push(e);
+                let c = a(u);
+                {
+                    let n = s(16),
+                        r = s(16),
+                        i = n,
+                        u = 0,
+                        w = 0,
+                        g = 0,
+                        p = 0;
+                    for (; p < e + f;) {
+                        if (w <= 0) {
+                            let e = h(c);
+                            if (e < 16) (u = e), (w = 1);
+                            else if (16 === e) w = o(2) + 3;
+                            else if (17 === e) (u = 0), (w = o(3) + 3);
+                            else {
+                                if (18 !== e) throw new Exception(e + ">18");
+                                (u = 0), (w = o(7) + 11);
+                            }
+                        }
+                        w--, i[u].push(g++), p++, p === e && ((i = r), (g = 0));
+                    }
+                    (t = a(n)), (l = a(r));
+                }
+            }
+            for (; ;) {
+                let f = h(t);
+                if (256 === f) break;
+                if (f < 256) c(f);
+                else {
+                    let t;
+                    if (f < 265) t = f - 254;
+                    else if (285 === f) t = 258;
+                    else {
+                        f -= 261;
+                        let e = f >> 2;
+                        t = ((3 & f) + 4) * (1 << e) + 3 + o(e);
+                    }
+                    let i = 2 === e ? h(l) : g(o(5));
+                    if (i >= 4) {
+                        i -= 2;
+                        let e = i >> 1;
+                        i = ((1 & i) + 2) * (1 << e) + o(e);
+                    }
+                    for (i++; t-- > 0;) c(n[r - i]);
+                }
+            }
+        }
+    } while (!f);
+    return w(r), n;
+    function i() {
+        return (e[t >> 3] >> (7 & t++)) & 1;
+    }
+    function o(e) {
+        let t = 0,
+            l = 0;
+        for (; e-- > 0;) t += i() << l++;
+        return t;
+    }
+    function u() {
+        for (; 7 & t;) t++;
+    }
+    function h(e) {
+        let t = 1;
+        do {
+            if (((t = (t << 1) + i()), t >= 1 << 20)) throw "stream desync";
+        } while (void 0 === e[t]);
+        return (t = e[t]), t;
+    }
+    function s(e) {
+        let t = [];
+        for (; e-- > 0;) t.push([]);
+        return t;
+    }
+    function a(e) {
+        e[0] = [];
+        let t = 0,
+            l = [];
+        for (let f = 1; f < e.length; f++) {
+            t = (t + e[f - 1].length) << 1;
+            let n = t + (1 << f);
+            for (let t of e[f]) l[n++] = t;
+        }
+        return l;
+    }
+    function c(e) {
+        r >= n.length && w(2 * n.length), (n[r++] = e);
+    }
+    function w(e) {
+        if (n.length === e) return;
+        let t = new Uint8Array(e);
+        if (e > n.length) for (let e = 0; e < n.length; e++) t[e] = n[e];
+        else for (let l = 0; l < e; l++) t[l] = n[l];
+        n = t;
+    }
+    function g(e) {
+        let t = 0;
+        for (let l = 0; l < 5; l++) (t = (t << 1) + (1 & e)), (e >>= 1);
+        return t;
+    }
+}
+export default netunzip;
