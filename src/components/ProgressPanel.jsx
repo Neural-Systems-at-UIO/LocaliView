@@ -9,14 +9,19 @@ import {
   Tooltip,
   Button,
   CircularProgress,
+  IconButton,
 } from "@mui/material";
 
 import { useTabContext } from "../contexts/TabContext";
+import { useNotification } from "../contexts/NotificationContext";
 
 // Icons
 import ImageIcon from "@mui/icons-material/Image";
 import MapIcon from "@mui/icons-material/Map";
 import ArrowOutward from "@mui/icons-material/ArrowOutward";
+import DeleteIcon from "@mui/icons-material/Delete";
+import BookmarkAdd from "@mui/icons-material/BookmarkAdd";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 // This is the main atlas name dispalyed on top of the panel as waln containts the abbrev.
 const atlasNames = {
@@ -41,6 +46,10 @@ const localizoomColor = {
 export default function ProgressPanel({
   walnContent,
   currentRegistration,
+  pyramidCount,
+  bucketName,
+  brainName,
+  onDeleteRegistration,
   // The two following are not relevant
   segmented,
   nutilResults,
@@ -54,6 +63,7 @@ export default function ProgressPanel({
     navigateToLocaliZoom,
     navigateToMeshView,
   } = useTabContext();
+  const { showInfo, showWarning, showError } = useNotification();
 
   if (!walnContent) {
     return (
@@ -71,10 +81,10 @@ export default function ProgressPanel({
   const sectionsWithOUVorAnchoring = sectionList.filter(
     (item) =>
       (item?.ouv && item.ouv.length > 0) ||
-      (item?.anchoring && item.anchoring.length > 0)
+      (item?.anchoring && item.anchoring.length > 0),
   ).length;
   const sectionsWithMarkers = sectionList.filter(
-    (item) => item?.markers && item.markers.length > 0
+    (item) => item?.markers && item.markers.length > 0,
   ).length;
 
   // Verbose logging
@@ -83,6 +93,32 @@ export default function ProgressPanel({
     sectionsWithOUVorAnchoring,
     sectionsWithMarkers,
   });
+
+  const handleSaveShareLink = () => {
+    try {
+      if (!currentRegistration) {
+        showWarning("No registration file available");
+        return;
+      }
+      const MESH_URL =
+        import.meta.env.VITE_APP_MESH_URL ||
+        "https://meshview.apps.ebrains.eu/collab.php";
+      const url = `${MESH_URL}?clb-collab-id=${bucketName}&cloud=${currentRegistration}`;
+      const storedLinks = localStorage.getItem("shareLinks");
+      const shareLinks = storedLinks ? JSON.parse(storedLinks) : [];
+      shareLinks.push({
+        name: `${currentRegistration.split("/").pop()}${brainName ? ` — ${brainName}` : ""}`,
+        url,
+        createdAt: new Date().toISOString(),
+      });
+      localStorage.setItem("shareLinks", JSON.stringify(shareLinks));
+      window.dispatchEvent(new Event("storage"));
+      showInfo("MeshView link saved to Share Links!");
+    } catch (e) {
+      logger.warn("Failed to save share link", e);
+      showError("Failed to save share link");
+    }
+  };
 
   return (
     <Paper
@@ -97,34 +133,81 @@ export default function ProgressPanel({
       }}
     >
       <Stack spacing={2}>
-        {/* Header with Atlas and Image Count 
-        
-        - Initial info, later down will reveal the progress
-        
-        
-        */}
+        {/* Header: atlas | image count + share link + delete */}
         <Stack
           direction="row"
           spacing={1}
           alignItems="center"
           justifyContent="space-between"
         >
-          <Stack direction="row" spacing={1} alignItems="center">
-            <MapIcon color="primary" sx={{ fontSize: 18 }} />
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ minWidth: 0 }}
+          >
+            <MapIcon color="primary" sx={{ fontSize: 18, flexShrink: 0 }} />
             <Typography variant="subtitle2" color="primary" noWrap>
-              {atlasNames[walnContent.atlas]}
+              {atlasNames[walnContent.atlas] ?? walnContent.atlas}
             </Typography>
           </Stack>
-          <Tooltip title="Total brain sections">
-            <Chip
-              size="small"
-              icon={<ImageIcon sx={{ fontSize: 14 }} />}
-              label={totalImages}
-              variant="filled"
-              sx={{ height: 24, p: 1 }}
-            />
-          </Tooltip>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Tooltip title={`${totalImages} sections in alignment`}>
+              <Chip
+                size="small"
+                icon={<ImageIcon sx={{ fontSize: 14 }} />}
+                label={totalImages}
+                variant="filled"
+                sx={{ height: 24, p: 1 }}
+              />
+            </Tooltip>
+            <Tooltip title="Save as MeshView share link">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={handleSaveShareLink}
+                  disabled={!currentRegistration || !bucketName}
+                >
+                  <BookmarkAdd sx={{ fontSize: 16 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Delete registration file">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={onDeleteRegistration}
+                  disabled={!onDeleteRegistration}
+                  sx={{ "&:hover": { color: "error.main" } }}
+                >
+                  <DeleteIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Stack>
         </Stack>
+        {pyramidCount !== undefined && pyramidCount !== totalImages && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.5,
+              px: 1,
+              py: 0.5,
+              bgcolor: "rgba(237, 108, 2, 0.08)",
+              borderRadius: 1,
+              border: "1px solid rgba(237, 108, 2, 0.3)",
+            }}
+          >
+            <WarningAmberIcon
+              sx={{ fontSize: 14, color: "warning.main", flexShrink: 0 }}
+            />
+            <Typography variant="caption" color="warning.main">
+              {pyramidCount} pyramid{pyramidCount !== 1 ? "s" : ""} vs{" "}
+              {totalImages} registered sections
+            </Typography>
+          </Box>
+        )}
 
         <Stack spacing={1} sx={{ pt: 0.5 }}>
           <Stack direction="row" spacing={2} sx={{ width: "100%" }}>
@@ -204,7 +287,7 @@ export default function ProgressPanel({
                         fontWeight="bold"
                       >
                         {Math.round(
-                          (sectionsWithOUVorAnchoring / totalImages) * 100
+                          (sectionsWithOUVorAnchoring / totalImages) * 100,
                         )}
                         %
                       </Typography>
@@ -218,9 +301,7 @@ export default function ProgressPanel({
                   endIcon={<ArrowOutward />}
                   disableElevation
                   onClick={() => navigateToWebAlign(currentRegistration)}
-                  disabled={
-                    !walnContent || sectionsWithOUVorAnchoring === totalImages
-                  }
+                  disabled={!walnContent}
                   sx={{ fontSize: "0.8rem", mt: 0.5, textTransform: "none" }}
                   fullWidth
                   className="glass-button"

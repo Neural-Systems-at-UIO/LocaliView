@@ -3,11 +3,6 @@ import React, { createContext, useContext, useState } from "react";
 
 // Constants for MeshView
 const MESH_URL = "https://meshview.apps.ebrains.eu/collab.php";
-const atlasLookup = {
-  aba_mouse_ccfv3_2017_25um: "ABA_Mouse_CCFv3_2017_25um",
-  whs_sd_rat_v3_39um: "WHS_SD_Rat_v3_39um",
-  whs_sd_rat_v4_39um: "WHS_SD_Rat_v4_39um",
-};
 
 const TabContext = createContext();
 
@@ -18,6 +13,7 @@ export const TabProvider = ({ children }) => {
     app: "workspace",
   });
   const [currentUrl, setCurrentUrl] = useState(null);
+  const [validationError, setValidationError] = useState(null);
 
   const handleFrameChange = (url) => {
     logger.debug("Changing frame", { url });
@@ -32,16 +28,20 @@ export const TabProvider = ({ children }) => {
     setCurrentTab(tabIndex);
   };
 
-  const navigateToWebAlign = (customAlignment) => {
+  /**
+   * Validates navigation requirements and updates alignment if needed
+   */
+  const validateNavigation = (customAlignment) => {
     const alignment = customAlignment || localStorage.getItem("alignment");
     const bucketName = localStorage.getItem("bucketName");
 
     if (!alignment || alignment === "") {
-      alert("Please set a working alignment first");
-      return false;
+      return {
+        valid: false,
+        error: "Please select a project and an image series",
+      };
     }
 
-    // Updating localstorage in case the registrations are not the same
     if (
       customAlignment &&
       customAlignment !== localStorage.getItem("alignment")
@@ -49,41 +49,51 @@ export const TabProvider = ({ children }) => {
       localStorage.setItem("alignment", customAlignment);
     }
 
-    // Tab index 1 is for WebAlign
-    setCurrentTab(1);
+    return { valid: true, alignment, bucketName };
+  };
 
-    // Construct URL and set iframe
-    const url = `https://webalign.apps.ebrains.eu/index.php?clb-collab-id=${bucketName}&filename=${alignment}`;
+  /**
+   * Generic navigation handler for external tools
+   */
+  const navigateToExternalTool = (
+    tabIndex,
+    urlTemplate,
+    customAlignment = null,
+  ) => {
+    const validation = validateNavigation(customAlignment);
+
+    if (!validation.valid) {
+      setValidationError(validation.error);
+      logger.warn("Navigation validation failed", {
+        error: validation.error,
+        tabIndex,
+      });
+      return false;
+    }
+
+    setCurrentTab(tabIndex);
+    const url = urlTemplate
+      .replace("{bucketName}", validation.bucketName)
+      .replace("{alignment}", validation.alignment);
     handleFrameChange(url);
-
+    setValidationError(null);
     return true;
   };
 
+  const navigateToWebAlign = (customAlignment) => {
+    return navigateToExternalTool(
+      1,
+      "https://webalign.apps.ebrains.eu/index.php?clb-collab-id={bucketName}&filename={alignment}",
+      customAlignment,
+    );
+  };
+
   const navigateToWebWarp = (customAlignment) => {
-    const alignment = customAlignment || localStorage.getItem("alignment");
-    const bucketName = localStorage.getItem("bucketName");
-
-    if (!alignment || alignment === "") {
-      alert("Please set a working alignment first");
-      return false;
-    }
-
-    // Updating localstorage in case the registrations are not the same
-    if (
-      customAlignment &&
-      customAlignment !== localStorage.getItem("alignment")
-    ) {
-      localStorage.setItem("alignment", customAlignment);
-    }
-
-    // Tab index 2 is for WebWarp
-    setCurrentTab(2);
-
-    // Construct URL and set iframe
-    const url = `https://webwarp.apps.ebrains.eu/webwarp.php?clb-collab-id=${bucketName}&filename=${alignment}`;
-    handleFrameChange(url);
-
-    return true;
+    return navigateToExternalTool(
+      2,
+      "https://webwarp.apps.ebrains.eu/webwarp.php?clb-collab-id={bucketName}&filename={alignment}",
+      customAlignment,
+    );
   };
 
   const navigateToWebIlastik = () => {
@@ -91,17 +101,16 @@ export const TabProvider = ({ children }) => {
     const bucketName = localStorage.getItem("bucketName");
     const mainPath = JSON.parse(localStorage.getItem("selectedBrain"));
 
-    if (!alignment || alignment === "") {
-      alert("Please set a working alignment first");
+    if (!alignment || alignment === "" || !bucketName || !mainPath) {
+      setValidationError("Please select a project and an image series");
+      logger.warn("WebIlastik navigation validation failed");
       return false;
     }
 
-    // Tab index 3 is for WebIlastik
     setCurrentTab(3);
 
-    // Use the provided paths or default to the main path
-    const imagesPath = `${mainPath.path}/zipped_images/`;
-    const segmentsPath = `${mainPath.path}/segmentations/`;
+    const imagesPath = `${mainPath.path}zipped_images/`;
+    const segmentsPath = `${mainPath.path}segmentations/{name}.{extension}`;
 
     const params = new URLSearchParams({
       ebrains_bucket_name: bucketName,
@@ -112,28 +121,15 @@ export const TabProvider = ({ children }) => {
     const url = `https://app.ilastik.org/public/nehuba/index.html?${params.toString()}#!%7B%22layout%22%3A%22xy%22%7D`;
     logger.debug("Ilastik URL", { url });
     handleFrameChange(url);
-
+    setValidationError(null);
     return true;
   };
 
   const navigateToLocaliZoom = ({ alignment: customAlignment, token } = {}) => {
-    // Current working registration as alignment
     const alignment = customAlignment || localStorage.getItem("alignment");
     const bucketName = localStorage.getItem("bucketName");
     const accessToken = token || localStorage.getItem("accessToken");
 
-    // wtf it this?
-    const driveId = localStorage.getItem("driveId"); // no idea what this is
-    // Use the passed token parameter
-    const docName = "5. Annotations and export of points with LocaliZoom";
-    const filename = "my points.lz";
-
-    if (!alignment || alignment === "") {
-      alert("Please set a working alignment first");
-      return false;
-    }
-
-    // Updating localstorage in case the registrations are not the same
     if (
       customAlignment &&
       customAlignment !== localStorage.getItem("alignment")
@@ -141,47 +137,32 @@ export const TabProvider = ({ children }) => {
       localStorage.setItem("alignment", customAlignment);
     }
 
-    // Tab index is 3 in this case
-    setCurrentTab(3);
+    if (alignment) {
+      const queryObj = {
+        app: "localizoom",
+        "clb-collab-id": bucketName,
+        "clb-doc-path": alignment,
+        token: accessToken,
+        filename: alignment,
+        embedded: true,
+      };
+      const encodedQuery = encodeURIComponent(JSON.stringify(queryObj));
+      const url = `https://webwarp.apps.ebrains.eu/filmstripzoom.html?${encodedQuery}`;
+      logger.debug("LocaliZoom URL", { url });
+      handleFrameChange(url);
 
-    const queryObj = {
-      app: "localizoom",
-      "clb-collab-id": bucketName,
-      // doc path will be bucket/project/.../something.lz
-      "clb-doc-path": alignment,
-      //"clb-doc-name": docName,
-      // "clb-drive-id": driveId,
-      token: accessToken, // Use the accessToken (either passed or from localStorage)
-      filename: alignment, // Use the filename from the alignment path
-    };
+      setCurrentTab(3);
+    }
 
-    const encodedQuery = encodeURIComponent(JSON.stringify(queryObj));
-    console.debug("Encoded query for LocaliZoom", { encodedQuery });
-    const url = `https://webwarp.apps.ebrains.eu/filmstripzoom.html?${encodedQuery}`;
-    logger.debug("LocaliZoom URL", { url });
-    handleFrameChange(url);
-
+    setValidationError(null);
     return true;
   };
 
   const navigateToWebNutil = () => {
-    // Tab index 4 is for WebNutil
     setCurrentTab(4);
-    // Construct URL and set iframe
     setNativeSelection({
       native: true,
       app: "nutil",
-    });
-    return true;
-  };
-
-  const natvigateToSandBox = () => {
-    // Tab index 5 is for SandBox
-    setCurrentTab(5);
-    // Construct URL and set iframe
-    setNativeSelection({
-      native: true,
-      app: "sandbox",
     });
     return true;
   };
@@ -190,12 +171,6 @@ export const TabProvider = ({ children }) => {
     const bucketName = localStorage.getItem("bucketName");
     const alignment = customAlignment || localStorage.getItem("alignment");
 
-    if (!alignment || alignment === "") {
-      alert("Please set a working alignment first");
-      return false;
-    }
-
-    // Updating localstorage in case the registrations are not the same
     if (
       customAlignment &&
       customAlignment !== localStorage.getItem("alignment")
@@ -203,13 +178,15 @@ export const TabProvider = ({ children }) => {
       localStorage.setItem("alignment", customAlignment);
     }
 
-    const url = `${MESH_URL}?clb-collab-id=${bucketName}&cloud=${alignment}`;
-    logger.debug("MeshView URL", { url });
-
-    // Tab index 4 is for MeshView
     setCurrentTab(4);
-    handleFrameChange(url);
 
+    if (alignment) {
+      const url = `${MESH_URL}?clb-collab-id=${bucketName}&cloud=${alignment}`;
+      logger.debug("MeshView URL", { url });
+      handleFrameChange(url);
+    }
+
+    setValidationError(null);
     return true;
   };
 
@@ -220,14 +197,16 @@ export const TabProvider = ({ children }) => {
         switchToTab,
         navigateToWebAlign,
         navigateToWebWarp,
-        nativeSelection,
-        setNativeSelection,
-        currentUrl,
-        handleFrameChange,
         navigateToWebIlastik,
         navigateToWebNutil,
         navigateToLocaliZoom,
         navigateToMeshView,
+        nativeSelection,
+        setNativeSelection,
+        currentUrl,
+        handleFrameChange,
+        validationError,
+        setValidationError,
       }}
     >
       {children}

@@ -1,15 +1,17 @@
 import logger from "../utils/logger.js";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   AppBar,
   Button,
   Box,
-  CircularProgress,
+  Divider,
   Drawer,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
+  Snackbar,
+  Alert,
   Tabs,
   Tab,
   Toolbar,
@@ -17,57 +19,31 @@ import {
   Typography,
   IconButton,
   Dialog,
-  Paper,
 } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import HelpRoundedIcon from "@mui/icons-material/HelpRounded";
 import FindInPageIcon from "@mui/icons-material/FindInPage";
-import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import EditNoteIcon from "@mui/icons-material/EditNote";
+import LinkIcon from "@mui/icons-material/Link";
+import SecurityIcon from "@mui/icons-material/Security";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import TimerIcon from "@mui/icons-material/Timer";
 
 import Mainframe from "./Mainframe";
 import UserAgreement from "./UserAgreement";
 import AlignmentInfoPanel from "./AlignmentInfoPanel";
-import {
-  createUser,
-  checkAgreement,
-  signDocument,
-} from "../actions/createUser";
 import { useTabContext } from "../contexts/TabContext";
-
-// Variable loading for URLs
-const OIDC = import.meta.env.VITE_APP_OIDC;
-
-// Dev instance switch pain points
-const TOKEN_URL = import.meta.env.VITE_APP_TOKEN_URL;
-const MY_URL = import.meta.env.VITE_APP_MY_URL;
-
-// Atlas names for display
-const atlasNames = {
-  WHS_SD_Rat_v3_39um: "Waxholm Space Atlas of the Sprague Dawley rat v3",
-  WHS_SD_Rat_v4_39um: "Waxholm Space Atlas of the Sprague Dawley rat v4",
-  ABA_Mouse_CCFv3_2017_25um: "Allen Mouse Brain Atlas CCFv3 2017 25um",
-  // More atlases later on maybe
-};
+import { useAuth } from "../hooks/useAuth.js";
+import ebrainsLogo from "../assets/logo-color-white.svg";
+import ebrainsDark from "../assets/logo-color.svg";
 
 const tabs = [
-  /*
-  {
-    icon: <HomeRoundedIcon />,
-    label: "Projects",
-    url: null,
-    disabled: false,
-  },
-  // To be implemented once the project context is ready
-  {
-  */
   {
     label: "Projects",
     url: null,
     disabled: false,
   },
-
   {
     label: "WebAlign",
     url: "https://webalign.apps.ebrains.eu/index.php",
@@ -78,16 +54,6 @@ const tabs = [
     url: "https://webwarp.apps.ebrains.eu/webwarp.php",
     disabled: false,
   },
-  /*{
-    label: "WebIlastik",
-    url: "https://app.ilastik.org/public/nehuba/index.html#!%7B%22layout%22:%22xy%22%7D",
-    disabled: false,
-  },
-  {
-    label: "WebNutil",
-    url: null,
-    disabled: false,
-  },*/
   {
     label: "LocaliZoom",
     url: null,
@@ -101,17 +67,20 @@ const tabs = [
 ];
 
 logger.info("Application mode", { mode: process.env.NODE_ENV });
-
 logger.info("Logging in start");
 
 const Header = () => {
-  const [auth, setAuth] = useState(false);
-  const [token, setToken] = useState(null);
-  const [user, setUser] = useState(null);
+  const {
+    isLoading,
+    isAuthenticated,
+    token,
+    user,
+    needsAgreement,
+    handleLogin,
+    handleAcceptAgreement,
+  } = useAuth();
+
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Added loading state
-  // Control for the iframe, further divergence from an iframe can be done within the Mainframe component
-  // Mainly for Native use of the applications and the webalign etc i frame ones
   const {
     currentTab,
     switchToTab,
@@ -123,33 +92,15 @@ const Header = () => {
     handleFrameChange,
     navigateToLocaliZoom,
     navigateToMeshView,
+    validationError,
+    setValidationError,
   } = useTabContext();
   const [docsOpen, setDocsOpen] = useState(false);
-
-  // Login alert
-  const [loginAlert, setLoginAlert] = useState(false); // Default to false
-  const [userAgreementOpen, setUserAgreementOpen] = useState(false); // Default to false
   const [alignmentInfoOpen, setAlignmentInfoOpen] = useState(false);
 
-  // Tab context to interact
-
-  const handleLogin = () => {
-    // Redirect immediately
-    window.location.href = `${OIDC}?response_type=code&login=true&client_id=quintweb&redirect_uri=${MY_URL}`;
-    // WIP url https://rodentworkbench.apps.ebrains.eu/new/
-  };
-
-  const toggleDrawer = () => {
-    setDrawerOpen(!drawerOpen);
-  };
-
-  const toggleDocs = () => {
-    setDocsOpen(!docsOpen);
-  };
-
-  const toggleAlignmentInfo = () => {
-    setAlignmentInfoOpen(!alignmentInfoOpen);
-  };
+  const toggleDrawer = () => setDrawerOpen(!drawerOpen);
+  const toggleDocs = () => setDocsOpen(!docsOpen);
+  const toggleAlignmentInfo = () => setAlignmentInfoOpen(!alignmentInfoOpen);
 
   const sharedListItemSx = {
     "&:hover": {
@@ -158,106 +109,38 @@ const Header = () => {
     },
   };
 
-  // OnMount: Handle code exchange or redirect
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get("code");
-
-    if (code) {
-      setIsLoading(true); // Keep loading while fetching token
-      fetch(`${TOKEN_URL}?code=${code}`)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then((data) => {
-          logger.debug("Token received", { hasAccess: !!data?.access_token });
-          if (data.token && data.token.access_token) {
-            setToken(data.token.access_token);
-            // User fetching will happen in the next effect
-            // Clean the url after successful token fetch
-            window.history.replaceState(null, null, window.location.pathname);
-          } else {
-            // Handle cases where the response is ok but doesn't contain the expected token
-
-            logger.error("Token data missing or invalid", data);
-            setToken(null); // Ensure token is null
-            handleLogin(); // Redirect to login if token exchange failed
-          }
-        })
-        .catch((error) => {
-          logger.error("Token couldn't be retrieved", error);
-          setToken(null); // Ensure token is null on error
-          // Optionally show an error message to the user before redirecting
-          handleLogin(); // Redirect to login on fetch error
-          // This will no longer freak out when the IAM is too slow to respond
+  const formatUnixSeconds = (value) => {
+    if (!value || typeof value !== "number") return "—";
+    const date = new Date(value * 1000);
+    return Number.isNaN(date.getTime())
+      ? "—"
+      : date.toLocaleString("en-GB", {
+          dateStyle: "medium",
+          timeStyle: "short",
         });
-    } else {
-      // No code in URL, redirect immediately to login
-      // Check if a token might already exist (e.g., from a previous session, though not implemented here)
-      // If not implementing token persistence, always redirect if no code.
-      logger.info("No code found, redirecting to login");
-      handleLogin();
-      // Keep isLoading true as we are redirecting away
-    }
-  }, []); // Runs only once on mount
+  };
 
-  // Get user info when token is available
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (!token) {
-        // If token becomes null after attempting fetch, stop loading
-        // This condition might be hit if token fetch failed but didn't redirect immediately
-        // Or if the initial state is null and no code was found (though redirect should handle that)
-        // Check if a code was present initially to avoid stopping loading during redirect
-        const urlParams = new URLSearchParams(window.location.search);
-        if (!urlParams.has("code")) {
-          setIsLoading(false); // Only stop loading if we weren't trying to exchange a code
-        }
-        return;
-      }
+  const formatCountdown = (value) => {
+    if (!value || typeof value !== "number") return "—";
+    const diffMs = value * 1000 - Date.now();
+    if (!Number.isFinite(diffMs)) return "—";
+    if (diffMs <= 0) return "expired";
 
-      try {
-        logger.debug("Fetching user info");
-        const userInfo = await createUser(token);
-        setUser(userInfo);
-        logger.info("User info received", { user: userInfo?.username });
-        localStorage.setItem("userInfo", JSON.stringify(userInfo));
-        const agreement = await checkAgreement(
-          userInfo["username"],
-          userInfo["email"]
-        );
-        logger.debug("User agreement status", { agreement });
-        if (!agreement) {
-          logger.info("User has not accepted the agreement");
-          setLoginAlert(true); // Show login alert if user hasn't accepted the agreement
-          setIsLoading(false); // Stop loading after user is fetched
-          setUserAgreementOpen(true); // Open user agreement dialog
-        } else {
-          logger.info("User has accepted the agreement");
-          setLoginAlert(false); // Hide login alert if user has accepted the agreement
-          setAuth(true);
-          setIsLoading(false); // Stop loading after user is fetched
-          setLoginAlert(false); // Hide login alert if shown
-        }
-      } catch (error) {
-        logger.error("User couldn't be retrieved", error);
-        setAuth(false);
-        setUser(null);
-        setToken(null); // Invalidate token if user fetch fails
-        // setIsLoading(false); // Stop loading on error
-        handleLogin(); // Uncomment this line if you want to force re-login on user fetch error
-      }
-    };
+    const totalSeconds = Math.floor(diffMs / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
 
-    fetchUser();
-  }, [token]); // Runs when token changes
+    if (hours > 0) return `in ${hours}h ${minutes}m`;
+    if (minutes > 0) return `in ${minutes}m ${seconds}s`;
+    return `in ${seconds}s`;
+  };
 
-  // Removed the auto-redirect useEffect with setTimeout
+  const formatScope = (scope) => {
+    if (!scope) return "—";
+    return Array.isArray(scope) ? scope.join(" ") : String(scope);
+  };
 
-  // Show loading screen while authenticating or redirecting
   if (isLoading) {
     return (
       <Box
@@ -271,6 +154,11 @@ const Header = () => {
           gap: 2,
         }}
       >
+        <img
+          src={ebrainsDark}
+          alt="EBRAINS Logo"
+          style={{ height: "86px", marginBottom: "16px" }}
+        />
         <Typography variant="h5" color="text.primary">
           LocaliView
         </Typography>
@@ -281,49 +169,17 @@ const Header = () => {
     );
   }
 
-  if (userAgreementOpen) {
+  if (needsAgreement) {
     return (
       <UserAgreement
-        open={userAgreementOpen}
-        onClose={() => setUserAgreementOpen(false)}
-        onAccept={async () => {
-          try {
-            // Call signDocument with the token as required by the function signature
-            await signDocument(token);
-
-            // Verify the agreement was properly signed
-            const agreementSigned = await checkAgreement(
-              user?.username,
-              user?.email
-            );
-
-            if (agreementSigned) {
-              logger.info("Agreement signed & verified");
-              setUserAgreementOpen(false);
-              setAuth(true);
-              setLoginAlert(false);
-              setIsLoading(false);
-            } else {
-              logger.error("Agreement signature could not be verified");
-              // Optionally show an error message to the user
-            }
-          } catch (error) {
-            logger.error("Error during agreement signing", error);
-            // Handle error, maybe show a notification to the user
-          }
-        }}
+        open={needsAgreement}
+        onClose={() => {}}
+        onAccept={handleAcceptAgreement}
         userEmail={user?.email}
         userName={user?.fullname}
       />
     );
   }
-
-  // If not loading and not authenticated (e.g., token fetch failed but didn't redirect yet, or user fetch failed)
-  // This state might be brief or shouldn't be reached if redirects work correctly.
-  // Consider what to show here, maybe an error message or force redirect again.
-  // For now, we proceed to render the main app structure, which will show "Login" if !user
-
-  // This can revert to the original dialog if needed :)
 
   return (
     <Box
@@ -335,18 +191,17 @@ const Header = () => {
       }}
     >
       <AppBar
-        position="flex"
+        position="static"
         sx={{
-          backgroundColor: "rgba(0, 0, 0, 0.8)",
-          color: "black",
+          backgroundColor: "black",
+          color: "white",
           boxShadow: "none",
-          borderBottom: "1px solid #ccc",
         }}
       >
         <Toolbar
           variant="dense"
           sx={{
-            minHeight: "36px !important",
+            minHeight: "42px !important",
             py: 0,
             px: 1,
           }}
@@ -358,39 +213,59 @@ const Header = () => {
               width: "100%",
             }}
           >
+            <Box
+              sx={{
+                height: "36px",
+                overflow: "hidden",
+                display: "flex",
+                alignItems: "center",
+                marginRight: "8px",
+              }}
+            >
+              <img
+                src={ebrainsLogo}
+                alt="EBRAINS Logo"
+                style={{ height: "48px", display: "block" }}
+              />
+            </Box>
             <Tabs
               value={currentTab}
-              onChange={(event, newValue) => switchToTab(newValue)}
               sx={{
                 minHeight: "36px",
                 "& .MuiTab-root": {
                   minHeight: "36px",
+                  height: "36px",
                   fontSize: "0.875rem",
-                  padding: "0 14px",
+                  padding: "0 16px 0 20px",
                   minWidth: "auto",
                   opacity: 1,
-                  transition: "opacity 0.1s",
-                  color: "black",
+                  color: "rgba(0, 0, 0, 0.87)",
                   textTransform: "none",
-                  backgroundColor: "rgba(255, 255, 255, 0.69)",
+                  backgroundColor: "rgba(255, 255, 255, 0.72)",
                   clipPath:
-                    "polygon(90% 0, 100% 50%, 90% 100%, 0 100%, 10% 50%, 0 0)", // Arrow shape
-                  marginLeft: -0.5, // Spacing is 0 for now as arrows look to be fitting in
-                  "&:first-child": {
+                    "polygon(calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%, 0 0)",
+                  marginLeft: "-12px",
+                  position: "relative",
+                  transition: "background-color 0.15s, color 0.15s",
+                  "&:first-of-type": {
                     clipPath:
-                      "polygon(90% 0, 100% 50%, 90% 100%, 0 100%, 0 0, 0 0)",
-                    borderRadius: "2px",
-                    marginLeft: -0.5,
+                      "polygon(calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 0 0)",
+                    marginLeft: 0,
+                    paddingLeft: "14px",
                   },
                   "&.Mui-selected": {
                     color: "white",
                     opacity: 1,
                     backgroundColor: "primary.main",
+                    zIndex: 20,
                   },
-                  "&:hover": {
-                    opacity: 1,
-                    backgroundColor: "transparent",
-                    color: "white",
+                  "&:hover:not(.Mui-selected):not(.Mui-disabled)": {
+                    backgroundColor: "rgba(255, 255, 255, 0.95)",
+                    color: "rgba(0, 0, 0, 0.87)",
+                    zIndex: 19,
+                  },
+                  "&.Mui-disabled": {
+                    opacity: 0.45,
                   },
                 },
                 "& .MuiTabs-indicator": {
@@ -401,41 +276,22 @@ const Header = () => {
               {tabs.map((tab, index) => (
                 <Tab
                   key={index}
-                  label={tab.icon || tab.label}
-                  // Disable tabs if not authenticated (user object is null)
+                  label={tab.label}
+                  sx={{ zIndex: tabs.length - index + 10 }}
                   disabled={!user && tab.label !== "Projects"}
                   onClick={() => {
-                    // Prevent action if not authenticated
                     if (!user && tab.label !== "Projects") return;
 
                     switch (tab.label) {
                       case "Projects":
-                        setNativeSelection({
-                          native: true,
-                          app: "workspace",
-                        });
+                        switchToTab(0);
+                        setNativeSelection({ native: true, app: "workspace" });
                         break;
                       case "WebAlign":
                         navigateToWebAlign();
                         break;
                       case "WebWarp":
                         navigateToWebWarp();
-                        break;
-                      case "WebNutil": {
-                        setNativeSelection({
-                          native: true,
-                          app: "nutil",
-                        });
-                        logger.debug("Native selection", {
-                          selection: nativeSelection,
-                        });
-                        break;
-                      }
-                      case "Sandbox":
-                        setNativeSelection({
-                          native: true,
-                          app: "sandbox",
-                        });
                         break;
                       case "LocaliZoom":
                         navigateToLocaliZoom({ token });
@@ -454,85 +310,109 @@ const Header = () => {
 
           <Box
             sx={{
-              position: "absolute",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              zIndex: 1,
-              display: "flex",
-              flexDirection: "row",
-            }}
-          >
-            <Typography
-              sx={{
-                fontSize: "0.875rem",
-                color: "white",
-              }}
-            >
-              LocaliView
-            </Typography>
-          </Box>
-          <Box
-            sx={{
               display: "flex",
               alignItems: "center",
               position: "absolute",
               flexDirection: "row",
               right: 0,
               mr: 2,
+              gap: 1.5,
             }}
           >
-            <Tooltip title="Alignment Info">
-              <IconButton
-                onClick={toggleAlignmentInfo}
-                size="small"
-                sx={{
-                  color: "white",
-                  padding: 0,
-                  "&:hover": {
-                    backgroundColor: "transparent",
-                  },
-                  mr: 1,
-                }}
-              >
-                <EditNoteIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Docs">
-              <IconButton
-                onClick={() =>
-                  window.open(
-                    "https://quint-webtools.readthedocs.io/en/latest/",
-                    "_blank"
-                  )
-                }
-                size="small"
-                sx={{
-                  color: "white",
-                  padding: 0,
-                  "&:hover": {
-                    backgroundColor: "transparent",
-                  },
-                  mr: 1,
-                }}
-              >
-                <FindInPageIcon />
-              </IconButton>
-            </Tooltip>
-
-            <Tooltip title="Account, settings and FAQ">
+            <Typography
+              sx={{
+                fontSize: "0.875rem",
+                fontWeight: 700,
+                color: "white",
+                letterSpacing: "0.04em",
+                display: { xs: "none", md: "block" },
+                userSelect: "none",
+              }}
+            >
+              LocaliView
+            </Typography>
+            <Tooltip title="Saved share links">
               <Button
-                // Always use handleLogin if user is not present
-                onClick={user ? toggleDrawer : handleLogin}
+                onClick={toggleAlignmentInfo}
+                startIcon={<LinkIcon sx={{ fontSize: "1rem !important" }} />}
                 sx={{
-                  textAlign: "right",
                   cursor: "pointer",
-                  fontWeight: "bold",
+                  fontWeight: 600,
                   color: "white",
                   textTransform: "none",
-                  padding: 0,
-                  "& .MuiTypography-root": {
-                    variant: "body2",
+                  fontSize: "0.8rem",
+                  px: 1.25,
+                  py: 0.4,
+                  border: "1px solid rgba(255,255,255,0.35)",
+                  borderRadius: "6px",
+                  backgroundColor: "rgba(255,255,255,0.08)",
+                  backdropFilter: "blur(4px)",
+                  lineHeight: 1,
+                  minWidth: 0,
+                  "&:hover": {
+                    backgroundColor: "rgba(255,255,255,0.18)",
+                    border: "1px solid rgba(255,255,255,0.65)",
+                  },
+                }}
+              >
+                Share Links
+              </Button>
+            </Tooltip>
+            <Button
+              onClick={() =>
+                window.open(
+                  "https://localiview.readthedocs.io/en/latest/",
+                  "_blank",
+                )
+              }
+              startIcon={
+                <FindInPageIcon sx={{ fontSize: "1rem !important" }} />
+              }
+              sx={{
+                cursor: "pointer",
+                fontWeight: 600,
+                color: "white",
+                textTransform: "none",
+                fontSize: "0.8rem",
+                px: 1.25,
+                py: 0.4,
+                border: "1px solid rgba(255,255,255,0.35)",
+                borderRadius: "6px",
+                backgroundColor: "rgba(255,255,255,0.08)",
+                backdropFilter: "blur(4px)",
+                lineHeight: 1,
+                minWidth: 0,
+                "&:hover": {
+                  backgroundColor: "rgba(255,255,255,0.18)",
+                  border: "1px solid rgba(255,255,255,0.65)",
+                },
+              }}
+            >
+              Docs
+            </Button>
+            <Tooltip title="Account, settings and FAQ">
+              <Button
+                onClick={user ? toggleDrawer : handleLogin}
+                startIcon={
+                  <AccountCircleIcon sx={{ fontSize: "1rem !important" }} />
+                }
+                sx={{
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  color: "white",
+                  textTransform: "none",
+                  fontSize: "0.8rem",
+                  px: 1.25,
+                  py: 0.4,
+                  border: "1px solid rgba(255,255,255,0.35)",
+                  borderRadius: "6px",
+                  backgroundColor: "rgba(255,255,255,0.08)",
+                  backdropFilter: "blur(4px)",
+                  lineHeight: 1,
+                  minWidth: 0,
+                  "&:hover": {
+                    backgroundColor: "rgba(255,255,255,0.18)",
+                    border: "1px solid rgba(255,255,255,0.65)",
                   },
                 }}
               >
@@ -551,12 +431,12 @@ const Header = () => {
             }}
             role="presentation"
           >
-            <List>
+            <List dense sx={{ pb: 0 }}>
               <ListItem sx={sharedListItemSx}>
                 <ListItemIcon>
                   <AccountCircleIcon />
                 </ListItemIcon>
-                {user && ( // Conditionally render user info
+                {user && (
                   <ListItemText
                     primary={user?.fullname}
                     secondary={user?.email}
@@ -571,8 +451,7 @@ const Header = () => {
                 sx={sharedListItemSx}
                 onClick={() => {
                   window.open(
-                    // Fixed URL for downloading the example dataset
-                    "https://data-proxy-zipper.ebrains.eu/zip?container=https://data-proxy.ebrains.eu/api/v1/buckets/quint?prefix=Online QUINT demo dataset/"
+                    "https://data-proxy-zipper.ebrains.eu/zip?container=https://data-proxy.ebrains.eu/api/v1/buckets/quint?prefix=Online QUINT demo dataset/",
                   );
                 }}
               >
@@ -604,13 +483,115 @@ const Header = () => {
                   }}
                 />
               </ListItem>
+              {user && <Divider sx={{ my: 1 }} />}
+              {user && (
+                <Box
+                  sx={{
+                    px: 2,
+                    py: 1.5,
+                    bgcolor: "grey.50",
+                    mx: 2,
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ fontWeight: 600, mb: 1, display: "block" }}
+                  >
+                    Session Information
+                  </Typography>
+                  <ListItem sx={{ px: 0, py: 0.75 }}>
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      <SecurityIcon fontSize="small" color="action" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Scope"
+                      secondary={formatScope(user?.scope)}
+                      primaryTypographyProps={{
+                        variant: "caption",
+                        color: "text.secondary",
+                        fontWeight: 500,
+                      }}
+                      secondaryTypographyProps={{
+                        variant: "body2",
+                        color: "text.primary",
+                        sx: {
+                          fontFamily: "monospace",
+                          fontSize: "0.75rem",
+                          wordBreak: "break-word",
+                          mt: 0.25,
+                        },
+                      }}
+                    />
+                  </ListItem>
+                  <ListItem sx={{ px: 0, py: 0.75 }}>
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      <ScheduleIcon fontSize="small" color="action" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Issued"
+                      secondary={formatUnixSeconds(user?.iat)}
+                      primaryTypographyProps={{
+                        variant: "caption",
+                        color: "text.secondary",
+                        fontWeight: 500,
+                      }}
+                      secondaryTypographyProps={{
+                        variant: "body2",
+                        color: "text.primary",
+                        sx: { mt: 0.25 },
+                      }}
+                    />
+                  </ListItem>
+                  <ListItem sx={{ px: 0, py: 0.75 }}>
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      <TimerIcon fontSize="small" color="action" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Expires"
+                      secondary={
+                        <Box component="span">
+                          <Box
+                            component="span"
+                            sx={{ fontWeight: 600, color: "primary.main" }}
+                          >
+                            {formatCountdown(user?.exp)}
+                          </Box>
+                          <Box
+                            component="span"
+                            sx={{
+                              color: "text.secondary",
+                              fontSize: "0.75rem",
+                              ml: 0.5,
+                            }}
+                          >
+                            ({formatUnixSeconds(user?.exp)})
+                          </Box>
+                        </Box>
+                      }
+                      primaryTypographyProps={{
+                        variant: "caption",
+                        color: "text.secondary",
+                        fontWeight: 500,
+                      }}
+                      secondaryTypographyProps={{
+                        variant: "body2",
+                        color: "text.primary",
+                        component: "div",
+                        sx: { mt: 0.25 },
+                      }}
+                    />
+                  </ListItem>
+                </Box>
+              )}
               <ListItem sx={sharedListItemSx} onClick={() => handleLogin()}>
-                <ListItemText primary="Login again" />
+                <ListItemText primary="Refresh token manually" />
               </ListItem>
             </List>
             <Box sx={{ padding: "16px", marginTop: "auto" }}>
               <Typography variant="body2" color="textSecondary">
-                Rodent Workbench v1.0.0, UiO 2024
+                LocaliView v1.0.0, UiO 2024
               </Typography>
             </Box>
           </Box>
@@ -633,13 +614,27 @@ const Header = () => {
         }}
       >
         <iframe
-          src="https://quint-webtools.readthedocs.io/en/latest/"
+          src="https://localiview.readthedocs.io/en/latest/"
           style={{ width: "100%", height: "100%", border: "none" }}
-          title="Rodent Workbench Documentation"
+          title="LocaliView Documentation"
         />
       </Dialog>
+      <Snackbar
+        open={!!validationError}
+        autoHideDuration={4000}
+        onClose={() => setValidationError(null)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setValidationError(null)}
+          severity="warning"
+          sx={{ width: "100%" }}
+        >
+          {validationError}
+        </Alert>
+      </Snackbar>
       {alignmentInfoOpen && <AlignmentInfoPanel />}
-      {auth && user && (
+      {isAuthenticated && user && (
         <Mainframe
           url={currentUrl}
           native={nativeSelection}
