@@ -102,6 +102,7 @@ export default function QuintTable({ token, user }) {
   });
 
   const [walnContent, setWalnContent] = useState(null);
+  const [kgSettings, setKgSettings] = useState(null);
 
   // Delete states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -384,6 +385,7 @@ export default function QuintTable({ token, user }) {
   const handleBrainSelect = async (params) => {
     logger.debug("Brain params passed from BrainTable", params);
     setWalnContent(null);
+    setKgSettings(null);
     setSelectedBrain(params.row);
     setIsFetchingStats(true);
     logger.info("Brain selected", { name: params.row.name });
@@ -410,7 +412,29 @@ export default function QuintTable({ token, user }) {
       localStorage.setItem("currentBrain", params.row.name);
       logger.debug("Selected brain stats", normalized);
 
-      const regFile = normalized?.registrations?.jsons?.[0]?.name;
+      const kgSettingsEntry = normalized?.registrations?.jsons?.find((j) =>
+        j.name.endsWith("kg_settings.json"),
+      );
+      if (kgSettingsEntry) {
+        try {
+          const kgSettingsContent = await downloadWalnJson(
+            token,
+            bucketName,
+            kgSettingsEntry.name,
+            signal,
+          );
+          setKgSettings(kgSettingsContent);
+        } catch {
+          setKgSettings(null);
+        }
+      } else {
+        setKgSettings(null);
+      }
+
+      const regFile = (
+        normalized?.registrations?.jsons?.find((j) => !j.name.endsWith("kg_settings.json")) ??
+        normalized?.registrations?.jsons?.[0]
+      )?.name;
       if (regFile) {
         localStorage.setItem("alignment", regFile);
         window.dispatchEvent(new Event("storage"));
@@ -445,6 +469,7 @@ export default function QuintTable({ token, user }) {
       }
       setSelectedBrainStats(null);
       setWalnContent(null);
+      setKgSettings(null);
     } finally {
       setIsFetchingStats(false);
       if (brainFetchControllerRef.current === controller) {
@@ -867,6 +892,7 @@ export default function QuintTable({ token, user }) {
                     refreshBrain={refreshBrain}
                     refreshProjectBrains={refreshProjectBrains}
                     walnContent={walnContent}
+                    kgSettings={kgSettings}
                   />
                   {/*<ProgressPanel walnContent={walnContent} />*/}
                 </Box>

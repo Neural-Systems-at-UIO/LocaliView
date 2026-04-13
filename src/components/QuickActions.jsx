@@ -18,6 +18,7 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Chip,
 } from "@mui/material";
 
 // Icons
@@ -33,6 +34,7 @@ import {
   BookmarkAdd,
   Checklist,
   FiberManualRecord,
+  CloudQueue,
 } from "@mui/icons-material";
 
 import ImageSearchIcon from "@mui/icons-material/ImageSearch";
@@ -62,6 +64,7 @@ const QuickActions = ({
   token,
   refreshBrain,
   walnContent,
+  kgSettings,
 }) => {
   const { showWarning, showInfo, showSuccess, showError } = useNotification();
 
@@ -536,115 +539,131 @@ const QuickActions = ({
         </Box>
 
         <CardContent sx={{ p: 2 }}>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              width: "100%",
-            }}
-          >
-            <Box
-              sx={{
-                width: "100%",
-                flexDirection: "column",
-              }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  width: "100%",
-                  mb: 2,
-                }}
-              >
+          <Box sx={{ display: "flex", flexDirection: "column", width: "100%" }}>
+            {kgSettings ? (
+              /* KG brain: show only the source banner, no local image table */
+              <Box sx={{ width: "100%", flexDirection: "column" }}>
+                {/* KG source notice */}
                 <Box
                   sx={{
                     display: "flex",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                     gap: 1,
+                    p: 1,
+                    bgcolor: "#f0f7ff",
+                    border: "1px dashed",
+                    borderColor: "info.light",
+                    borderRadius: 1,
                   }}
                 >
-                  <Typography
-                    sx={{
-                      textWrap: "wrap",
-                      textAlign: "left",
-                      fontSize: 14,
+                  <CloudQueue fontSize="small" color="info" sx={{ mt: 0.25, flexShrink: 0 }} />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="caption" fontWeight={600} color="info.dark">
+                      Images served from external source
+                    </Typography>
+                    {kgSettings.dziproot && (
+                      <Tooltip title={kgSettings.dziproot}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            display: "block",
+                            fontFamily: "monospace",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {kgSettings.dziproot}
+                        </Typography>
+                      </Tooltip>
+                    )}
+                    {kgSettings.shortName && (
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        {kgSettings.shortName}
+                      </Typography>
+                    )}
+                  </Box>
+                  {kgSettings.doi && (
+                    <Chip
+                      component="a"
+                      href={kgSettings.doi}
+                      target="_blank"
+                      rel="noreferrer"
+                      label="DOI"
+                      size="small"
+                      color="info"
+                      variant="outlined"
+                      clickable
+                      sx={{ ml: "auto", flexShrink: 0 }}
+                    />
+                  )}
+                </Box>
+              </Box>
+            ) : (
+              <Box sx={{ width: "100%", flexDirection: "column" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    width: "100%",
+                    mb: 2,
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography sx={{ textWrap: "wrap", textAlign: "left", fontSize: 14 }}>
+                      Convert images to DZI format
+                    </Typography>
+                    <Tooltip title="DZI (Deep Zoom Image) enables smooth viewing of large images and is the file format used by our tools.">
+                      <Info fontSize="small" color="action" sx={{ cursor: "help" }} />
+                    </Tooltip>
+                    <Tooltip
+                      title={`Deepzoom service: ${getHealthIndicator().text}${
+                        deepzoomHealth.lastChecked
+                          ? ` (Last checked: ${deepzoomHealth.lastChecked.toLocaleTimeString()})`
+                          : ""
+                      }`}
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                        {getHealthIndicator().icon}
+                        <Typography variant="caption" sx={{ color: getHealthIndicator().color, fontSize: "0.7rem" }}>
+                          {getHealthIndicator().text}
+                        </Typography>
+                      </Box>
+                    </Tooltip>
+                  </Box>
+                  <Button
+                    size="small"
+                    disabled={!pyramidComplete}
+                    sx={{ textTransform: "none", fontSize: 12 }}
+                    startIcon={<ImageSearchIcon />}
+                    onClick={() => {
+                      try {
+                        if (!pyramidComplete) return;
+                        const accessToken = localStorage.getItem("accessToken") || token;
+                        const firstZip = pyramidStats?.zips?.[0]?.name;
+                        if (!firstZip) return;
+                        const url = `https://serieszoom.apps.ebrains.eu/?token=${encodeURIComponent(accessToken)}&dzip=https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}/${firstZip}`;
+                        window.open(url, "_blank", "noopener,noreferrer");
+                      } catch (e) {
+                        logger.warn("Failed to open SeriesZoom viewer", e);
+                      }
                     }}
                   >
-                    Convert images to DZI format
-                  </Typography>
-                  <Tooltip title="DZI (Deep Zoom Image) enables smooth viewing of large images and is the file format used by our tools.">
-                    <Info
-                      fontSize="small"
-                      color="action"
-                      sx={{ cursor: "help" }}
-                    />
-                  </Tooltip>
-                  <Tooltip
-                    title={`Deepzoom service: ${getHealthIndicator().text}${
-                      deepzoomHealth.lastChecked
-                        ? ` (Last checked: ${deepzoomHealth.lastChecked.toLocaleTimeString()})`
-                        : ""
-                    }`}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 0.5,
-                      }}
-                    >
-                      {getHealthIndicator().icon}
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: getHealthIndicator().color,
-                          fontSize: "0.7rem",
-                        }}
-                      >
-                        {getHealthIndicator().text}
-                      </Typography>
-                    </Box>
-                  </Tooltip>
+                    Inspect images
+                  </Button>
                 </Box>
-                <Button
-                  size="small"
-                  disabled={!pyramidComplete}
+                {/* Unified Image Table */}
+                <TableContainer
+                  component={Paper}
                   sx={{
-                    textTransform: "none",
-                    fontSize: 12,
-                  }}
-                  startIcon={<ImageSearchIcon />}
-                  onClick={() => {
-                    try {
-                      if (!pyramidComplete) return;
-                      const accessToken =
-                        localStorage.getItem("accessToken") || token;
-                      const firstZip = pyramidStats?.zips?.[0]?.name;
-                      if (!firstZip) return;
-                      const url = `https://serieszoom.apps.ebrains.eu/?token=${encodeURIComponent(
-                        accessToken,
-                      )}&dzip=https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}/${firstZip}`;
-                      window.open(url, "_blank", "noopener,noreferrer");
-                    } catch (e) {
-                      logger.warn("Failed to open SeriesZoom viewer", e);
-                    }
+                    maxHeight: 300,
+                    border: "1px solid #e0e0e0",
+                    borderRadius: 1,
+                    boxShadow: "none",
                   }}
                 >
-                  Inspect images
-                </Button>
-              </Box>
-              {/* Unified Image Table */}
-              <TableContainer
-                component={Paper}
-                sx={{
-                  maxHeight: 300,
-                  border: "1px solid #e0e0e0",
-                  borderRadius: 1,
-                  boxShadow: "none",
-                }}
-              >
                 <Table stickyHeader size="small">
                   <TableHead>
                     <TableRow>
@@ -854,83 +873,34 @@ const QuickActions = ({
                   </TableBody>
                 </Table>
               </TableContainer>
-            </Box>
-
-            <Box
-              sx={{
-                display: "flex",
-                gap: 2,
-                width: "100%",
-                justifyContent: "space-between",
-                mt: 2,
-              }}
-            >
-              <Box sx={{ mt: 1, width: "100%" }}>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    mb: 1,
-                    textAlign: "left",
-                    color: "text.secondary",
-                  }}
+                <Box
+                  sx={{ display: "flex", gap: 2, width: "100%", justifyContent: "space-between", mt: 2 }}
                 >
-                  Progress:{" "}
-                  {Math.max(
-                    pyramidCount,
-                    Math.round(
-                      (calculateOverallProgress() / 100) *
-                        (brainStats.files || 0),
-                    ),
-                  )}{" "}
-                  / {brainStats.files || 0} images
-                </Typography>
-                <LinearProgress
-                  variant="determinate"
-                  value={calculateOverallProgress()}
-                  sx={{
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: (theme) => theme.palette.grey[200],
-                    "& .MuiLinearProgress-bar": {
-                      borderRadius: 4,
-                    },
-                  }}
-                />
+                  <Box sx={{ mt: 1, width: "100%" }}>
+                    <Typography variant="body2" sx={{ mb: 1, textAlign: "left", color: "text.secondary" }}>
+                      Progress:{" "}
+                      {Math.max(pyramidCount, Math.round((calculateOverallProgress() / 100) * (brainStats.files || 0)))}{" "}
+                      / {brainStats.files || 0} images
+                    </Typography>
+                    <LinearProgress
+                      variant="determinate"
+                      value={calculateOverallProgress()}
+                      sx={{ height: 8, borderRadius: 4, backgroundColor: (theme) => theme.palette.grey[200], "& .MuiLinearProgress-bar": { borderRadius: 4 } }}
+                    />
+                  </Box>
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                    <Button
+                      variant="outlined"
+                      disabled={isProcessing || pyramidComplete || brainStats.files === 0}
+                      onClick={() => processTiffFiles()}
+                      sx={{ size: "md", borderColor: (theme) => theme.palette.grey[800], color: (theme) => theme.palette.grey[800], "&:hover": { borderColor: (theme) => theme.palette.grey[900], backgroundColor: (theme) => theme.palette.action.hover } }}
+                    >
+                      {pyramidComplete ? "Complete" : isProcessing ? "Converting..." : "Convert"}
+                    </Button>
+                  </Box>
+                </Box>
               </Box>
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Button
-                  variant="outlined"
-                  disabled={
-                    isProcessing || pyramidComplete || brainStats.files === 0
-                  }
-                  onClick={() => {
-                    processTiffFiles();
-                  }}
-                  sx={{
-                    size: "md",
-                    borderColor: (theme) => theme.palette.grey[800],
-                    color: (theme) => theme.palette.grey[800],
-                    "&:hover": {
-                      borderColor: (theme) => theme.palette.grey[900],
-                      backgroundColor: (theme) => theme.palette.action.hover,
-                    },
-                  }}
-                >
-                  {pyramidComplete
-                    ? "Complete"
-                    : isProcessing
-                      ? "Converting..."
-                      : "Convert"}
-                </Button>
-              </Box>
-            </Box>
+            )}
           </Box>
         </CardContent>
       </Card>
@@ -969,7 +939,7 @@ const QuickActions = ({
         <ProgressPanel
           walnContent={walnContent}
           currentRegistration={walnJson.jsons?.[0]?.name}
-          pyramidCount={pyramidCount}
+          pyramidCount={kgSettings ? undefined : pyramidCount}
           bucketName={bucketName}
           brainName={braininfo?.name}
           onDeleteRegistration={() => {

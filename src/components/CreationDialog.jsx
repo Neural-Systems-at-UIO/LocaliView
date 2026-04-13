@@ -11,10 +11,14 @@ import {
   Box,
   Autocomplete,
   LinearProgress,
+  Chip,
+  Typography,
 } from "@mui/material";
-import { uploadToPath } from "../actions/handleCollabs";
+import StorageIcon from "@mui/icons-material/Storage";
+import { uploadToPath, uploadToJson } from "../actions/handleCollabs";
 import { useNotification } from "../contexts/NotificationContext";
 import UploadZone from "./UploadZone";
+import KGImportDialog from "./KGImportDialog";
 
 export default function CreationDialog({
   open,
@@ -33,6 +37,10 @@ export default function CreationDialog({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
 
+  // KG import mode
+  const [kgDialogOpen, setKgDialogOpen] = useState(false);
+  const [kgData, setKgData] = useState(null); // parsed KG series
+
   useEffect(() => {
     if (brainEntries) {
       const editBrains = brainEntries.map((entry) => entry.name);
@@ -47,8 +55,14 @@ export default function CreationDialog({
       setFilesToUpload([]);
       setName("");
       setUploadProgress(0);
+      setKgData(null);
     }
   }, [open]);
+
+  const handleKGSelect = (parsed) => {
+    setKgData(parsed);
+    setName(parsed.name);
+  };
 
   const handleNameChange = (event) => {
     setName(event.target.value);
@@ -115,6 +129,56 @@ export default function CreationDialog({
   const handleSubmit = async () => {
     if (!name || name.trim() === "") {
       showError("An image series name is required");
+      return;
+    }
+
+    if (kgData) {
+      // KG import mode: fetch the series JSON from the service link and store it
+      const collabName = localStorage.getItem("bucketName");
+      setIsUploading(true);
+      try {
+        if (!kgData.series) {
+          throw new Error("No series URL found in KG data");
+        }
+        const seriesFileName = kgData.series.split("/").pop();
+        const seriesUrl = new URL(kgData.series);
+        seriesUrl.searchParams.set("redirect", "false");
+        const redirectResp = await fetch(seriesUrl.toString(), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!redirectResp.ok) {
+          throw new Error(`Failed to resolve series URL: ${redirectResp.status}`);
+        }
+        const { url: downloadUrl } = await redirectResp.json();
+        if (!downloadUrl) {
+          throw new Error("No download URL returned from series endpoint");
+        }
+        const seriesResp = await fetch(downloadUrl);
+        if (!seriesResp.ok) {
+          throw new Error(`Failed to fetch series JSON: ${seriesResp.status}`);
+        }
+        const seriesContent = await seriesResp.json();
+        await uploadToJson(
+          { token, bucketName: collabName, projectName: project.name, brainName: name },
+          seriesFileName,
+          seriesContent
+        );
+        // Track KG-sourced brains in localStorage for UI differentiation
+        const kgKey = "kgBrains";
+        const existing = JSON.parse(localStorage.getItem(kgKey) || "[]");
+        const brainPath = `${project.name}/${name}`;
+        if (!existing.includes(brainPath)) {
+          localStorage.setItem(kgKey, JSON.stringify([...existing, brainPath]));
+        }
+        showSuccess("KG series imported successfully");
+        onUploadComplete?.();
+        onClose();
+      } catch (error) {
+        logger.error("Error importing KG series", error);
+        showError("Failed to import KG series");
+      } finally {
+        setIsUploading(false);
+      }
       return;
     }
 
@@ -187,17 +251,44 @@ export default function CreationDialog({
             }}
           />
 
-          <UploadZone onFilesSelected={handleFilesSelected} />
+          {kgData ? (
+            <Box sx={{ border: "1px solid", borderColor: "info.main", borderRadius: 1, p: 2, bgcolor: "#e8f4fd" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                <StorageIcon fontSize="small" color="info" />
+                <Chip label="KG Dataset" color="info" size="small" />
+                <Button size="small" onClick={() => { setKgData(null); setName(""); }}>Clear</Button>
+              </Box>
+              <Typography variant="body2"><strong>Atlas:</strong> {kgData.atlas}</Typography>
+              <Typography variant="body2" sx={{ wordBreak: "break-all" }}><strong>Series:</strong> {kgData.series}</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ wordBreak: "break-all" }}>{kgData.doi}</Typography>
+            </Box>
+          ) : (
+            <>
+              <Button
+                size="small"
+                variant="outlined"
+                color="info"
+                startIcon={<StorageIcon />}
+                onClick={() => setKgDialogOpen(true)}
+                sx={{ mb: 2 }}
+              >
+                Import from KG Datasets
+              </Button>
+              <UploadZone onFilesSelected={handleFilesSelected} />
+            </>
+          )}
           {isUploading && (
             <Box sx={{ width: "100%", mt: 2 }}>
               <DialogContentText>
-                Uploading: {Math.round(uploadProgress)}%
+                {kgData ? "Importing..." : `Uploading: ${Math.round(uploadProgress)}%`}
               </DialogContentText>
-              <LinearProgress
-                variant="determinate"
-                value={uploadProgress}
-                sx={{ mt: 1 }}
-              />
+              {!kgData && (
+                <LinearProgress
+                  variant="determinate"
+                  value={uploadProgress}
+                  sx={{ mt: 1 }}
+                />
+              )}
             </Box>
           )}
         </DialogContent>
@@ -206,10 +297,16 @@ export default function CreationDialog({
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isUploading}>
-            {isUploading ? "Uploading..." : "Submit"}
+            {isUploading ? (kgData ? "Importing..." : "Uploading...") : "Submit"}
           </Button>
         </DialogActions>
       </Dialog>
+      <KGImportDialog
+        open={kgDialogOpen}
+        onClose={() => setKgDialogOpen(false)}
+        onSelect={handleKGSelect}
+        token={token}
+      />
     </>
   );
 }
