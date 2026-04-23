@@ -1,11 +1,13 @@
 # Build stage
 FROM node:20-slim AS builder
 
+ARG BUILD_MODE=production
+
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-RUN npm run build
+RUN npm run build -- --mode $BUILD_MODE
 
 # Production stage
 FROM nginx:alpine
