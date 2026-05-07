@@ -166,6 +166,10 @@ export default function CreationDialog({
         if (kgData.atlas && !seriesContent.atlas) {
           seriesContent.atlas = kgData.atlas;
         }
+        // Normalize: KG series JSONs use 'slices', WebAlign/WebWarp expect 'sections'
+        if (!seriesContent.sections && Array.isArray(seriesContent.slices)) {
+          seriesContent.sections = seriesContent.slices;
+        }
         await uploadToJson(
           { token, bucketName: collabName, projectName: project.name, brainName: name },
           seriesFileName,
