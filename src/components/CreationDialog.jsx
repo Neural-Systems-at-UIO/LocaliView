@@ -162,6 +162,10 @@ export default function CreationDialog({
         if (kgData.dziproot) {
           seriesContent.dziproot = kgData.dziproot;
         }
+        // Inject atlas if the series JSON doesn't already carry it
+        if (kgData.atlas && !seriesContent.atlas) {
+          seriesContent.atlas = kgData.atlas;
+        }
         await uploadToJson(
           { token, bucketName: collabName, projectName: project.name, brainName: name },
           seriesFileName,
