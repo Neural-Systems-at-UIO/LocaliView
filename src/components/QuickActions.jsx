@@ -65,6 +65,7 @@ const QuickActions = ({
   refreshBrain,
   walnContent,
   kgSettings,
+  currentRegistration,
 }) => {
   const { showWarning, showInfo, showSuccess, showError } = useNotification();
 
@@ -120,10 +121,36 @@ const QuickActions = ({
   const [user, setUser] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [bucketName, setBucketName] = useState(null);
-  // current work alignment file
-  const [alignment, setAlignment] = useState(
-    localStorage.getItem("alignment") || null,
-  );
+
+  const [externalPyramids, setExternalPyramids] = useState([]);
+  const [loadingExternalPyramids, setLoadingExternalPyramids] = useState(false);
+
+  useEffect(() => {
+    if (!kgSettings?.dziproot) {
+      setExternalPyramids([]);
+      return;
+    }
+    const DATA_PROXY_BASE = "https://data-proxy.ebrains.eu/api/v1/buckets/";
+    try {
+      const stripped = kgSettings.dziproot.replace(/\/$/, "").slice(DATA_PROXY_BASE.length);
+      const slashIdx = stripped.indexOf("/");
+      if (slashIdx === -1) return;
+      const extBucket = stripped.slice(0, slashIdx);
+      const prefix = stripped.slice(slashIdx + 1) + "/";
+      setLoadingExternalPyramids(true);
+      const url = `${DATA_PROXY_BASE}${extBucket}?prefix=${encodeURIComponent(prefix)}&limit=1000`;
+      fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : {})
+        .then((r) => r.json())
+        .then((data) => {
+          const files = (data.objects || []).filter((o) => o.name.endsWith(".dzip"));
+          setExternalPyramids(files);
+        })
+        .catch((e) => logger.warn("Failed to fetch external pyramids", e))
+        .finally(() => setLoadingExternalPyramids(false));
+    } catch (e) {
+      logger.warn("Failed to parse dziproot for external pyramids", e);
+    }
+  }, [kgSettings?.dziproot, token]);
 
   const [taskStatus, setTaskStatus] = useState({});
   const [pollingInterval, setPollingInterval] = useState(null);
@@ -541,7 +568,7 @@ const QuickActions = ({
         <CardContent sx={{ p: 2 }}>
           <Box sx={{ display: "flex", flexDirection: "column", width: "100%" }}>
             {kgSettings ? (
-              /* KG brain: show only the source banner, no local image table */
+              /* KG brain: source banner + external pyramid table */
               <Box sx={{ width: "100%", flexDirection: "column" }}>
                 {/* KG source notice */}
                 <Box
@@ -550,6 +577,7 @@ const QuickActions = ({
                     alignItems: "flex-start",
                     gap: 1,
                     p: 1,
+                    mb: 1.5,
                     bgcolor: "#f0f7ff",
                     border: "1px dashed",
                     borderColor: "info.light",
@@ -599,6 +627,66 @@ const QuickActions = ({
                     />
                   )}
                 </Box>
+                {/* External pyramid file listing */}
+                {loadingExternalPyramids ? (
+                  <LinearProgress sx={{ borderRadius: 1 }} />
+                ) : (
+                  <TableContainer
+                    component={Paper}
+                    sx={{
+                      maxHeight: 300,
+                      border: "1px solid #e0e0e0",
+                      borderRadius: 1,
+                      boxShadow: "none",
+                    }}
+                  >
+                    <Table stickyHeader size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>File Name</TableCell>
+                          <TableCell>Size</TableCell>
+                          <TableCell>Last Modified</TableCell>
+                          <TableCell>Status</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {externalPyramids.length > 0 ? (
+                          externalPyramids.map((file) => (
+                            <TableRow key={file.name} sx={{ bgcolor: "rgba(76, 175, 80, 0.08)" }}>
+                              <TableCell>
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                  <AutoAwesomeMotionSharp fontSize="small" />
+                                  <Typography variant="body2">{file.name.split("/").pop()}</Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell>{formatFileSize(file.bytes)}</TableCell>
+                              <TableCell>
+                                {new Date(file.last_modified).toLocaleString("en-GB", dateOptions)}
+                              </TableCell>
+                              <TableCell>
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                  <CheckCircleOutline fontSize="small" color="success" />
+                                  <Typography variant="caption" color="success.main">
+                                    External
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={4} align="center">
+                              <Box sx={{ p: 4, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                                <FolderOff sx={{ fontSize: "2rem", color: "text.disabled" }} />
+                                <Typography color="text.secondary">No pyramid files found at source</Typography>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
               </Box>
             ) : (
               <Box sx={{ width: "100%", flexDirection: "column" }}>
@@ -938,16 +1026,17 @@ const QuickActions = ({
       {walnContent && (
         <ProgressPanel
           walnContent={walnContent}
-          currentRegistration={walnJson.jsons?.[0]?.name}
+          currentRegistration={currentRegistration ?? walnJson.jsons?.[0]?.name}
           pyramidCount={kgSettings ? undefined : pyramidCount}
           bucketName={bucketName}
           brainName={braininfo?.name}
           onDeleteRegistration={() => {
-            if (!(bucketName && walnJson.jsons?.[0]?.name)) {
+            const regPath = currentRegistration ?? walnJson.jsons?.[0]?.name;
+            if (!(bucketName && regPath)) {
               showWarning("No registration file to delete");
               return;
             }
-            deleteItem(bucketName + "/" + walnJson.jsons?.[0]?.name, token);
+            deleteItem(bucketName + "/" + regPath, token);
             showInfo("Registration file is being deleted");
             setTimeout(() => refreshBrain(), 2000);
           }}

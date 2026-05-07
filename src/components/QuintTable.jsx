@@ -103,6 +103,7 @@ export default function QuintTable({ token, user }) {
 
   const [walnContent, setWalnContent] = useState(null);
   const [kgSettings, setKgSettings] = useState(null);
+  const [currentRegistration, setCurrentRegistration] = useState(null);
 
   // Delete states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -373,6 +374,8 @@ export default function QuintTable({ token, user }) {
 
   const refreshProjectBrains = () => {
     setWalnContent(null);
+    setKgSettings(null);
+    setCurrentRegistration(null);
     handleProjectSelect(selectedProject);
     setSelectedBrain(null);
     // Initially project change updates the brain list
@@ -412,31 +415,10 @@ export default function QuintTable({ token, user }) {
       localStorage.setItem("currentBrain", params.row.name);
       logger.debug("Selected brain stats", normalized);
 
-      const kgSettingsEntry = normalized?.registrations?.jsons?.find((j) =>
-        j.name.endsWith("kg_settings.json"),
-      );
-      if (kgSettingsEntry) {
-        try {
-          const kgSettingsContent = await downloadWalnJson(
-            token,
-            bucketName,
-            kgSettingsEntry.name,
-            signal,
-          );
-          setKgSettings(kgSettingsContent);
-        } catch {
-          setKgSettings(null);
-        }
-      } else {
-        setKgSettings(null);
-      }
-
-      const regFile = (
-        normalized?.registrations?.jsons?.find((j) => !j.name.endsWith("kg_settings.json")) ??
-        normalized?.registrations?.jsons?.[0]
-      )?.name;
+      const regFile = normalized?.registrations?.jsons?.[0]?.name;
       if (regFile) {
         localStorage.setItem("alignment", regFile);
+        setCurrentRegistration(regFile);
         window.dispatchEvent(new Event("storage"));
         try {
           const walnContent = await downloadWalnJson(
@@ -449,6 +431,12 @@ export default function QuintTable({ token, user }) {
             keys: Object.keys(walnContent || {}).length,
           });
           setWalnContent(walnContent);
+          // Detect KG brain: series JSON has an external absolute dziproot URL
+          if (typeof walnContent?.dziproot === "string" && walnContent.dziproot.startsWith("http")) {
+            setKgSettings({ dziproot: walnContent.dziproot });
+          } else {
+            setKgSettings(null);
+          }
         } catch (error) {
           if (error.name === "AbortError") {
             logger.debug("WALN fetch aborted (stale selection)");
@@ -456,10 +444,13 @@ export default function QuintTable({ token, user }) {
             logger.error("Failed to download WALN", error);
           }
           setWalnContent(null);
+          setKgSettings(null);
         }
       } else {
         logger.info("No registration WALN file present");
         setWalnContent(null);
+        setKgSettings(null);
+        setCurrentRegistration(null);
       }
     } catch (error) {
       if (error.name === "AbortError") {
@@ -893,6 +884,7 @@ export default function QuintTable({ token, user }) {
                     refreshProjectBrains={refreshProjectBrains}
                     walnContent={walnContent}
                     kgSettings={kgSettings}
+                    currentRegistration={currentRegistration}
                   />
                   {/*<ProgressPanel walnContent={walnContent} />*/}
                 </Box>

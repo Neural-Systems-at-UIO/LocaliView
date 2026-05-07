@@ -158,6 +158,10 @@ export default function CreationDialog({
           throw new Error(`Failed to fetch series JSON: ${seriesResp.status}`);
         }
         const seriesContent = await seriesResp.json();
+        // Inject dziproot from the KG service link so tools know where pyramids are
+        if (kgData.dziproot) {
+          seriesContent.dziproot = kgData.dziproot;
+        }
         await uploadToJson(
           { token, bucketName: collabName, projectName: project.name, brainName: name },
           seriesFileName,
@@ -166,7 +170,7 @@ export default function CreationDialog({
         // Track KG-sourced brains in localStorage for UI differentiation
         const kgKey = "kgBrains";
         const existing = JSON.parse(localStorage.getItem(kgKey) || "[]");
-        const brainPath = `${project.name}/${name}`;
+        const brainPath = `${project.name}/${name}/`;
         if (!existing.includes(brainPath)) {
           localStorage.setItem(kgKey, JSON.stringify([...existing, brainPath]));
         }
