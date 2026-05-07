@@ -495,7 +495,7 @@ export default function ProgressPanel({
                   endIcon={<ArrowOutward />}
                   disableElevation
                   onClick={() =>
-                    navigateToLocaliZoom(currentRegistration, token)
+                    navigateToLocaliZoom({ alignment: currentRegistration, token })
                   }
                   className="glass-button"
                   sx={{
@@ -600,7 +600,7 @@ export default function ProgressPanel({
                   variant="contained"
                   endIcon={<ArrowOutward />}
                   disableElevation
-                  onClick={() => navigateToMeshView(currentRegistration)}
+                  onClick={() => navigateToMeshView({ alignment: currentRegistration })}
                   className="glass-button"
                   sx={{
                     fontSize: "0.8rem",
