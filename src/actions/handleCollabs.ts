@@ -46,7 +46,7 @@ export interface AvailableBucket {
 
 export async function fetchAvailableBuckets(
   token: string,
-  search: string = "rwb",
+  search: string = "lv",
 ): Promise<AvailableBucket[]> {
   const url = `${BUCKET_URL.slice(0, -1)}?search=${encodeURIComponent(search)}`;
   return fetchWithAuth<AvailableBucket[]>(url, token);

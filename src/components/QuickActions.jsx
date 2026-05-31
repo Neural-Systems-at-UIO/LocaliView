@@ -82,28 +82,37 @@ const QuickActions = ({
   const unifiedFiles = useMemo(() => {
     const rawImages = rawStats?.tiffs || [];
     const zippedImages = pyramidStats?.zips || [];
+    const registrationSections = walnContent?.sections || walnContent?.slices || [];
     if (!rawImages.length && !zippedImages.length) return [];
 
     const zippedMap = new Map();
     zippedImages.forEach((zip) => {
-      // Extract the base name from the path
-      // The name format is as .tif -> .tif.dzip
       const baseName = zip.name.split("/").pop().replace(".dzip", "");
-      // add the zipped image modification time
       zip.last_modified = new Date(zip.last_modified).getTime();
       zippedMap.set(baseName, zip);
     });
 
+    const registrationMap = new Map();
+    registrationSections.forEach((section) => {
+      const baseName = section.filename?.split("/").pop()?.replace(".dzip", "");
+      if (baseName) registrationMap.set(baseName, section);
+    });
+
     logger.debug("Zipped images map", { count: zippedMap.size });
 
-    // Create unified records
+    const sNum = (name) => {
+      const m = name.match(/_s(\d+)[a-zA-Z]?/);
+      return m ? parseInt(m[1], 10) : Infinity;
+    };
+
     return rawImages.map((raw) => {
       const rawBaseName = raw.name.split("/").pop();
       const matchingZip = zippedMap.get(rawBaseName);
-
-      // TODO Add processed size to the table
+      const registrationSection = matchingZip
+        ? registrationMap.get(matchingZip.name.split("/").pop().replace(".dzip", ""))
+        : null;
       return {
-        id: raw.name, // Use full path as unique ID
+        id: raw.name,
         fileName: rawBaseName,
         rawPath: raw.name,
         rawSize: raw.bytes,
@@ -113,9 +122,12 @@ const QuickActions = ({
         processedPath: matchingZip?.name || null,
         processedSize: matchingZip?.bytes || null,
         processedLastModified: matchingZip?.last_modified || null,
+        registrationSection,
+        hasOuv: Boolean(registrationSection?.ouv || registrationSection?.anchoring),
+        hasMarkers: Boolean(registrationSection?.markers?.length),
       };
-    });
-  }, [rawStats, pyramidStats]);
+    }).sort((a, b) => sNum(a.fileName) - sNum(b.fileName));
+  }, [rawStats, pyramidStats, walnContent]);
 
   let pyramidCount = pyramidStats?.zips?.length ?? 0;
   const [user, setUser] = useState(null);
@@ -151,6 +163,69 @@ const QuickActions = ({
       logger.warn("Failed to parse dziproot for external pyramids", e);
     }
   }, [kgSettings?.dziproot, token]);
+
+  // Combined file list: for KG brains uses externalPyramids as dzip-only rows;
+  // for local brains extends unifiedFiles with any dzip-only rows (dzips without a matching raw image)
+  const allFiles = useMemo(() => {
+    const walnSections = walnContent?.sections || walnContent?.slices || [];
+    const walnFallback = (rows) =>
+      rows.length > 0
+        ? rows
+        : walnSections.map((section, i) => ({
+            id: section.filename || `section-${i}`,
+            fileName:
+              section.filename?.split("/").pop()?.replace(".dzip", "") ||
+              `section-${i + 1}`,
+            rawPath: null,
+            rawSize: null,
+            rawLastModified: null,
+            zipLastModified: null,
+            isProcessed: true,
+            processedPath: section.filename || null,
+            processedSize: null,
+            processedLastModified: null,
+            dzipOnly: true,
+            fromWaln: true,
+            registrationSection: section,
+            hasOuv: Boolean(section?.ouv || section?.anchoring),
+            hasMarkers: Boolean(section?.markers?.length),
+          }));
+
+    if (kgSettings) {
+      const kgRows = externalPyramids.map((zip) => ({
+        id: zip.name,
+        fileName: zip.name.split("/").pop().replace(".dzip", ""),
+        rawPath: null,
+        rawSize: null,
+        rawLastModified: null,
+        zipLastModified: new Date(zip.last_modified).getTime(),
+        isProcessed: true,
+        processedPath: zip.name,
+        processedSize: zip.bytes || null,
+        processedLastModified: new Date(zip.last_modified).getTime(),
+        dzipOnly: true,
+      }));
+      return walnFallback(kgRows);
+    }
+    const zippedImages = pyramidStats?.zips || [];
+    const matchedNames = new Set(unifiedFiles.map((f) => f.fileName));
+    const dzipOnlyRows = zippedImages
+      .filter((zip) => !matchedNames.has(zip.name.split("/").pop().replace(".dzip", "")))
+      .map((zip) => ({
+        id: zip.name,
+        fileName: zip.name.split("/").pop().replace(".dzip", ""),
+        rawPath: null,
+        rawSize: null,
+        rawLastModified: null,
+        zipLastModified: new Date(zip.last_modified).getTime(),
+        isProcessed: true,
+        processedPath: zip.name,
+        processedSize: zip.bytes || null,
+        processedLastModified: new Date(zip.last_modified).getTime(),
+        dzipOnly: true,
+      }));
+    return walnFallback([...unifiedFiles, ...dzipOnlyRows]);
+  }, [unifiedFiles, kgSettings, externalPyramids, pyramidStats, walnContent]);
 
   const [taskStatus, setTaskStatus] = useState({});
   const [pollingInterval, setPollingInterval] = useState(null);
@@ -567,425 +642,293 @@ const QuickActions = ({
 
         <CardContent sx={{ p: 2 }}>
           <Box sx={{ display: "flex", flexDirection: "column", width: "100%" }}>
+            {/* Header section varies by source */}
             {kgSettings ? (
-              /* KG brain: source banner + external pyramid table */
-              <Box sx={{ width: "100%", flexDirection: "column" }}>
-                {/* KG source notice */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 1,
-                    p: 1,
-                    mb: 1.5,
-                    bgcolor: "#f0f7ff",
-                    border: "1px dashed",
-                    borderColor: "info.light",
-                    borderRadius: 1,
-                  }}
-                >
-                  <CloudQueue fontSize="small" color="info" sx={{ mt: 0.25, flexShrink: 0 }} />
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="caption" fontWeight={600} color="info.dark">
-                      Images served from external source
-                    </Typography>
-                    {kgSettings.dziproot && (
-                      <Tooltip title={kgSettings.dziproot}>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{
-                            display: "block",
-                            fontFamily: "monospace",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {kgSettings.dziproot}
-                        </Typography>
-                      </Tooltip>
-                    )}
-                    {kgSettings.shortName && (
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        {kgSettings.shortName}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 1,
+                  p: 1,
+                  mb: 1.5,
+                  bgcolor: "#f0f7ff",
+                  border: "1px dashed",
+                  borderColor: "info.light",
+                  borderRadius: 1,
+                }}
+              >
+                <CloudQueue fontSize="small" color="info" sx={{ mt: 0.25, flexShrink: 0 }} />
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="caption" fontWeight={600} color="info.dark">
+                    Images served from external source
+                  </Typography>
+                  {kgSettings.dziproot && (
+                    <Tooltip title={kgSettings.dziproot}>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                          display: "block",
+                          fontFamily: "monospace",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {kgSettings.dziproot}
                       </Typography>
-                    )}
-                  </Box>
-                  {kgSettings.doi && (
-                    <Chip
-                      component="a"
-                      href={kgSettings.doi}
-                      target="_blank"
-                      rel="noreferrer"
-                      label="DOI"
-                      size="small"
-                      color="info"
-                      variant="outlined"
-                      clickable
-                      sx={{ ml: "auto", flexShrink: 0 }}
-                    />
+                    </Tooltip>
+                  )}
+                  {kgSettings.shortName && (
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      {kgSettings.shortName}
+                    </Typography>
                   )}
                 </Box>
-                {/* External pyramid file listing */}
-                {loadingExternalPyramids ? (
-                  <LinearProgress sx={{ borderRadius: 1 }} />
-                ) : (
-                  <TableContainer
-                    component={Paper}
-                    sx={{
-                      maxHeight: 300,
-                      border: "1px solid #e0e0e0",
-                      borderRadius: 1,
-                      boxShadow: "none",
-                    }}
-                  >
-                    <Table stickyHeader size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>File Name</TableCell>
-                          <TableCell>Size</TableCell>
-                          <TableCell>Last Modified</TableCell>
-                          <TableCell>Status</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {externalPyramids.length > 0 ? (
-                          externalPyramids.map((file) => (
-                            <TableRow key={file.name} sx={{ bgcolor: "rgba(76, 175, 80, 0.08)" }}>
-                              <TableCell>
-                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                  <AutoAwesomeMotionSharp fontSize="small" />
-                                  <Typography variant="body2">{file.name.split("/").pop()}</Typography>
-                                </Box>
-                              </TableCell>
-                              <TableCell>{formatFileSize(file.bytes)}</TableCell>
-                              <TableCell>
-                                {new Date(file.last_modified).toLocaleString("en-GB", dateOptions)}
-                              </TableCell>
-                              <TableCell>
-                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                  <CheckCircleOutline fontSize="small" color="success" />
-                                  <Typography variant="caption" color="success.main">
-                                    External
-                                  </Typography>
-                                </Box>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={4} align="center">
-                              <Box sx={{ p: 4, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                                <FolderOff sx={{ fontSize: "2rem", color: "text.disabled" }} />
-                                <Typography color="text.secondary">No pyramid files found at source</Typography>
-                              </Box>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                {kgSettings.doi && (
+                  <Chip
+                    component="a"
+                    href={kgSettings.doi}
+                    target="_blank"
+                    rel="noreferrer"
+                    label="DOI"
+                    size="small"
+                    color="info"
+                    variant="outlined"
+                    clickable
+                    sx={{ ml: "auto", flexShrink: 0 }}
+                  />
                 )}
               </Box>
             ) : (
-              <Box sx={{ width: "100%", flexDirection: "column" }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    width: "100%",
-                    mb: 2,
-                  }}
-                >
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Typography sx={{ textWrap: "wrap", textAlign: "left", fontSize: 14 }}>
-                      Convert images to DZI format
-                    </Typography>
-                    <Tooltip title="DZI (Deep Zoom Image) enables smooth viewing of large images and is the file format used by our tools.">
-                      <Info fontSize="small" color="action" sx={{ cursor: "help" }} />
-                    </Tooltip>
-                    <Tooltip
-                      title={`Deepzoom service: ${getHealthIndicator().text}${
-                        deepzoomHealth.lastChecked
-                          ? ` (Last checked: ${deepzoomHealth.lastChecked.toLocaleTimeString()})`
-                          : ""
-                      }`}
-                    >
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        {getHealthIndicator().icon}
-                        <Typography variant="caption" sx={{ color: getHealthIndicator().color, fontSize: "0.7rem" }}>
-                          {getHealthIndicator().text}
-                        </Typography>
-                      </Box>
-                    </Tooltip>
-                  </Box>
-                  <Button
-                    size="small"
-                    disabled={!pyramidComplete}
-                    sx={{ textTransform: "none", fontSize: 12 }}
-                    startIcon={<ImageSearchIcon />}
-                    onClick={() => {
-                      try {
-                        if (!pyramidComplete) return;
-                        const accessToken = localStorage.getItem("accessToken") || token;
-                        const firstZip = pyramidStats?.zips?.[0]?.name;
-                        if (!firstZip) return;
-                        const url = `https://serieszoom.apps.ebrains.eu/?token=${encodeURIComponent(accessToken)}&dzip=https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}/${firstZip}`;
-                        window.open(url, "_blank", "noopener,noreferrer");
-                      } catch (e) {
-                        logger.warn("Failed to open SeriesZoom viewer", e);
-                      }
-                    }}
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  width: "100%",
+                  mb: 2,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography sx={{ textWrap: "wrap", textAlign: "left", fontSize: 14 }}>
+                    Convert images to DZI format
+                  </Typography>
+                  <Tooltip title="DZI (Deep Zoom Image) enables smooth viewing of large images and is the file format used by our tools.">
+                    <Info fontSize="small" color="action" sx={{ cursor: "help" }} />
+                  </Tooltip>
+                  <Tooltip
+                    title={`Deepzoom service: ${getHealthIndicator().text}${
+                      deepzoomHealth.lastChecked
+                        ? ` (Last checked: ${deepzoomHealth.lastChecked.toLocaleTimeString()})`
+                        : ""
+                    }`}
                   >
-                    Inspect images
-                  </Button>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                      {getHealthIndicator().icon}
+                      <Typography variant="caption" sx={{ color: getHealthIndicator().color, fontSize: "0.7rem" }}>
+                        {getHealthIndicator().text}
+                      </Typography>
+                    </Box>
+                  </Tooltip>
                 </Box>
-                {/* Unified Image Table */}
-                <TableContainer
-                  component={Paper}
-                  sx={{
-                    maxHeight: 300,
-                    border: "1px solid #e0e0e0",
-                    borderRadius: 1,
-                    boxShadow: "none",
+                <Button
+                  size="small"
+                  disabled={!pyramidComplete}
+                  sx={{ textTransform: "none", fontSize: 12 }}
+                  startIcon={<ImageSearchIcon />}
+                  onClick={() => {
+                    try {
+                      if (!pyramidComplete) return;
+                      const accessToken = localStorage.getItem("accessToken") || token;
+                      const firstZip = pyramidStats?.zips?.[0]?.name;
+                      if (!firstZip) return;
+                      const url = `https://serieszoom.apps.ebrains.eu/?token=${encodeURIComponent(accessToken)}&dzip=https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}/${firstZip}`;
+                      window.open(url, "_blank", "noopener,noreferrer");
+                    } catch (e) {
+                      logger.warn("Failed to open SeriesZoom viewer", e);
+                    }
                   }}
                 >
-                <Table stickyHeader size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>File Name</TableCell>
-                      <TableCell>Raw Image Size</TableCell>
-                      <TableCell>Uploaded at</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Created at</TableCell>
-                      <TableCell>DZIP Size</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {unifiedFiles.length > 0 ? (
-                      unifiedFiles.map((file) => {
-                        const fileStatus = taskStatus[file.rawPath];
-
-                        return (
-                          <TableRow
-                            key={file.id}
-                            sx={{
-                              "&:last-child td, &:last-child th": {
-                                border: 0,
-                              },
-                              bgcolor: file.isProcessed
-                                ? "rgba(76, 175, 80, 0.08)"
-                                : "inherit",
-                            }}
-                          >
-                            <TableCell>
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 1,
-                                }}
+                  Inspect images
+                </Button>
+              </Box>
+            )}
+            {kgSettings && loadingExternalPyramids && (
+              <LinearProgress sx={{ borderRadius: 1, mb: 1 }} />
+            )}
+            {/* Unified Image Table — shown for both local and KG brains */}
+            <TableContainer
+              component={Paper}
+              sx={{
+                maxHeight: 300,
+                border: "1px solid #e0e0e0",
+                borderRadius: 1,
+                boxShadow: "none",
+              }}
+            >
+              <Table stickyHeader size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>File Name</TableCell>
+                    <TableCell>Raw size / DZIP</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Registration</TableCell>
+                    <TableCell>Dimensions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {allFiles.length > 0 ? (
+                    allFiles.map((file) => {
+                      const fileStatus = taskStatus[file.rawPath];
+                      return (
+                        <TableRow
+                          key={file.id}
+                          sx={{
+                            "&:last-child td, &:last-child th": { border: 0 },
+                            "&:hover": { bgcolor: "rgba(0,0,0,0.02)" },
+                          }}
+                        >
+                          <TableCell>
+                            <Typography variant="body2">{file.fileName}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                              <Typography variant="body2">
+                                {file.rawSize != null ? formatFileSize(file.rawSize) : "\u2014"}
+                              </Typography>
+                              {file.processedSize && (
+                                <>
+                                  <Typography variant="caption" color="text.disabled">→</Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    {formatFileSize(file.processedSize)}
+                                  </Typography>
+                                </>
+                              )}
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            {file.dzipOnly ? (
+                              <Typography
+                                variant="caption"
+                                color={file.fromWaln ? "primary.main" : "success.main"}
                               >
-                                {file.isProcessed ? (
-                                  <AutoAwesomeMotionSharp fontSize="small" />
-                                ) : (
-                                  <ImageSharp fontSize="small" />
+                                {file.fromWaln
+                                  ? "Registered"
+                                  : kgSettings
+                                  ? "External"
+                                  : "Pyramid only"}
+                              </Typography>
+                            ) : isProcessing && fileStatus ? (
+                              <Box sx={{ width: "100%" }}>
+                                {fileStatus.status === "pending" && (
+                                  <Typography variant="caption">Waiting...</Typography>
                                 )}
-                                <Typography variant="body2">
-                                  {file.fileName}
+                                {(fileStatus.status === "accepted" || fileStatus.status === "processing") && (
+                                  <Box sx={{ width: "100%" }}>
+                                    <Typography variant="caption">{fileStatus.progress || 0}%</Typography>
+                                    <LinearProgress
+                                      variant="determinate"
+                                      value={fileStatus.progress || 0}
+                                      sx={{ height: 3, borderRadius: 1 }}
+                                    />
+                                  </Box>
+                                )}
+                                {fileStatus.status === "completed" && (
+                                  <Typography variant="caption" color="success.main">Complete</Typography>
+                                )}
+                                {fileStatus.status === "error" && (
+                                  <Typography variant="caption" color="error">Error</Typography>
+                                )}
+                              </Box>
+                            ) : (
+                              <Typography
+                                variant="caption"
+                                color={file.isProcessed ? "success.main" : "text.secondary"}
+                              >
+                                {file.isProcessed ? "Processed" : "Not processed"}
+                              </Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {file.registrationSection ? (
+                              <Box sx={{ display: "flex", flexDirection: "row", gap: 1 }}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: file.hasOuv ? "primary.main" : "text.disabled" }}
+                                >
+                                  {file.hasOuv ? "Aligned" : "Not aligned"}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: file.hasMarkers ? "success.main" : "text.disabled" }}
+                                >
+                                  {file.hasMarkers ? "Warped" : "No markers"}
                                 </Typography>
                               </Box>
-                            </TableCell>
-                            <TableCell>
-                              {formatFileSize(file.rawSize)}
-                            </TableCell>
-                            <TableCell>
-                              {new Date(file.rawLastModified).toLocaleString(
-                                "en-GB",
-                                dateOptions,
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {isProcessing && fileStatus ? (
-                                <Box sx={{ width: "100%" }}>
-                                  {fileStatus.status === "pending" &&
-                                    "Waiting..."}
-                                  {(fileStatus.status === "accepted" ||
-                                    fileStatus.status === "processing") && (
-                                    <Box
-                                      sx={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 1,
-                                      }}
-                                    >
-                                      <PendingOutlined
-                                        fontSize="small"
-                                        color="primary"
-                                      />
-                                      <Box sx={{ width: "100%" }}>
-                                        <Typography variant="caption">
-                                          {fileStatus.progress || 0}%
-                                        </Typography>
-                                        <LinearProgress
-                                          variant="determinate"
-                                          value={fileStatus.progress || 0}
-                                          sx={{
-                                            height: 3,
-                                            borderRadius: 1,
-                                          }}
-                                        />
-                                      </Box>
-                                    </Box>
-                                  )}
-                                  {fileStatus.status === "completed" && (
-                                    <Box
-                                      sx={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 1,
-                                      }}
-                                    >
-                                      <CheckCircleOutline
-                                        fontSize="small"
-                                        color="success"
-                                      />
-                                      <Typography
-                                        variant="caption"
-                                        color="success.main"
-                                      >
-                                        Complete
-                                      </Typography>
-                                    </Box>
-                                  )}
-                                  {fileStatus.status === "error" && (
-                                    <Box
-                                      sx={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 1,
-                                      }}
-                                    >
-                                      <Error fontSize="small" color="error" />
-                                      <Typography
-                                        variant="caption"
-                                        color="error"
-                                      >
-                                        Error
-                                      </Typography>
-                                    </Box>
-                                  )}
-                                </Box>
-                              ) : (
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 1,
-                                  }}
-                                >
-                                  {file.isProcessed ? (
-                                    <>
-                                      <CheckCircleOutline
-                                        fontSize="small"
-                                        color="success"
-                                      />
-                                      <Typography
-                                        variant="caption"
-                                        color="success.main"
-                                      >
-                                        Processed
-                                      </Typography>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <PendingOutlined
-                                        fontSize="small"
-                                        color="action"
-                                      />
-                                      <Typography
-                                        variant="caption"
-                                        color="text.secondary"
-                                      >
-                                        Not processed
-                                      </Typography>
-                                    </>
-                                  )}
-                                </Box>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {file.isProcessed
-                                ? new Date(file.zipLastModified).toLocaleString(
-                                    "en-GB",
-                                    dateOptions,
-                                  )
-                                : "-"}
-                            </TableCell>
-
-                            <TableCell>
-                              {file.processedSize
-                                ? formatFileSize(file.processedSize)
-                                : "-"}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={6} align="center">
-                          <Box
-                            sx={{
-                              p: 4,
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              gap: 2,
-                            }}
-                          >
-                            <FolderOff
-                              sx={{
-                                fontSize: "2rem",
-                                color: "text.disabled",
-                              }}
-                            />
-                            <Typography color="text.secondary">
-                              No images found
+                            ) : (
+                              <Typography variant="body2" color="text.disabled">—</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              variant="body2"
+                              color={file.registrationSection ? "text.primary" : "text.disabled"}
+                            >
+                              {file.registrationSection
+                                ? `${file.registrationSection.width || "?"} × ${file.registrationSection.height || "?"}`
+                                : "—"}
                             </Typography>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-                <Box
-                  sx={{ display: "flex", gap: 2, width: "100%", justifyContent: "space-between", mt: 2 }}
-                >
-                  <Box sx={{ mt: 1, width: "100%" }}>
-                    <Typography variant="body2" sx={{ mb: 1, textAlign: "left", color: "text.secondary" }}>
-                      Progress:{" "}
-                      {Math.max(pyramidCount, Math.round((calculateOverallProgress() / 100) * (brainStats.files || 0)))}{" "}
-                      / {brainStats.files || 0} images
-                    </Typography>
-                    <LinearProgress
-                      variant="determinate"
-                      value={calculateOverallProgress()}
-                      sx={{ height: 8, borderRadius: 4, backgroundColor: (theme) => theme.palette.grey[200], "& .MuiLinearProgress-bar": { borderRadius: 4 } }}
-                    />
-                  </Box>
-                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                    <Button
-                      variant="outlined"
-                      disabled={isProcessing || pyramidComplete || brainStats.files === 0}
-                      onClick={() => processTiffFiles()}
-                      sx={{ size: "md", borderColor: (theme) => theme.palette.grey[800], color: (theme) => theme.palette.grey[800], "&:hover": { borderColor: (theme) => theme.palette.grey[900], backgroundColor: (theme) => theme.palette.action.hover } }}
-                    >
-                      {pyramidComplete ? "Complete" : isProcessing ? "Converting..." : "Convert"}
-                    </Button>
-                  </Box>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center">
+                        <Box
+                          sx={{
+                            p: 4,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 2,
+                          }}
+                        >
+                          <FolderOff sx={{ fontSize: "2rem", color: "text.disabled" }} />
+                          <Typography color="text.secondary">No images found</Typography>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            {!kgSettings && (
+              <Box
+                sx={{ display: "flex", gap: 2, width: "100%", justifyContent: "space-between", mt: 2 }}
+              >
+                <Box sx={{ mt: 1, width: "100%" }}>
+                  <Typography variant="body2" sx={{ mb: 1, textAlign: "left", color: "text.secondary" }}>
+                    Progress:{" "}
+                    {Math.max(pyramidCount, Math.round((calculateOverallProgress() / 100) * (brainStats.files || 0)))}{" "}
+                    / {brainStats.files || 0} images
+                  </Typography>
+                  <LinearProgress
+                    variant="determinate"
+                    value={calculateOverallProgress()}
+                    sx={{ height: 8, borderRadius: 4, backgroundColor: (theme) => theme.palette.grey[200], "& .MuiLinearProgress-bar": { borderRadius: 4 } }}
+                  />
+                </Box>
+                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                  <Button
+                    variant="outlined"
+                    disabled={isProcessing || pyramidComplete || brainStats.files === 0}
+                    onClick={() => processTiffFiles()}
+                    sx={{ size: "md", borderColor: (theme) => theme.palette.grey[800], color: (theme) => theme.palette.grey[800], "&:hover": { borderColor: (theme) => theme.palette.grey[900], backgroundColor: (theme) => theme.palette.action.hover } }}
+                  >
+                    {pyramidComplete ? "Complete" : isProcessing ? "Converting..." : "Convert"}
+                  </Button>
                 </Box>
               </Box>
             )}
@@ -1010,7 +953,9 @@ const QuickActions = ({
           <Atlas
             token={token}
             bucketName={bucketName}
-            dzips={brainPyramids.zips}
+            dzips={kgSettings ? externalPyramids : brainPyramids.zips}
+            kgDziproot={kgSettings?.dziproot}
+            brainPath={braininfo?.path}
             updateInfo={({ open, message, severity }) => {
               if (open) {
                 if (severity === "error") showError(message);

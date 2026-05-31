@@ -56,10 +56,10 @@ function Atlas({
   bucketName,
   dzips,
   token,
-  showWarning,
-  showError,
-  showInfo,
+  updateInfo,
   refreshBrain,
+  kgDziproot,
+  brainPath,
 }) {
   // Early return before any hooks are called
   if (!bucketName || !dzips || !token) {
@@ -70,15 +70,8 @@ function Atlas({
   const [creating, setCreating] = useState(false);
   const [imageCount, setImageCount] = useState(0);
   const [atlasProgress, setAtlasProgress] = useState(0);
-  const [fileExtension, setFileExtension] = useState("lz");
 
-  const createAtlas = async (
-    atlasName,
-    bucketName,
-    dzips,
-    token,
-    fileExtension
-  ) => {
+  const createAtlas = async (atlasName, bucketName, dzips, token) => {
     logger.info("Creating atlas", {
       atlasName,
       bucketName,
@@ -86,25 +79,46 @@ function Atlas({
     });
 
     const sortedDzips = [...dzips].sort((a, b) => a.name.localeCompare(b.name));
-    const split = dzips[0].name.split("/");
-    const uploadObj = {
-      token: token,
-      bucketName: bucketName,
-      projectName: split[0],
-      brainName: split[1],
-    };
-    let brainAnnounce = uploadObj.brainName; // find a use for this
+
+    // Resolve upload path from explicit brainPath prop or from first dzip's path
+    let projectName, brainName;
+    if (brainPath) {
+      const parts = brainPath.replace(/\/$/, "").split("/");
+      projectName = parts[0];
+      brainName = parts[1];
+    } else {
+      const split = dzips[0].name.split("/");
+      projectName = split[0];
+      brainName = split[1];
+    }
+    const uploadObj = { token, bucketName, projectName, brainName };
 
     try {
-      const pathParts = dzips[0].name.split("/");
-      pathParts.pop();
-      const dziproot = pathParts.join("/");
+      // Determine dziproot and URL builder based on source
+      let atlasDziproot;
+      let getDzipUrl;
+
+      if (kgDziproot) {
+        // External KG source: dzips live in a different bucket
+        atlasDziproot = kgDziproot;
+        const BUCKET_BASE = "https://data-proxy.ebrains.eu/api/v1/buckets/";
+        const stripped = kgDziproot.replace(/\/$/, "").slice(BUCKET_BASE.length);
+        const extBucket = stripped.split("/")[0];
+        getDzipUrl = (dzipObj) => `${BUCKET_BASE}${extBucket}/${dzipObj.name}`;
+      } else {
+        // Local bucket source
+        const pathParts = dzips[0].name.split("/");
+        pathParts.pop();
+        atlasDziproot = pathParts.join("/") + "/";
+        getDzipUrl = (dzipObj) =>
+          `https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}/${dzipObj.name}`;
+      }
 
       const atlas = {
         atlas: atlasName,
         sections: [],
         bucket: bucketName,
-        dziproot: dziproot + "/",
+        dziproot: atlasDziproot,
       };
 
       // Redirect param expected for authenticated downloads
@@ -118,11 +132,7 @@ function Atlas({
       };
 
       for (let [index, dzipObj] of sortedDzips.entries()) {
-        const zipdir = await netunzip(
-          urlLocator(
-            `https://data-proxy.ebrains.eu/api/v1/buckets/${bucketName}/${dzipObj.name}`
-          )
-        );
+        const zipdir = await netunzip(urlLocator(getDzipUrl(dzipObj)));
 
         const dziEntry = Array.from(zipdir.entries.values()).find((entry) =>
           entry.name.endsWith(".dzi")
@@ -149,7 +159,7 @@ function Atlas({
         .toISOString()
         .replace(/[:.]/g, "-")
         .replace("T", "_")
-        .slice(0, 19)}.${fileExtension}`;
+        .slice(0, 19)}.waln`;
       const response = await uploadToJson(uploadObj, walnName, atlas);
       return atlas;
     } catch (error) {
@@ -229,28 +239,6 @@ function Atlas({
             </Select>
           </FormControl>
 
-          <FormControl
-            variant="standard"
-            sx={{
-              margin: "1px",
-              width: "20%",
-            }}
-          >
-            <InputLabel htmlFor="extension-select">File Extension</InputLabel>
-            <Select
-              value={fileExtension}
-              id="extension-select"
-              label="File Extension"
-              dense="true"
-              onChange={(event) => {
-                setFileExtension(event.target.value);
-              }}
-            >
-              <MenuItem value="lz">lz</MenuItem>
-              <MenuItem value="waln">waln</MenuItem>
-              <MenuItem value="json">json</MenuItem>
-            </Select>
-          </FormControl>
           {creating && <Typography>Generating registration...</Typography>}
           {!creating && (
             <Button
@@ -266,35 +254,24 @@ function Atlas({
               }}
               onClick={async () => {
                 if (!atlasName) {
-                  showError("Please select an atlas");
+                  updateInfo({ open: true, message: "Please select an atlas", severity: "error" });
                   return;
                 }
                 if (!bucketName || !dzips || !token) {
-                  showError("Missing required parameters for createAtlas");
-
+                  updateInfo({ open: true, message: "Missing required parameters for createAtlas", severity: "error" });
                   logger.warn("Missing required parameters for createAtlas");
                   return;
                 }
                 if (dzips.length === 0) {
-                  showError("No DZIPs provided for atlas creation");
-                  // Reset creating state to false
-                  // moved to logic onclick as the button carried onto execute refreshBrain
+                  updateInfo({ open: true, message: "No DZIPs provided for atlas creation", severity: "error" });
                   logger.warn("No DZIPs provided for atlas creation");
                   return;
                 }
 
                 setCreating(true);
                 logger.debug("Submitting atlas creation request");
-                showInfo(
-                  "Generation of the registration file is in progress..."
-                );
-                await createAtlas(
-                  atlasName,
-                  bucketName,
-                  dzips,
-                  token,
-                  fileExtension
-                );
+                updateInfo({ open: true, message: "Generation of the registration file is in progress...", severity: "info" });
+                await createAtlas(atlasName, bucketName, dzips, token);
                 refreshBrain();
                 setCreating(false);
               }}

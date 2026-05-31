@@ -210,7 +210,7 @@ export default function QuintTable({ token, user }) {
       const userName = user?.username;
       if (!userName) return;
       logger.info("User info received by table", { user: user?.username });
-      const collabName = `rwb-${userName}`;
+      const collabName = `lv-${userName}`;
       setBucketName(collabName);
 
       const initializeWorkspace = async () => {
@@ -255,7 +255,7 @@ export default function QuintTable({ token, user }) {
 
       initializeWorkspace();
 
-      fetchAvailableBuckets(token, "rwb")
+      fetchAvailableBuckets(token, "lv")
         .then((buckets) => {
           logger.debug("Available buckets fetched", buckets);
           setAvailableBuckets(buckets);
