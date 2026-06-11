@@ -146,11 +146,19 @@ const QuickActions = ({
     try {
       const stripped = kgSettings.dziproot.replace(/\/$/, "").slice(DATA_PROXY_BASE.length);
       const slashIdx = stripped.indexOf("/");
-      if (slashIdx === -1) return;
-      const extBucket = stripped.slice(0, slashIdx);
-      const prefix = stripped.slice(slashIdx + 1) + "/";
+      let extBucket, prefix;
+      if (slashIdx === -1) {
+        // dziproot points to the bucket root — no subfolder prefix
+        extBucket = stripped;
+        prefix = "";
+      } else {
+        extBucket = stripped.slice(0, slashIdx);
+        prefix = stripped.slice(slashIdx + 1) + "/";
+      }
       setLoadingExternalPyramids(true);
-      const url = `${DATA_PROXY_BASE}${extBucket}?prefix=${encodeURIComponent(prefix)}&limit=1000`;
+      const url = prefix
+        ? `${DATA_PROXY_BASE}${extBucket}?prefix=${encodeURIComponent(prefix)}&limit=1000`
+        : `${DATA_PROXY_BASE}${extBucket}?limit=1000`;
       fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : {})
         .then((r) => r.json())
         .then((data) => {
@@ -168,45 +176,82 @@ const QuickActions = ({
   // for local brains extends unifiedFiles with any dzip-only rows (dzips without a matching raw image)
   const allFiles = useMemo(() => {
     const walnSections = walnContent?.sections || walnContent?.slices || [];
-    const walnFallback = (rows) =>
-      rows.length > 0
-        ? rows
-        : walnSections.map((section, i) => ({
-            id: section.filename || `section-${i}`,
-            fileName:
-              section.filename?.split("/").pop()?.replace(".dzip", "") ||
-              `section-${i + 1}`,
+
+    // Apply the transform rule: e.g. "_thumbnail.png=.tif.dzip" maps
+    // a section filename to its expected dzip basename
+    const applyTransform = (filename, transform) => {
+      if (!transform || !filename) return filename;
+      const eqIdx = transform.indexOf("=");
+      if (eqIdx === -1) return filename;
+      const from = transform.slice(0, eqIdx);
+      const to = transform.slice(eqIdx + 1);
+      return filename.endsWith(from)
+        ? filename.slice(0, -from.length) + to
+        : filename;
+    };
+
+    if (kgSettings) {
+      const transform = kgSettings.transform || null;
+
+      // Build a map from expected dzip basename → WALN section
+      const sectionByDzip = new Map();
+      walnSections.forEach((section) => {
+        const sectionBase = section.filename?.split("/").pop() || "";
+        const dzipBase = applyTransform(sectionBase, transform);
+        sectionByDzip.set(dzipBase, section);
+        // Also index by raw section basename in case transform isn't set
+        if (dzipBase !== sectionBase) sectionByDzip.set(sectionBase, section);
+      });
+
+      if (externalPyramids.length > 0) {
+        // Cross-reference fetched dzip files with registered sections
+        return externalPyramids.map((zip) => {
+          const dzipBaseName = zip.name.split("/").pop();
+          const section =
+            sectionByDzip.get(dzipBaseName) ||
+            sectionByDzip.get(dzipBaseName.replace(".dzip", ""));
+          return {
+            id: zip.name,
+            fileName: dzipBaseName.replace(".dzip", ""),
             rawPath: null,
             rawSize: null,
             rawLastModified: null,
-            zipLastModified: null,
+            zipLastModified: new Date(zip.last_modified).getTime(),
             isProcessed: true,
-            processedPath: section.filename || null,
-            processedSize: null,
-            processedLastModified: null,
+            processedPath: zip.name,
+            processedSize: zip.bytes || null,
+            processedLastModified: new Date(zip.last_modified).getTime(),
             dzipOnly: true,
-            fromWaln: true,
-            registrationSection: section,
+            registrationSection: section || null,
             hasOuv: Boolean(section?.ouv || section?.anchoring),
             hasMarkers: Boolean(section?.markers?.length),
-          }));
+          };
+        });
+      }
 
-    if (kgSettings) {
-      const kgRows = externalPyramids.map((zip) => ({
-        id: zip.name,
-        fileName: zip.name.split("/").pop().replace(".dzip", ""),
+      // No external pyramids yet — fall back to WALN sections
+      return walnSections.map((section, i) => ({
+        id: section.filename || `section-${i}`,
+        fileName:
+          section.filename?.split("/").pop()?.replace(".dzip", "") ||
+          `section-${i + 1}`,
         rawPath: null,
         rawSize: null,
         rawLastModified: null,
-        zipLastModified: new Date(zip.last_modified).getTime(),
+        zipLastModified: null,
         isProcessed: true,
-        processedPath: zip.name,
-        processedSize: zip.bytes || null,
-        processedLastModified: new Date(zip.last_modified).getTime(),
+        processedPath: section.filename || null,
+        processedSize: null,
+        processedLastModified: null,
         dzipOnly: true,
+        fromWaln: true,
+        registrationSection: section,
+        hasOuv: Boolean(section?.ouv || section?.anchoring),
+        hasMarkers: Boolean(section?.markers?.length),
       }));
-      return walnFallback(kgRows);
     }
+
+    // Local brain: unifiedFiles + any dzip-only rows
     const zippedImages = pyramidStats?.zips || [];
     const matchedNames = new Set(unifiedFiles.map((f) => f.fileName));
     const dzipOnlyRows = zippedImages
@@ -224,7 +269,29 @@ const QuickActions = ({
         processedLastModified: new Date(zip.last_modified).getTime(),
         dzipOnly: true,
       }));
-    return walnFallback([...unifiedFiles, ...dzipOnlyRows]);
+    const combined = [...unifiedFiles, ...dzipOnlyRows];
+
+    // WALN fallback for local brains with no raw/dzip files either
+    if (combined.length > 0) return combined;
+    return walnSections.map((section, i) => ({
+      id: section.filename || `section-${i}`,
+      fileName:
+        section.filename?.split("/").pop()?.replace(".dzip", "") ||
+        `section-${i + 1}`,
+      rawPath: null,
+      rawSize: null,
+      rawLastModified: null,
+      zipLastModified: null,
+      isProcessed: true,
+      processedPath: section.filename || null,
+      processedSize: null,
+      processedLastModified: null,
+      dzipOnly: true,
+      fromWaln: true,
+      registrationSection: section,
+      hasOuv: Boolean(section?.ouv || section?.anchoring),
+      hasMarkers: Boolean(section?.markers?.length),
+    }));
   }, [unifiedFiles, kgSettings, externalPyramids, pyramidStats, walnContent]);
 
   const [taskStatus, setTaskStatus] = useState({});

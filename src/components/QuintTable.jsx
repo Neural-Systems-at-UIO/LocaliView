@@ -433,7 +433,10 @@ export default function QuintTable({ token, user }) {
           setWalnContent(walnContent);
           // Detect KG brain: series JSON has an external absolute dziproot URL
           if (typeof walnContent?.dziproot === "string" && walnContent.dziproot.startsWith("http")) {
-            setKgSettings({ dziproot: walnContent.dziproot });
+            setKgSettings({
+              dziproot: walnContent.dziproot,
+              transform: walnContent.transform || null,
+            });
           } else {
             setKgSettings(null);
           }

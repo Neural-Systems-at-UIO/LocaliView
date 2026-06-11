@@ -12,10 +12,21 @@ export const parseServiceLink = (url) => {
   try {
     const u = new URL(url);
     const series = u.searchParams.get("series") || "";
+
+    // Prefer explicit dziproot param; fall back to pyramids (relative path used by KG links)
+    let dziproot = u.searchParams.get("dziproot") || "";
+    if (!dziproot) {
+      const pyramids = u.searchParams.get("pyramids") || "";
+      if (pyramids) {
+        // Convert relative "buckets/bucket-id[/prefix]" → full data-proxy URL
+        dziproot = "https://data-proxy.ebrains.eu/api/v1/" + pyramids.replace(/\/$/, "") + "/";
+      }
+    }
+
     return {
       atlas: u.searchParams.get("atlas") || "",
       series,
-      dziproot: u.searchParams.get("dziproot") || "",
+      dziproot,
       transform: u.searchParams.get("transform") || "",
       name: series.split("/").pop().replace(/\.json$/i, ""),
     };

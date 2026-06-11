@@ -170,6 +170,68 @@ export default function CreationDialog({
         if (!seriesContent.sections && Array.isArray(seriesContent.slices)) {
           seriesContent.sections = seriesContent.slices;
         }
+        // Rewrite section filenames to match actual dzip filenames in the pyramid bucket
+        // so WebAlign/WebWarp can locate tiles via dziproot + filename.
+        // Strategy: fetch the real bucket listing and match each section filename against
+        // what's actually there, rather than blindly appending ".dzip".
+        if (kgData.dziproot) {
+          const DATA_PROXY_BASE = "https://data-proxy.ebrains.eu/api/v1/buckets/";
+          const stripped = kgData.dziproot.replace(/\/$/, "").slice(DATA_PROXY_BASE.length);
+          const slashIdx = stripped.indexOf("/");
+          const extBucket = slashIdx === -1 ? stripped : stripped.slice(0, slashIdx);
+          const prefix = slashIdx === -1 ? "" : stripped.slice(slashIdx + 1) + "/";
+          let bucketFileSet = new Set();
+          try {
+            const listUrl = prefix
+              ? `${DATA_PROXY_BASE}${extBucket}?prefix=${encodeURIComponent(prefix)}&limit=5000`
+              : `${DATA_PROXY_BASE}${extBucket}?limit=5000`;
+            const listResp = await fetch(listUrl);
+            if (listResp.ok) {
+              const listData = await listResp.json();
+              (listData.objects || []).forEach((o) => {
+                const base = o.name.split("/").pop();
+                bucketFileSet.add(base);
+              });
+            }
+          } catch (e) {
+            logger.warn("Could not fetch pyramid bucket listing for filename resolution", e);
+          }
+          const transformRule = kgData.transform || null;
+          const toDzipFilename = (filename) => {
+            if (!filename) return filename;
+            // Already the right name → keep
+            if (bucketFileSet.size > 0 && bucketFileSet.has(filename.split("/").pop())) return filename;
+            // Explicit transform rule from the service link
+            if (transformRule) {
+              const eqIdx = transformRule.indexOf("=");
+              if (eqIdx !== -1) {
+                const from = transformRule.slice(0, eqIdx);
+                const to = transformRule.slice(eqIdx + 1);
+                if (filename.endsWith(from)) {
+                  const candidate = filename.slice(0, -from.length) + to;
+                  if (bucketFileSet.size === 0 || bucketFileSet.has(candidate.split("/").pop())) return candidate;
+                }
+              }
+            }
+            // Standard EBRAINS convention: append .dzip
+            if (!filename.endsWith(".dzip")) {
+              const candidate = filename + ".dzip";
+              if (bucketFileSet.size === 0 || bucketFileSet.has(candidate.split("/").pop())) return candidate;
+            }
+            // Nothing matched — keep original and let the tool deal with it
+            return filename;
+          };
+          const normalizeSections = (arr) =>
+            Array.isArray(arr)
+              ? arr.map((s) => (s.filename ? { ...s, filename: toDzipFilename(s.filename) } : s))
+              : arr;
+          if (Array.isArray(seriesContent.sections)) {
+            seriesContent.sections = normalizeSections(seriesContent.sections);
+          }
+          if (Array.isArray(seriesContent.slices)) {
+            seriesContent.slices = normalizeSections(seriesContent.slices);
+          }
+        }
         await uploadToJson(
           { token, bucketName: collabName, projectName: project.name, brainName: name },
           seriesFileName,
