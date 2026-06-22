@@ -43,6 +43,7 @@ import {
   downloadWalnJson,
   deleteItem,
   fetchAvailableBuckets,
+  uploadToJson,
 } from "../actions/handleCollabs.ts";
 import CreationDialog from "./CreationDialog.jsx";
 import BrainTable from "./BrainTable.jsx";
@@ -431,8 +432,117 @@ export default function QuintTable({ token, user }) {
             keys: Object.keys(walnContent || {}).length,
           });
           setWalnContent(walnContent);
-          // Detect KG brain: series JSON has an external absolute dziproot URL
-          if (typeof walnContent?.dziproot === "string" && walnContent.dziproot.startsWith("http")) {
+          // Detect KG brain. Check 'bucket' first (uncompressed layout) since an uncompressed
+          // WALN may also carry 'dziproot' as a reference URL; we don't want to mis-classify it.
+          if (
+            typeof walnContent?.bucket === "string" &&
+            bucketName &&
+            walnContent.bucket !== bucketName
+          ) {
+            // AP6: Uncompressed KG dataset — pyramid files in a separate external bucket
+            logger.debug("[KG detect] Uncompressed external bucket:", walnContent.bucket,
+              "dziproot:", walnContent.dziproot || "(none)");
+            const ks = {
+              bucket: walnContent.bucket,
+              // Keep dziproot if stored — used by auto-repair and DZI URL construction
+              dziproot: walnContent.dziproot || null,
+              transform: walnContent.transform || null,
+              isUncompressed: true,
+            };
+            setKgSettings(ks);
+
+            // Auto-repair: enrich sections that are missing DZI metadata (format/tilesize/overlap)
+            const sectionsMissingFormat = (walnContent.sections || []).filter(
+              (s) => s.filename && !s.format,
+            );
+            if (sectionsMissingFormat.length > 0) {
+              logger.debug(
+                `[KG repair] ${sectionsMissingFormat.length} sections lack format metadata — starting background repair`,
+              );
+              const extBucket = walnContent.bucket;
+              // Prefer stored dziproot base; otherwise fall back to /api/v1/{bucket}/ (imgsvc- style)
+              const dzipBase = (walnContent.dziproot || "").replace(/\/$/, "")
+                || `https://data-proxy.ebrains.eu/api/v1/${extBucket}`;
+              const parseDziXml = (xml) => ({
+                format: (xml.match(/Format="([^"]+)"/m) || [])[1] || null,
+                tilesize: parseInt((xml.match(/TileSize="(\d+)"/m) || [])[1], 10) || null,
+                overlap: parseInt((xml.match(/Overlap="(\d+)"/m) || [])[1], 10) || null,
+              });
+              const fetchDziXmlRepair = async (baseName) => {
+                const dziStem = baseName.replace(/\.[^.]+$/, "");
+                const redirectUrl = `${dzipBase}/${baseName}/${dziStem}.dzi?redirect=false`;
+                logger.debug(`[KG repair] DZI redirect: ${redirectUrl}`);
+                let resp = await fetch(redirectUrl, { headers: { Authorization: `Bearer ${token}` } });
+                // Fallback: if primary fails and we derived the base ourselves, try /api/v1/buckets/ scheme
+                if (!resp.ok && !walnContent.dziproot) {
+                  const fallbackUrl = `https://data-proxy.ebrains.eu/api/v1/buckets/${extBucket}/${baseName}/${dziStem}.dzi?redirect=false`;
+                  logger.debug(`[KG repair] Fallback DZI redirect: ${fallbackUrl}`);
+                  resp = await fetch(fallbackUrl, { headers: { Authorization: `Bearer ${token}` } });
+                }
+                if (!resp.ok) throw new Error(`redirect HTTP ${resp.status}`);
+                const { url: signedUrl } = await resp.json();
+                if (!signedUrl) throw new Error("No signed URL returned");
+                const xmlResp = await fetch(signedUrl);
+                if (!xmlResp.ok) throw new Error(`XML HTTP ${xmlResp.status}`);
+                return xmlResp.text();
+              };
+              // Run repair in background — don't block the UI
+              (async () => {
+                try {
+                  let repairOk = 0;
+                  let repairFail = 0;
+                  const repairedSections = await Promise.all(
+                    (walnContent.sections || []).map(async (section) => {
+                      if (!section.filename || section.format) return section;
+                      const baseName = section.filename.split("/").pop();
+                      try {
+                        const dziText = await fetchDziXmlRepair(baseName);
+                        const { format, tilesize, overlap } = parseDziXml(dziText);
+                        logger.debug(
+                          `[KG repair] ok ${baseName}: format=${format} tilesize=${tilesize} overlap=${overlap}`,
+                        );
+                        repairOk++;
+                        return {
+                          ...section,
+                          ...(format != null ? { format } : {}),
+                          ...(tilesize != null ? { tilesize } : {}),
+                          ...(overlap != null ? { overlap } : {}),
+                        };
+                      } catch (e) {
+                        repairFail++;
+                        logger.warn(`[KG repair] failed ${baseName}: ${e.message}`);
+                        return section;
+                      }
+                    }),
+                  );
+                  logger.debug(`[KG repair] Enrichment done: ${repairOk} ok, ${repairFail} failed`);
+                  if (repairOk > 0) {
+                    const repairedWaln = { ...walnContent, sections: repairedSections };
+                    setWalnContent(repairedWaln);
+                    // Re-upload patched WALN back to the user's bucket
+                    try {
+                      const parts = regFile.split("/");
+                      const projectName = parts[0];
+                      const brainName = parts[1];
+                      const fileName = parts[parts.length - 1];
+                      await uploadToJson(
+                        { token, bucketName, projectName, brainName },
+                        fileName,
+                        repairedWaln,
+                      );
+                      logger.debug("[KG repair] Re-uploaded patched WALN successfully");
+                    } catch (uploadErr) {
+                      logger.warn("[KG repair] Failed to re-upload patched WALN:", uploadErr);
+                    }
+                  }
+                } catch (e) {
+                  logger.warn("[KG repair] Repair task failed:", e);
+                }
+              })();
+            }
+          } else if (typeof walnContent?.dziproot === "string" && walnContent.dziproot.startsWith("http")) {
+            // AP6: DZIP external source (compressed pyramids)
+            logger.debug("[KG detect] DZIP external source:", walnContent.dziproot);
             setKgSettings({
               dziproot: walnContent.dziproot,
               transform: walnContent.transform || null,

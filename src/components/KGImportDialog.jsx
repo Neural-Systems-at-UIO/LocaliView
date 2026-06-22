@@ -2,11 +2,39 @@ import React, { useEffect, useState } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, List, ListItemButton, ListItemText,
-  Typography, Collapse, Box, CircularProgress, Chip, Divider,
+  Typography, Collapse, Box, CircularProgress, Chip, Divider, Tooltip, Switch, FormControlLabel,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { fetchLocaliZoomDatasets } from "../actions/kgCalls";
+
+// Atlases that LocaliView's WebAlign / WebWarp actually support
+const SUPPORTED_ATLASES = new Set([
+  // WHS Rat v2 — appears in LZ URLs as both the short code and the full name
+  "WHS_SD_Rat_v2_39um",
+  "Waxholm Space Atlas of the Sprague Dawley rat v2",
+  // WHS Rat v3
+  "WHS_SD_Rat_v3_39um",
+  // WHS Rat v4
+  "WHS_SD_Rat_v4_39um",
+  // Allen Mouse CCFv3 2017
+  "ABA_Mouse_CCFv3_2017_25um",
+  // Allen Mouse 2015
+  "Allen Mouse Brain Atlas version 3 2015",
+]);
+
+// A series is considered DZIP-compressed if its pyramid bucket is an imgsvc- bucket.
+// Old uncompressed datasets use img- prefixed bucket names.
+const isDzipSeries = (parsed) => {
+  if (!parsed?.dziproot) return false;
+  return parsed.dziproot.includes("imgsvc-");
+};
+
+const isCompatibleSeries = (link) => {
+  const parsed = parseServiceLink(link);
+  if (!parsed) return false;
+  return SUPPORTED_ATLASES.has(parsed.atlas) && isDzipSeries(parsed);
+};
 
 export const parseServiceLink = (url) => {
   try {
@@ -41,6 +69,7 @@ export default function KGImportDialog({ open, onClose, onSelect, token }) {
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState("");
   const [expanded, setExpanded] = useState(null);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     if (!open || datasets.length) return;
@@ -52,16 +81,42 @@ export default function KGImportDialog({ open, onClose, onSelect, token }) {
       .finally(() => setLoading(false));
   }, [open]);
 
-  const filtered = datasets.filter(
-    (d) =>
-      !filter ||
-      (d.shortName || d.fullName).toLowerCase().includes(filter.toLowerCase()) ||
-      d.doi.includes(filter)
-  );
+  const filtered = datasets
+    .filter((d) => showAll || d.serviceLinks.some(isCompatibleSeries))
+    .filter(
+      (d) =>
+        !filter ||
+        (d.shortName || d.fullName).toLowerCase().includes(filter.toLowerCase()) ||
+        d.doi.includes(filter),
+    );
+
+  const hiddenCount = datasets.filter((d) => !d.serviceLinks.some(isCompatibleSeries)).length;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ style: { minHeight: "70vh" } }}>
-      <DialogTitle>Import from KG Datasets</DialogTitle>
+      <DialogTitle>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
+          <span>Import from KG Datasets</span>
+          <Tooltip title="When on, only shows datasets with a supported atlas (WHS Rat / Allen Mouse) and compressed (DZIP) images">
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  checked={!showAll}
+                  onChange={(e) => setShowAll(!e.target.checked)}
+                />
+              }
+              label={
+                <Typography variant="caption">
+                  Compatible only{!showAll && hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ""}
+                </Typography>
+              }
+              labelPlacement="start"
+              sx={{ mr: 0, ml: 0 }}
+            />
+          </Tooltip>
+        </Box>
+      </DialogTitle>
       <DialogContent>
         <TextField
           fullWidth
@@ -127,25 +182,43 @@ export default function KGImportDialog({ open, onClose, onSelect, token }) {
                     {d.serviceLinks.map((link, i) => {
                       const parsed = parseServiceLink(link);
                       if (!parsed) return null;
+                      const atlasOk = SUPPORTED_ATLASES.has(parsed.atlas);
+                      const dzipOk = isDzipSeries(parsed);
+                      const compatible = atlasOk && dzipOk;
+                      if (!showAll && !compatible) return null;
+                      const incompatibleReason = !atlasOk
+                        ? "Atlas not supported by LocaliView"
+                        : !dzipOk
+                        ? "Images are uncompressed (not DZIP) — import not supported"
+                        : null;
                       return (
                         <Box
                           key={i}
-                          sx={{ mb: 1, p: 1, border: "1px solid #e0e0e0", borderRadius: 1, bgcolor: "#fafafa" }}
+                          sx={{ mb: 1, p: 1, border: "1px solid", borderColor: compatible ? "#e0e0e0" : "warning.light", borderRadius: 1, bgcolor: compatible ? "#fafafa" : "#fffbf0" }}
                         >
-                          <Typography variant="caption" sx={{ fontFamily: "monospace", display: "block", wordBreak: "break-all", mb: 0.5 }}>
-                            <strong>{parsed.name}</strong> · {parsed.atlas}
-                          </Typography>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            color="info"
-                            onClick={() => {
-                              onSelect({ ...parsed, doi: d.doi, shortName: d.shortName || d.fullName });
-                              onClose();
-                            }}
-                          >
-                            Import this series
-                          </Button>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5, flexWrap: "wrap" }}>
+                            <Typography variant="caption" sx={{ fontFamily: "monospace", wordBreak: "break-all", flexGrow: 1 }}>
+                              <strong>{parsed.name}</strong> · {parsed.atlas}
+                            </Typography>
+                            {!atlasOk && <Chip size="small" label="Unsupported atlas" color="warning" variant="outlined" sx={{ fontSize: "0.65rem", height: 18 }} />}
+                            {atlasOk && !dzipOk && <Chip size="small" label="Uncompressed" color="warning" variant="outlined" sx={{ fontSize: "0.65rem", height: 18 }} />}
+                          </Box>
+                          <Tooltip title={incompatibleReason || ""}>
+                            <span>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color={compatible ? "info" : "warning"}
+                                disabled={!compatible}
+                                onClick={() => {
+                                  onSelect({ ...parsed, doi: d.doi, shortName: d.shortName || d.fullName });
+                                  onClose();
+                                }}
+                              >
+                                {compatible ? "Import this series" : "Not importable"}
+                              </Button>
+                            </span>
+                          </Tooltip>
                         </Box>
                       );
                     })}

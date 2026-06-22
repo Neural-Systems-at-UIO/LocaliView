@@ -138,39 +138,84 @@ const QuickActions = ({
   const [loadingExternalPyramids, setLoadingExternalPyramids] = useState(false);
 
   useEffect(() => {
-    if (!kgSettings?.dziproot) {
+    // Clear when no KG settings at all
+    if (!kgSettings) {
       setExternalPyramids([]);
       return;
     }
+
     const DATA_PROXY_BASE = "https://data-proxy.ebrains.eu/api/v1/buckets/";
+
+    if (kgSettings.isUncompressed && kgSettings.bucket) {
+      // AP7: Uncompressed layout — each image lives in its own directory inside the bucket.
+      // List the bucket and extract unique top-level directory names as virtual entries.
+      setLoadingExternalPyramids(true);
+      const url = `${DATA_PROXY_BASE}${kgSettings.bucket}?limit=5000`;
+      logger.debug("[KG pyramids] Fetching uncompressed bucket listing:", url);
+      fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : {})
+        .then((r) => r.json())
+        .then((data) => {
+          const dirNames = new Set();
+          (data.objects || []).forEach((o) => {
+            const parts = o.name.split("/");
+            if (parts.length >= 2) dirNames.add(parts[0]);
+          });
+          const entries = [...dirNames].sort().map((dir) => ({
+            name: dir,
+            bytes: null,
+            last_modified: null,
+          }));
+          logger.debug(`[KG pyramids] Uncompressed: found ${entries.length} image directories`
+            + (entries.length ? `, sample: ${entries.slice(0, 3).map((e) => e.name).join(", ")}` : ""));
+          setExternalPyramids(entries);
+        })
+        .catch((e) => logger.warn("[KG pyramids] Failed to list uncompressed bucket", e))
+        .finally(() => setLoadingExternalPyramids(false));
+      return;
+    }
+
+    if (!kgSettings.dziproot) {
+      setExternalPyramids([]);
+      return;
+    }
+
+    // DZIP layout (existing behaviour)
     try {
-      const stripped = kgSettings.dziproot.replace(/\/$/, "").slice(DATA_PROXY_BASE.length);
-      const slashIdx = stripped.indexOf("/");
+      // Parse the dziproot URL robustly: supports both
+      //   /api/v1/buckets/{bucketId}/[prefix]  (pyramids= style)
+      //   /api/v1/{bucketId}/[prefix]           (imgsvc- / dziproot= style)
+      const u = new URL(kgSettings.dziproot);
+      const segments = u.pathname.split("/").filter(Boolean);
+      const v1Idx = segments.indexOf("v1");
+      const afterV1 = v1Idx >= 0 ? segments.slice(v1Idx + 1) : segments;
       let extBucket, prefix;
-      if (slashIdx === -1) {
-        // dziproot points to the bucket root — no subfolder prefix
-        extBucket = stripped;
-        prefix = "";
+      if (afterV1[0] === "buckets") {
+        extBucket = afterV1[1];
+        prefix = afterV1.slice(2).join("/");
       } else {
-        extBucket = stripped.slice(0, slashIdx);
-        prefix = stripped.slice(slashIdx + 1) + "/";
+        extBucket = afterV1[0];
+        prefix = afterV1.slice(1).join("/");
       }
+      if (prefix && !prefix.endsWith("/")) prefix += "/";
+      logger.debug(`[KG pyramids] Parsed dziproot → bucket="${extBucket}" prefix="${prefix}"`);
       setLoadingExternalPyramids(true);
       const url = prefix
         ? `${DATA_PROXY_BASE}${extBucket}?prefix=${encodeURIComponent(prefix)}&limit=1000`
         : `${DATA_PROXY_BASE}${extBucket}?limit=1000`;
+      logger.debug("[KG pyramids] Fetching DZIP bucket listing:", url);
       fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : {})
         .then((r) => r.json())
         .then((data) => {
           const files = (data.objects || []).filter((o) => o.name.endsWith(".dzip"));
+          logger.debug(`[KG pyramids] DZIP: found ${files.length} .dzip files`);
           setExternalPyramids(files);
         })
-        .catch((e) => logger.warn("Failed to fetch external pyramids", e))
+        .catch((e) => logger.warn("[KG pyramids] Failed to fetch DZIP pyramids", e))
         .finally(() => setLoadingExternalPyramids(false));
     } catch (e) {
-      logger.warn("Failed to parse dziproot for external pyramids", e);
+      logger.warn("[KG pyramids] Failed to parse dziproot", e);
     }
-  }, [kgSettings?.dziproot, token]);
+  }, [kgSettings?.dziproot, kgSettings?.bucket, kgSettings?.isUncompressed, token]);
 
   // Combined file list: for KG brains uses externalPyramids as dzip-only rows;
   // for local brains extends unifiedFiles with any dzip-only rows (dzips without a matching raw image)
@@ -725,12 +770,12 @@ const QuickActions = ({
                 }}
               >
                 <CloudQueue fontSize="small" color="info" sx={{ mt: 0.25, flexShrink: 0 }} />
-                <Box sx={{ minWidth: 0 }}>
+                <Box sx={{ minWidth: 0, flex: 1, textAlign: "left" }}>
                   <Typography variant="caption" fontWeight={600} color="info.dark">
                     Images served from external source
                   </Typography>
-                  {kgSettings.dziproot && (
-                    <Tooltip title={kgSettings.dziproot}>
+                  {(kgSettings.dziproot || kgSettings.bucket) && (
+                    <Tooltip title={kgSettings.dziproot || kgSettings.bucket}>
                       <Typography
                         variant="caption"
                         color="text.secondary"
@@ -742,7 +787,7 @@ const QuickActions = ({
                           whiteSpace: "nowrap",
                         }}
                       >
-                        {kgSettings.dziproot}
+                        {kgSettings.dziproot || `bucket: ${kgSettings.bucket}`}
                       </Typography>
                     </Tooltip>
                   )}

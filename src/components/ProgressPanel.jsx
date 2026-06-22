@@ -144,12 +144,19 @@ export default function ProgressPanel({
             direction="row"
             spacing={1}
             alignItems="center"
-            sx={{ minWidth: 0 }}
+            sx={{ minWidth: 0, textAlign: "left" }}
           >
-            <MapIcon color="primary" sx={{ fontSize: 18, flexShrink: 0 }} />
-            <Typography variant="subtitle2" color="primary" noWrap>
-              {atlasNames[walnContent.atlas] ?? walnContent.atlas}
-            </Typography>
+             <MapIcon color="primary" sx={{ fontSize: 18, flexShrink: 0 }} /> 
+            <Stack direction="column" spacing={0} sx={{ minWidth: 0 }}>
+              <Typography variant="subtitle2" color="primary" noWrap>
+                {atlasNames[walnContent.atlas] ?? walnContent.atlas}
+              </Typography>
+              {currentRegistration && (
+                <Typography variant="caption" color="text.secondary" noWrap>
+                  {currentRegistration.split("/").pop()}
+                </Typography>
+              )}
+            </Stack>
           </Stack>
           <Stack direction="row" spacing={0.5} alignItems="center">
             <Tooltip title={`${totalImages} sections in alignment`}>
@@ -199,6 +206,7 @@ export default function ProgressPanel({
               border: "1px solid rgba(237, 108, 2, 0.3)",
             }}
           >
+            {/* Add warning  so when a kg imported series registration is attempted to be deleted */}
             <WarningAmberIcon
               sx={{ fontSize: 14, color: "warning.main", flexShrink: 0 }}
             />

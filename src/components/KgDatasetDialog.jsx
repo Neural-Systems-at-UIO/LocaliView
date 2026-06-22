@@ -105,6 +105,9 @@ function getDataEntries(viewDataItems) {
   for (const item of viewDataItems) {
     const parsed = parseDzipRoot(item);
     if (!parsed) continue;
+    // Only surface DZIP-compressed entries: imgsvc- bucket prefix is the reliable indicator.
+    // Old uncompressed datasets use img- prefixed buckets and are not supported.
+    if (!parsed.bucket.startsWith("imgsvc-")) continue;
     const key = `${parsed.bucket}/${parsed.objectPath}`;
     if (seen.has(key)) continue;
     seen.add(key);

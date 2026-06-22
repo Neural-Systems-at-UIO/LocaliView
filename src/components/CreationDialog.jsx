@@ -158,78 +158,211 @@ export default function CreationDialog({
           throw new Error(`Failed to fetch series JSON: ${seriesResp.status}`);
         }
         const seriesContent = await seriesResp.json();
-        // Inject dziproot from the KG service link so tools know where pyramids are
-        if (kgData.dziproot) {
-          seriesContent.dziproot = kgData.dziproot;
-        }
+        // dziproot/bucket will be resolved below after parsing the URL into extBucket + prefix
         // Inject atlas if the series JSON doesn't already carry it
         if (kgData.atlas && !seriesContent.atlas) {
           seriesContent.atlas = kgData.atlas;
         }
-        // Normalize: KG series JSONs use 'slices', WebAlign/WebWarp expect 'sections'
+        // AP1+AP2: Normalize slices→sections, rename anchoring→ouv, remove redundant slices field
         if (!seriesContent.sections && Array.isArray(seriesContent.slices)) {
           seriesContent.sections = seriesContent.slices;
+          console.log("[KG import] Copied slices → sections:", seriesContent.sections.length, "entries");
         }
-        // Rewrite section filenames to match actual dzip filenames in the pyramid bucket
-        // so WebAlign/WebWarp can locate tiles via dziproot + filename.
-        // Strategy: fetch the real bucket listing and match each section filename against
-        // what's actually there, rather than blindly appending ".dzip".
+        // Rename anchoring → ouv: LZ descriptor uses 'anchoring', WebAlign/WebWarp expect 'ouv'
+        const renameAnchoringToOuv = (section) => {
+          if (!section || typeof section !== "object") return section;
+          if ("anchoring" in section && !("ouv" in section)) {
+            const { anchoring, ...rest } = section;
+            return { ...rest, ouv: anchoring };
+          }
+          return section;
+        };
+        if (Array.isArray(seriesContent.sections)) {
+          const anchorCount = seriesContent.sections.filter((s) => "anchoring" in s).length;
+          seriesContent.sections = seriesContent.sections.map(renameAnchoringToOuv);
+          console.log(`[KG import] anchoring→ouv: renamed ${anchorCount} / ${seriesContent.sections.length} sections`);
+        }
+        // Remove redundant 'slices' field — it was copied to 'sections' above
+        if (seriesContent.slices) {
+          delete seriesContent.slices;
+          console.log("[KG import] Removed redundant 'slices' field from descriptor");
+        }
+
+        // AP3+AP4+AP5: Detect DZIP vs uncompressed layout; rewrite filenames or set bucket field
         if (kgData.dziproot) {
           const DATA_PROXY_BASE = "https://data-proxy.ebrains.eu/api/v1/buckets/";
-          const stripped = kgData.dziproot.replace(/\/$/, "").slice(DATA_PROXY_BASE.length);
-          const slashIdx = stripped.indexOf("/");
-          const extBucket = slashIdx === -1 ? stripped : stripped.slice(0, slashIdx);
-          const prefix = slashIdx === -1 ? "" : stripped.slice(slashIdx + 1) + "/";
+          // Parse the dziproot URL robustly: supports both
+          //   /api/v1/buckets/{bucketId}/[prefix]  (pyramids= style)
+          //   /api/v1/{bucketId}/[prefix]           (imgsvc- / dziproot= style)
+          let extBucket, prefix;
+          try {
+            const dzu = new URL(kgData.dziproot);
+            const segments = dzu.pathname.split("/").filter(Boolean);
+            const v1Idx = segments.indexOf("v1");
+            const afterV1 = v1Idx >= 0 ? segments.slice(v1Idx + 1) : segments;
+            if (afterV1[0] === "buckets") {
+              extBucket = afterV1[1];
+              const prefixParts = afterV1.slice(2);
+              prefix = prefixParts.length ? prefixParts.join("/") + "/" : "";
+            } else {
+              extBucket = afterV1[0];
+              const prefixParts = afterV1.slice(1);
+              prefix = prefixParts.length ? prefixParts.join("/") + "/" : "";
+            }
+          } catch (_) {
+            // Fallback: original slice logic for unexpected URL shapes
+            const stripped = kgData.dziproot.replace(/\/$/, "").slice(DATA_PROXY_BASE.length);
+            const slashIdx = stripped.indexOf("/");
+            extBucket = slashIdx === -1 ? stripped : stripped.slice(0, slashIdx);
+            prefix = slashIdx === -1 ? "" : stripped.slice(slashIdx + 1) + "/";
+          }
+          console.log(`[KG import] Parsed dziproot → bucket="${extBucket}" prefix="${prefix}"`);
+          let bucketObjects = [];
           let bucketFileSet = new Set();
           try {
             const listUrl = prefix
               ? `${DATA_PROXY_BASE}${extBucket}?prefix=${encodeURIComponent(prefix)}&limit=5000`
               : `${DATA_PROXY_BASE}${extBucket}?limit=5000`;
-            const listResp = await fetch(listUrl);
+            console.log("[KG import] Listing pyramid bucket:", listUrl);
+            // Send auth header — imgsvc- buckets require it; img- buckets tolerate it
+            const listResp = await fetch(listUrl, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
             if (listResp.ok) {
               const listData = await listResp.json();
-              (listData.objects || []).forEach((o) => {
+              bucketObjects = listData.objects || [];
+              bucketObjects.forEach((o) => {
                 const base = o.name.split("/").pop();
                 bucketFileSet.add(base);
               });
+              console.log(
+                `[KG import] Bucket has ${bucketObjects.length} objects, sample:`,
+                bucketObjects.slice(0, 3).map((o) => o.name),
+              );
+            } else {
+              console.warn(`[KG import] Bucket listing returned ${listResp.status} — falling back to name heuristic`);
             }
           } catch (e) {
-            logger.warn("Could not fetch pyramid bucket listing for filename resolution", e);
+            logger.warn("[KG import] Could not fetch pyramid bucket listing", e);
           }
-          const transformRule = kgData.transform || null;
-          const toDzipFilename = (filename) => {
-            if (!filename) return filename;
-            // Already the right name → keep
-            if (bucketFileSet.size > 0 && bucketFileSet.has(filename.split("/").pop())) return filename;
-            // Explicit transform rule from the service link
-            if (transformRule) {
-              const eqIdx = transformRule.indexOf("=");
-              if (eqIdx !== -1) {
-                const from = transformRule.slice(0, eqIdx);
-                const to = transformRule.slice(eqIdx + 1);
-                if (filename.endsWith(from)) {
-                  const candidate = filename.slice(0, -from.length) + to;
-                  if (bucketFileSet.size === 0 || bucketFileSet.has(candidate.split("/").pop())) return candidate;
+
+          // Detect layout:
+          //   1. Any .dzip in listing → compressed
+          //   2. Listing empty/failed but bucket name starts with imgsvc- → also compressed
+          //      (imgsvc- is exclusively used for DZIP compressed storage on EBRAINS)
+          //   3. Otherwise → old uncompressed pyramid directories (img- buckets)
+          const isDzip = bucketObjects.some((o) => o.name.endsWith(".dzip"))
+            || (bucketObjects.length === 0 && extBucket.startsWith("imgsvc-"));
+          console.log(
+            `[KG import] Pyramid layout: ${isDzip ? "DZIP (compressed)" : "uncompressed directories"}`,
+            `(listing had ${bucketObjects.length} objects, bucket="${extBucket}")`,
+          );
+
+          if (isDzip) {
+            // --- DZIP path (existing behaviour) ---
+            const transformRule = kgData.transform || null;
+            const toDzipFilename = (filename) => {
+              if (!filename) return filename;
+              if (bucketFileSet.size > 0 && bucketFileSet.has(filename.split("/").pop())) return filename;
+              if (transformRule) {
+                const eqIdx = transformRule.indexOf("=");
+                if (eqIdx !== -1) {
+                  const from = transformRule.slice(0, eqIdx);
+                  const to = transformRule.slice(eqIdx + 1);
+                  if (filename.endsWith(from)) {
+                    const candidate = filename.slice(0, -from.length) + to;
+                    if (bucketFileSet.size === 0 || bucketFileSet.has(candidate.split("/").pop())) return candidate;
+                  }
                 }
               }
+              if (!filename.endsWith(".dzip")) {
+                const candidate = filename + ".dzip";
+                if (bucketFileSet.size === 0 || bucketFileSet.has(candidate.split("/").pop())) return candidate;
+              }
+              return filename;
+            };
+            const normalizeSections = (arr) =>
+              Array.isArray(arr)
+                ? arr.map((s) => (s.filename ? { ...s, filename: toDzipFilename(s.filename) } : s))
+                : arr;
+            if (Array.isArray(seriesContent.sections)) {
+              seriesContent.sections = normalizeSections(seriesContent.sections);
+              console.log(
+                "[KG import] Rewrote section filenames to .dzip, sample:",
+                seriesContent.sections.slice(0, 2).map((s) => s.filename),
+              );
             }
-            // Standard EBRAINS convention: append .dzip
-            if (!filename.endsWith(".dzip")) {
-              const candidate = filename + ".dzip";
-              if (bucketFileSet.size === 0 || bucketFileSet.has(candidate.split("/").pop())) return candidate;
-            }
-            // Nothing matched — keep original and let the tool deal with it
-            return filename;
-          };
-          const normalizeSections = (arr) =>
-            Array.isArray(arr)
-              ? arr.map((s) => (s.filename ? { ...s, filename: toDzipFilename(s.filename) } : s))
-              : arr;
-          if (Array.isArray(seriesContent.sections)) {
-            seriesContent.sections = normalizeSections(seriesContent.sections);
-          }
-          if (Array.isArray(seriesContent.slices)) {
-            seriesContent.slices = normalizeSections(seriesContent.slices);
+            // Store bucket + relative prefix (not full URL)
+            seriesContent.bucket = extBucket;
+            seriesContent.dziproot = prefix;
+            console.log(`[KG import] DZIP layout → bucket="${extBucket}" dziproot="${prefix}"`);
+          } else {
+            // --- AP3: Uncompressed path ---
+            // Store the bare bucket name and relative prefix; WebAlign/WebWarp use these to build tile URLs.
+            seriesContent.bucket = extBucket;
+            seriesContent.dziproot = prefix;
+            console.log(`[KG import] Uncompressed layout → bucket="${extBucket}" dziproot="${prefix}"`);
+
+            // AP5: Fetch DZI XML for each section to inject format/tilesize/overlap metadata.
+            // imgsvc- buckets use /api/v1/imgsvc-xxx/ not /api/v1/buckets/imgsvc-xxx/ —
+            // build all redirect URLs from kgData.dziproot to avoid the scheme mismatch.
+            const parseDziXml = (xml) => ({
+              format: (xml.match(/Format="([^"]+)"/m) || [])[1] || null,
+              tilesize: parseInt((xml.match(/TileSize="(\d+)"/m) || [])[1], 10) || null,
+              overlap: parseInt((xml.match(/Overlap="(\d+)"/m) || [])[1], 10) || null,
+            });
+
+            const fetchDziXml = async (baseName) => {
+              // DZI sits inside the image directory, named without the file extension:
+              //   D1R_s001.tif  →  {dziproot}D1R_s001.tif/D1R_s001.dzi
+              // Use kgData.dziproot directly as the base — it already contains the correct
+              // scheme (/api/v1/imgsvc-xxx/ or /api/v1/buckets/xxx/prefix/) so we don't
+              // re-introduce a /api/v1/buckets/ mismatch for imgsvc- style buckets.
+              const dziStem = baseName.replace(/\.[^.]+$/, "");
+              const dzipBase = kgData.dziproot.replace(/\/$/, "");
+              const redirectUrl = `${dzipBase}/${baseName}/${dziStem}.dzi?redirect=false`;
+              console.log(`[KG import] Fetching DZI (redirect): ${redirectUrl}`);
+              // Step 1 – resolve signed URL
+              const redirectResp = await fetch(redirectUrl, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (!redirectResp.ok) throw new Error(`redirect HTTP ${redirectResp.status}`);
+              const { url: signedUrl } = await redirectResp.json();
+              if (!signedUrl) throw new Error("No signed URL returned");
+              // Step 2 – fetch actual XML
+              const xmlResp = await fetch(signedUrl);
+              if (!xmlResp.ok) throw new Error(`XML HTTP ${xmlResp.status}`);
+              return xmlResp.text();
+            };
+
+            let dziOk = 0;
+            let dziFail = 0;
+            const sections = seriesContent.sections || [];
+            console.log(`[KG import] Fetching DZI XML for ${sections.length} sections…`);
+            const enrichedSections = await Promise.all(
+              sections.map(async (section) => {
+                if (!section.filename) return section;
+                const baseName = section.filename.split("/").pop();
+                try {
+                  const dziText = await fetchDziXml(baseName);
+                  const { format, tilesize, overlap } = parseDziXml(dziText);
+                  console.log(`[KG import] DZI ok for ${baseName}: format=${format} tilesize=${tilesize} overlap=${overlap}`);
+                  dziOk++;
+                  return {
+                    ...section,
+                    ...(format != null ? { format } : {}),
+                    ...(tilesize != null ? { tilesize } : {}),
+                    ...(overlap != null ? { overlap } : {}),
+                  };
+                } catch (e) {
+                  dziFail++;
+                  logger.warn(`[KG import] Could not fetch DZI XML for ${baseName}: ${e.message}`);
+                  return section;
+                }
+              }),
+            );
+            seriesContent.sections = enrichedSections;
+            console.log(`[KG import] DZI metadata enrichment: ${dziOk} ok, ${dziFail} failed`);
           }
         }
         await uploadToJson(
@@ -353,7 +486,7 @@ export default function CreationDialog({
           )}
           {isUploading && (
             <Box sx={{ width: "100%", mt: 2 }}>
-              <DialogContentText>
+              <DialogContentText className="loading-shine" sx={{ mb: 1 }}>
                 {kgData ? "Importing..." : `Uploading: ${Math.round(uploadProgress)}%`}
               </DialogContentText>
               {!kgData && (
