@@ -23,11 +23,11 @@ const SUPPORTED_ATLASES = new Set([
   "Allen Mouse Brain Atlas version 3 2015",
 ]);
 
-// A series is considered DZIP-compressed if its pyramid bucket is an imgsvc- bucket.
-// Old uncompressed datasets use img- prefixed bucket names.
+// A series is considered DZIP-compressed if it has a pyramid/dziproot bucket.
+// Bucket naming changed from imgsvc- to img- — accept both.
 const isDzipSeries = (parsed) => {
   if (!parsed?.dziproot) return false;
-  return parsed.dziproot.includes("imgsvc-");
+  return parsed.dziproot.includes("imgsvc-") || parsed.dziproot.includes("img-");
 };
 
 const isCompatibleSeries = (link) => {
@@ -36,18 +36,40 @@ const isCompatibleSeries = (link) => {
   return SUPPORTED_ATLASES.has(parsed.atlas) && isDzipSeries(parsed);
 };
 
+const DATA_PROXY_BUCKETS = "https://data-proxy.ebrains.eu/api/v1/buckets/";
+
+/** Normalise a series/dziproot/pyramids value that may be either a full URL or a bare
+ *  bucket path (new KG naming: img-xxx/path or img-xxx). Returns a full data-proxy URL. */
+const toDataProxyUrl = (value, trailingSlash = false) => {
+  if (!value) return "";
+  try {
+    // Already a full URL — return as-is (optionally ensure trailing slash)
+    new URL(value);
+    return trailingSlash ? value.replace(/\/?$/, "/") : value;
+  } catch {
+    // Bare path: bucket[/prefix[/...]] → full data-proxy URL
+    const normalised = value.replace(/^\/?/, "").replace(/\/$/, "");
+    return DATA_PROXY_BUCKETS + normalised + (trailingSlash ? "/" : "");
+  }
+};
+
 export const parseServiceLink = (url) => {
   try {
     const u = new URL(url);
-    const series = u.searchParams.get("series") || "";
+    const rawSeries = u.searchParams.get("series") || "";
 
-    // Prefer explicit dziproot param; fall back to pyramids (relative path used by KG links)
-    let dziproot = u.searchParams.get("dziproot") || "";
+    // series may now be a bare path (new KG naming) — convert to full data-proxy URL
+    const series = toDataProxyUrl(rawSeries);
+
+    // Prefer explicit dziproot param; fall back to pyramids
+    let dziproot = toDataProxyUrl(u.searchParams.get("dziproot") || "", true);
     if (!dziproot) {
       const pyramids = u.searchParams.get("pyramids") || "";
       if (pyramids) {
-        // Convert relative "buckets/bucket-id[/prefix]" → full data-proxy URL
-        dziproot = "https://data-proxy.ebrains.eu/api/v1/" + pyramids.replace(/\/$/, "") + "/";
+        // Old format: "buckets/bucket-id[/prefix]"  New format: "bucket-id[/prefix]"
+        const hasBucketsPrefix = pyramids.startsWith("buckets/");
+        const path = hasBucketsPrefix ? pyramids : "buckets/" + pyramids.replace(/\/$/, "");
+        dziproot = "https://data-proxy.ebrains.eu/api/v1/" + path.replace(/\/$/, "") + "/";
       }
     }
 
@@ -56,7 +78,7 @@ export const parseServiceLink = (url) => {
       series,
       dziproot,
       transform: u.searchParams.get("transform") || "",
-      name: series.split("/").pop().replace(/\.json$/i, ""),
+      name: rawSeries.split("/").pop().replace(/\.json$/i, ""),
     };
   } catch {
     return null;

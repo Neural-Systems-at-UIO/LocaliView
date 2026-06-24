@@ -432,6 +432,12 @@ export default function QuintTable({ token, user }) {
             keys: Object.keys(walnContent || {}).length,
           });
           setWalnContent(walnContent);
+          logger.info("[KG detect] Series JSON:", {
+            sections: (walnContent?.sections || walnContent?.slices || []).length,
+            bucket: walnContent?.bucket || "(none)",
+            dziproot: walnContent?.dziproot || "(none)",
+            hasAtlas: !!walnContent?.atlas,
+          });
           // Detect KG brain. Check 'bucket' first (uncompressed layout) since an uncompressed
           // WALN may also carry 'dziproot' as a reference URL; we don't want to mis-classify it.
           if (
@@ -472,12 +478,14 @@ export default function QuintTable({ token, user }) {
                 const dziStem = baseName.replace(/\.[^.]+$/, "");
                 const redirectUrl = `${dzipBase}/${baseName}/${dziStem}.dzi?redirect=false`;
                 logger.debug(`[KG repair] DZI redirect: ${redirectUrl}`);
-                let resp = await fetch(redirectUrl, { headers: { Authorization: `Bearer ${token}` } });
+                // KG external buckets are public — omit Bearer unless it's the user's own bucket
+                const dziBucketHeaders = extBucket !== bucketName ? {} : (token ? { Authorization: `Bearer ${token}` } : {});
+                let resp = await fetch(redirectUrl, { headers: dziBucketHeaders });
                 // Fallback: if primary fails and we derived the base ourselves, try /api/v1/buckets/ scheme
                 if (!resp.ok && !walnContent.dziproot) {
                   const fallbackUrl = `https://data-proxy.ebrains.eu/api/v1/buckets/${extBucket}/${baseName}/${dziStem}.dzi?redirect=false`;
                   logger.debug(`[KG repair] Fallback DZI redirect: ${fallbackUrl}`);
-                  resp = await fetch(fallbackUrl, { headers: { Authorization: `Bearer ${token}` } });
+                  resp = await fetch(fallbackUrl, { headers: dziBucketHeaders });
                 }
                 if (!resp.ok) throw new Error(`redirect HTTP ${resp.status}`);
                 const { url: signedUrl } = await resp.json();
@@ -542,12 +550,13 @@ export default function QuintTable({ token, user }) {
             }
           } else if (typeof walnContent?.dziproot === "string" && walnContent.dziproot.startsWith("http")) {
             // AP6: DZIP external source (compressed pyramids)
-            logger.debug("[KG detect] DZIP external source:", walnContent.dziproot);
+            logger.info("[KG detect] DZIP → dziproot:", walnContent.dziproot);
             setKgSettings({
               dziproot: walnContent.dziproot,
               transform: walnContent.transform || null,
             });
           } else {
+            logger.info("[KG detect] Not KG (bucket matches workspace or dziproot absent/relative)");
             setKgSettings(null);
           }
         } catch (error) {

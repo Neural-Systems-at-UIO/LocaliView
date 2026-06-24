@@ -134,147 +134,25 @@ const QuickActions = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [bucketName, setBucketName] = useState(null);
 
-  const [externalPyramids, setExternalPyramids] = useState([]);
-  const [loadingExternalPyramids, setLoadingExternalPyramids] = useState(false);
-
-  useEffect(() => {
-    // Clear when no KG settings at all
-    if (!kgSettings) {
-      setExternalPyramids([]);
-      return;
-    }
-
-    const DATA_PROXY_BASE = "https://data-proxy.ebrains.eu/api/v1/buckets/";
-
-    if (kgSettings.isUncompressed && kgSettings.bucket) {
-      // AP7: Uncompressed layout — each image lives in its own directory inside the bucket.
-      // List the bucket and extract unique top-level directory names as virtual entries.
-      setLoadingExternalPyramids(true);
-      const url = `${DATA_PROXY_BASE}${kgSettings.bucket}?limit=5000`;
-      logger.debug("[KG pyramids] Fetching uncompressed bucket listing:", url);
-      fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : {})
-        .then((r) => r.json())
-        .then((data) => {
-          const dirNames = new Set();
-          (data.objects || []).forEach((o) => {
-            const parts = o.name.split("/");
-            if (parts.length >= 2) dirNames.add(parts[0]);
-          });
-          const entries = [...dirNames].sort().map((dir) => ({
-            name: dir,
-            bytes: null,
-            last_modified: null,
-          }));
-          logger.debug(`[KG pyramids] Uncompressed: found ${entries.length} image directories`
-            + (entries.length ? `, sample: ${entries.slice(0, 3).map((e) => e.name).join(", ")}` : ""));
-          setExternalPyramids(entries);
-        })
-        .catch((e) => logger.warn("[KG pyramids] Failed to list uncompressed bucket", e))
-        .finally(() => setLoadingExternalPyramids(false));
-      return;
-    }
-
-    if (!kgSettings.dziproot) {
-      setExternalPyramids([]);
-      return;
-    }
-
-    // DZIP layout (existing behaviour)
-    try {
-      // Parse the dziproot URL robustly: supports both
-      //   /api/v1/buckets/{bucketId}/[prefix]  (pyramids= style)
-      //   /api/v1/{bucketId}/[prefix]           (imgsvc- / dziproot= style)
-      const u = new URL(kgSettings.dziproot);
-      const segments = u.pathname.split("/").filter(Boolean);
-      const v1Idx = segments.indexOf("v1");
-      const afterV1 = v1Idx >= 0 ? segments.slice(v1Idx + 1) : segments;
-      let extBucket, prefix;
-      if (afterV1[0] === "buckets") {
-        extBucket = afterV1[1];
-        prefix = afterV1.slice(2).join("/");
-      } else {
-        extBucket = afterV1[0];
-        prefix = afterV1.slice(1).join("/");
-      }
-      if (prefix && !prefix.endsWith("/")) prefix += "/";
-      logger.debug(`[KG pyramids] Parsed dziproot → bucket="${extBucket}" prefix="${prefix}"`);
-      setLoadingExternalPyramids(true);
-      const url = prefix
-        ? `${DATA_PROXY_BASE}${extBucket}?prefix=${encodeURIComponent(prefix)}&limit=1000`
-        : `${DATA_PROXY_BASE}${extBucket}?limit=1000`;
-      logger.debug("[KG pyramids] Fetching DZIP bucket listing:", url);
-      fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : {})
-        .then((r) => r.json())
-        .then((data) => {
-          const files = (data.objects || []).filter((o) => o.name.endsWith(".dzip"));
-          logger.debug(`[KG pyramids] DZIP: found ${files.length} .dzip files`);
-          setExternalPyramids(files);
-        })
-        .catch((e) => logger.warn("[KG pyramids] Failed to fetch DZIP pyramids", e))
-        .finally(() => setLoadingExternalPyramids(false));
-    } catch (e) {
-      logger.warn("[KG pyramids] Failed to parse dziproot", e);
-    }
-  }, [kgSettings?.dziproot, kgSettings?.bucket, kgSettings?.isUncompressed, token]);
-
-  // Combined file list: for KG brains uses externalPyramids as dzip-only rows;
-  // for local brains extends unifiedFiles with any dzip-only rows (dzips without a matching raw image)
+  // Combined file list: for KG brains display WALN sections directly (no extra bucket fetch);
+  // for local brains extend unifiedFiles with any dzip-only rows (dzips without a matching raw image)
   const allFiles = useMemo(() => {
     const walnSections = walnContent?.sections || walnContent?.slices || [];
-
-    // Apply the transform rule: e.g. "_thumbnail.png=.tif.dzip" maps
-    // a section filename to its expected dzip basename
-    const applyTransform = (filename, transform) => {
-      if (!transform || !filename) return filename;
-      const eqIdx = transform.indexOf("=");
-      if (eqIdx === -1) return filename;
-      const from = transform.slice(0, eqIdx);
-      const to = transform.slice(eqIdx + 1);
-      return filename.endsWith(from)
-        ? filename.slice(0, -from.length) + to
-        : filename;
-    };
+    logger.info("[KG allFiles] Computing file list:", {
+      kgSettings: kgSettings
+        ? {
+            bucket: kgSettings.bucket,
+            dziproot: kgSettings.dziproot,
+            isUncompressed: kgSettings.isUncompressed,
+          }
+        : null,
+      walnSections: walnSections.length,
+    });
 
     if (kgSettings) {
-      const transform = kgSettings.transform || null;
-
-      // Build a map from expected dzip basename → WALN section
-      const sectionByDzip = new Map();
-      walnSections.forEach((section) => {
-        const sectionBase = section.filename?.split("/").pop() || "";
-        const dzipBase = applyTransform(sectionBase, transform);
-        sectionByDzip.set(dzipBase, section);
-        // Also index by raw section basename in case transform isn't set
-        if (dzipBase !== sectionBase) sectionByDzip.set(sectionBase, section);
-      });
-
-      if (externalPyramids.length > 0) {
-        // Cross-reference fetched dzip files with registered sections
-        return externalPyramids.map((zip) => {
-          const dzipBaseName = zip.name.split("/").pop();
-          const section =
-            sectionByDzip.get(dzipBaseName) ||
-            sectionByDzip.get(dzipBaseName.replace(".dzip", ""));
-          return {
-            id: zip.name,
-            fileName: dzipBaseName.replace(".dzip", ""),
-            rawPath: null,
-            rawSize: null,
-            rawLastModified: null,
-            zipLastModified: new Date(zip.last_modified).getTime(),
-            isProcessed: true,
-            processedPath: zip.name,
-            processedSize: zip.bytes || null,
-            processedLastModified: new Date(zip.last_modified).getTime(),
-            dzipOnly: true,
-            registrationSection: section || null,
-            hasOuv: Boolean(section?.ouv || section?.anchoring),
-            hasMarkers: Boolean(section?.markers?.length),
-          };
-        });
-      }
-
-      // No external pyramids yet — fall back to WALN sections
+      logger.info(
+        `[KG allFiles] Using WALN sections only: ${walnSections.length} sections`,
+      );
       return walnSections.map((section, i) => ({
         id: section.filename || `section-${i}`,
         fileName:
@@ -337,7 +215,7 @@ const QuickActions = ({
       hasOuv: Boolean(section?.ouv || section?.anchoring),
       hasMarkers: Boolean(section?.markers?.length),
     }));
-  }, [unifiedFiles, kgSettings, externalPyramids, pyramidStats, walnContent]);
+  }, [unifiedFiles, kgSettings, pyramidStats, walnContent]);
 
   const [taskStatus, setTaskStatus] = useState({});
   const [pollingInterval, setPollingInterval] = useState(null);
@@ -866,9 +744,6 @@ const QuickActions = ({
                 </Button>
               </Box>
             )}
-            {kgSettings && loadingExternalPyramids && (
-              <LinearProgress sx={{ borderRadius: 1, mb: 1 }} />
-            )}
             {/* Unified Image Table — shown for both local and KG brains */}
             <TableContainer
               component={Paper}
@@ -1065,7 +940,13 @@ const QuickActions = ({
           <Atlas
             token={token}
             bucketName={bucketName}
-            dzips={kgSettings ? externalPyramids : brainPyramids.zips}
+            dzips={
+              kgSettings
+                ? (walnContent?.sections || walnContent?.slices || [])
+                    .filter((s) => Boolean(s?.filename))
+                    .map((s) => ({ name: s.filename }))
+                : brainPyramids.zips
+            }
             kgDziproot={kgSettings?.dziproot}
             brainPath={braininfo?.path}
             updateInfo={({ open, message, severity }) => {

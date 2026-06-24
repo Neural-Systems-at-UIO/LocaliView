@@ -252,7 +252,7 @@ export default function CreationDialog({
           //      (imgsvc- is exclusively used for DZIP compressed storage on EBRAINS)
           //   3. Otherwise → old uncompressed pyramid directories (img- buckets)
           const isDzip = bucketObjects.some((o) => o.name.endsWith(".dzip"))
-            || (bucketObjects.length === 0 && extBucket.startsWith("imgsvc-"));
+            || (bucketObjects.length === 0 && extBucket.includes("imgsvc-"));
           console.log(
             `[KG import] Pyramid layout: ${isDzip ? "DZIP (compressed)" : "uncompressed directories"}`,
             `(listing had ${bucketObjects.length} objects, bucket="${extBucket}")`,
@@ -260,8 +260,7 @@ export default function CreationDialog({
 
           if (isDzip) {
             // --- DZIP path (existing behaviour) ---
-            const transformRule = kgData.transform || null;
-            const toDzipFilename = (filename) => {
+            const transformRule = kgData.transform || null;            const toDzipFilename = (filename) => {
               if (!filename) return filename;
               if (bucketFileSet.size > 0 && bucketFileSet.has(filename.split("/").pop())) return filename;
               if (transformRule) {
@@ -292,16 +291,19 @@ export default function CreationDialog({
                 seriesContent.sections.slice(0, 2).map((s) => s.filename),
               );
             }
-            // Store bucket + relative prefix (not full URL)
-            seriesContent.bucket = extBucket;
-            seriesContent.dziproot = prefix;
-            console.log(`[KG import] DZIP layout → bucket="${extBucket}" dziproot="${prefix}"`);
+            // Store dziproot as a full data-proxy URL so the DZIP detection in QuintTable
+            // (walnContent.dziproot.startsWith("http")) continues to work.
+            // Do NOT set seriesContent.bucket for DZIP — that field is the uncompressed marker.
+            const DATA_PROXY_BASE_STORE = "https://data-proxy.ebrains.eu/api/v1/buckets/";
+            seriesContent.dziproot = `${DATA_PROXY_BASE_STORE}${extBucket}/${prefix}`.replace(/\/+$/, "/");
+            delete seriesContent.bucket;
+            logger.info(`[KG import] DZIP series JSON will store: dziproot="${seriesContent.dziproot}" sections=${seriesContent.sections?.length ?? 0}`);
           } else {
             // --- AP3: Uncompressed path ---
             // Store the bare bucket name and relative prefix; WebAlign/WebWarp use these to build tile URLs.
             seriesContent.bucket = extBucket;
             seriesContent.dziproot = prefix;
-            console.log(`[KG import] Uncompressed layout → bucket="${extBucket}" dziproot="${prefix}"`);
+            logger.info(`[KG import] Uncompressed series JSON will store: bucket="${extBucket}" dziproot="${prefix}" sections=${seriesContent.sections?.length ?? 0}`);
 
             // AP5: Fetch DZI XML for each section to inject format/tilesize/overlap metadata.
             // imgsvc- buckets use /api/v1/imgsvc-xxx/ not /api/v1/buckets/imgsvc-xxx/ —
@@ -370,13 +372,6 @@ export default function CreationDialog({
           seriesFileName,
           seriesContent
         );
-        // Track KG-sourced brains in localStorage for UI differentiation
-        const kgKey = "kgBrains";
-        const existing = JSON.parse(localStorage.getItem(kgKey) || "[]");
-        const brainPath = `${project.name}/${name}/`;
-        if (!existing.includes(brainPath)) {
-          localStorage.setItem(kgKey, JSON.stringify([...existing, brainPath]));
-        }
         showSuccess("KG series imported successfully");
         onUploadComplete?.();
         onClose();

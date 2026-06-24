@@ -36,8 +36,6 @@ const BrainList = ({
   const [brainToDelete, setBrainToDelete] = useState(null);
   const [confirmInput, setConfirmInput] = useState("");
 
-  const kgBrains = new Set(JSON.parse(localStorage.getItem("kgBrains") || "[]"));
-
   const handleBrainSelect = (brain) => {
     setSelectedBrain(brain);
     onBrainSelect({ row: brain });
@@ -100,7 +98,6 @@ const BrainList = ({
         dense
       >
         {rows.map((brain) => {
-          const isKG = kgBrains.has(brain.path);
           return (
           <ListItem
             key={brain.id}
@@ -110,7 +107,6 @@ const BrainList = ({
               "&:last-child": { borderBottom: "none" },
               display: "flex",
               justifyContent: "space-between",
-              ...(isKG && { borderLeft: "3px solid #0288d1" }),
             }}
           >
             <ListItemButton
