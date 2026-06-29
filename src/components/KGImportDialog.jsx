@@ -61,7 +61,7 @@ export const parseServiceLink = (url) => {
     // series may now be a bare path (new KG naming) — convert to full data-proxy URL
     const series = toDataProxyUrl(rawSeries);
 
-    // Prefer explicit dziproot param; fall back to pyramids
+    // Prefer explicit dziproot param; fall back to pyramids, BOTH Are handled here for the folers themselves as well
     let dziproot = toDataProxyUrl(u.searchParams.get("dziproot") || "", true);
     if (!dziproot) {
       const pyramids = u.searchParams.get("pyramids") || "";
@@ -78,7 +78,7 @@ export const parseServiceLink = (url) => {
       series,
       dziproot,
       transform: u.searchParams.get("transform") || "",
-      name: rawSeries.split("/").pop().replace(/\.json$/i, ""),
+      name: rawSeries.split("/").pop().replace(/\.wlan$/i, ""),
     };
   } catch {
     return null;
