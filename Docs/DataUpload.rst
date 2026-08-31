@@ -26,7 +26,7 @@ Once you are logged in to the online Workbench you are ready to start your analy
 
 
 
-**Localiview online workflow steps:**
+**LocaliView online workflow steps:**
 
 1. **Register your images to the atlas**: use `WebAlign <https://quint-webtools.readthedocs.io/en/latest/WebAlign.html>`_ first, followed by `WebWarp <https://quint-webtools.readthedocs.io/en/latest/WebWarp.html>`_. 
 2. **Annotate the features to be analysed**: use `LocaliZoom <https://localizoom.readthedocs.io/en/latest.html>`.
