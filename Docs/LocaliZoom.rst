@@ -54,13 +54,10 @@ switch between different coordinate spaces when available.
 
 **Annotations**
 ---------------------
-The same basic viewing controls applies and in addition extraction of a limited
-number of coordinates, e.g. representing an electrode track or labelling
-within a small region of interest is possible. Users can inspect the
-images at cellular resolution and observe brain regions, names, and
-boundaries and annotate points in order to extract coordinates.
+Add markers e.g. representing an electrode track or labelling of cells.
+You can zoom-in your images uisng the mouse wheel and observe brain regions, names, and
+boundaries.
 
-Use the webapp here: https://localiview.apps.ebrains.eu/
 
 .. image:: images/LZ_GUI.png
    :width: 5.4in
@@ -81,6 +78,6 @@ More details can be found here: https://localizoom.readthedocs.io/en/latest/inde
 
 **Viewing point coordinates in MeshView**
 
-The saved points can be visualised in the 3D viewer, MeshView (https://meshview-for-brain-atlases.readthedocs.io/en/latest/index.html) which is also available in the LocaliView workbench.
+The saved points can be visualised in the 3D viewer, MeshView which is also available in the LocaliView workbench.
 
 Read more about MeshView here: https://meshview-for-brain-atlases.readthedocs.io/en/latest/ 
