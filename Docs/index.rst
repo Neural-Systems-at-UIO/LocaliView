@@ -25,7 +25,7 @@ LocaliView: Workflow for registration and annotation of 2D rodent brain section 
    DataUpload
 
 .. toctree::
-   :caption: EBRAINs datasets
+   :caption: EBRAINS datasets
    :maxdepth: 3 
 
    Load_EBRAINS_datasets
