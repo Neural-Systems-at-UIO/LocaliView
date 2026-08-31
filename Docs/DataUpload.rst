@@ -22,9 +22,8 @@ Once you are logged in to the online Workbench you are ready to start your analy
 3. Once the image series is visible in the project, select it to reveal series information. Press "Convert" to convert the images to the DZI format required by the tools. Depending on the size of the images, this process may take some time. The conversion process will continue if you log out, so feel free to log out and log in at a later time. 
 4. Once the images are converted, select the reference atlas to use for analysis (mouse or rat) and press "Generate" to create a registration file. You are now ready to start using the tools.  
 
-.. image:: images/LocaliViewUI
-:align: right
-   :width: 200
+.. image:: images/LocaliViewUI.png
+
 
 
 **Localiview online workflow steps:**
