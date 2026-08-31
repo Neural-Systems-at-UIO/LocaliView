@@ -23,7 +23,9 @@ Your workspace is comprised of your user space, tabs pointing to applications wh
 Your online workspace includes several key features to enhance your research workflow:
 
 * **Project Management**: Create and manage multiple research projects, each supporting multiple series.
+* **Invite your colleagues to your workspace**: Use the invite button.
 * **Data Upload**: Easily upload and organise your brain image data and access it from any device with your EBRAINS account.
+* **Work on EBRAINS datasets or your own datasets**: Create project.
 * **Analysis Tracking**: Monitor the progress of your analyses with LocaliView workflow focused tracking dashboard.
 * **Result Access**: Quickly access your analysis results and outputs, make use of the multiple visualisation tools integrated into the workflow.
 
@@ -49,6 +51,7 @@ Once a project is created, you can upload your brain image data to the project, 
 .. image:: images/AddEditSeries.png
    :height: 400
    :align: center
+
 
 
 **Next Steps**
